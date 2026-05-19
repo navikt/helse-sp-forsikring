@@ -1,6 +1,6 @@
 [versions]
 kotlin = "2.3.10"
-ktor = "3.2.3"
+ktor = "3.4.3"
 tbdLibs = "2026.01.22-09.16-1d3f6039"
 
 [libraries]
