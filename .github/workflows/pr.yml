@@ -1,0 +1,19 @@
+name: Bygg PR
+
+on: [ pull_request ]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  id-token: write
+  packages: read
+
+jobs:
+  build:
+    uses: ./.github/workflows/build.yml
+    secrets: inherit
+    with:
+      push_image: false

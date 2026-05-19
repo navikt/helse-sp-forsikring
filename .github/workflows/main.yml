@@ -1,0 +1,49 @@
+name: Bygg og deploy main
+
+on:
+  push:
+    branches:
+      - main
+  schedule:
+    - cron: '0 4 * * 3'
+      timezone: 'Europe/Oslo'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  id-token: write
+  packages: read
+
+jobs:
+  build:
+    uses: ./.github/workflows/build.yml
+    secrets: inherit
+
+#  deployDev:
+#    name: Deploy to dev
+#    needs: [ build ]
+#    runs-on: ubuntu-latest
+#    steps:
+#      - uses: actions/checkout@v6
+#      - uses: nais/deploy/actions/deploy@v2
+#        env:
+#          CLUSTER: dev-gcp
+#          RESOURCE: .nais/app.yaml
+#          VARS: .nais/app-vars-dev.yaml
+#          WORKLOAD_IMAGE: ${{ needs.build.outputs.image }}
+#
+#  deployProd:
+#    name: Deploy to prod
+#    needs: [ build, deployDev ]
+#    runs-on: ubuntu-latest
+#    steps:
+#      - uses: actions/checkout@v6
+#      - uses: nais/deploy/actions/deploy@v2
+#        env:
+#          CLUSTER: prod-gcp
+#          RESOURCE: .nais/app.yaml
+#          VARS: .nais/app-vars-prod.yaml
+#          WORKLOAD_IMAGE: ${{ needs.build.outputs.image }}
