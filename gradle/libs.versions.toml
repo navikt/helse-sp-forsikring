@@ -4,7 +4,7 @@ ktor = "3.4.3"
 tbdLibs = "2026.01.22-09.16-1d3f6039"
 
 [libraries]
-junit-bom = "org.junit:junit-bom:6.0.2"
+junit-bom = "org.junit:junit-bom:6.0.3"
 
 ktor-server-auth = { module = "io.ktor:ktor-server-auth", version.ref = "ktor" }
 ktor-server-auth-jwt = { module = "io.ktor:ktor-server-auth-jwt", version.ref = "ktor" }
