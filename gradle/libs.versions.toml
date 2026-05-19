@@ -48,4 +48,4 @@ logback = [
 
 [plugins]
 kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
-ktlint = "org.jlleitschuh.gradle.ktlint:14.0.1"
+ktlint = "org.jlleitschuh.gradle.ktlint:14.2.0"
