@@ -6,6 +6,17 @@ metadata:
   labels:
     team: tbd
 spec:
+  gcp:
+    sqlInstance:
+      - type: POSTGRES_18
+        diskAutoresize: true
+        tier: {{db-tier}}
+        name: sp-forsikring
+        databases:
+          - name: sp-forsikring
+            envVarPrefix: DATABASE
+            users:
+              - name: sp-forsikring-opprydding-dev
   port: 8080
   startup:
     path: isready
