@@ -9,6 +9,8 @@ fun main() {
 fun launchApplication(env: Map<String, String>) {
     val sykepengeforsikringService = SykepengeforsikringService()
 
+    Unit.loggInfo("Hei fra Unit \uD83D\uDC4B")
+
     RapidApplication
         .create(System.getenv(), builder = {
             withKtorModule {
