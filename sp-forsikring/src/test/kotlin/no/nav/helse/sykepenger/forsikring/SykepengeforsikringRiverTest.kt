@@ -1,16 +1,18 @@
 package no.nav.helse.sykepenger.forsikring
 
 import com.github.navikt.tbd_libs.rapids_and_rivers.test_support.TestRapid
-import io.mockk.clearAllMocks
-import io.mockk.every
-import io.mockk.mockk
 import org.intellij.lang.annotations.Language
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 
 class SykepengeforsikringRiverTest {
-    private val sykepengeforsikringService = mockk<SykepengeforsikringService>()
+    private var mocketResultatSupplier: () -> SykepengeforsikringResultat? = { null }
+    private val sykepengeforsikringService = object : SykepengeforsikringService {
+        override fun hentSykepengeforsikring(fødselsnummer: String, callId: String): SykepengeforsikringResultat? {
+            return mocketResultatSupplier()
+        }
+    }
 
     private val rapid =
         TestRapid()
@@ -20,13 +22,13 @@ class SykepengeforsikringRiverTest {
 
     @BeforeEach
     fun reset() {
-        clearAllMocks()
+        mocketResultatSupplier = { null }
         rapid.reset()
     }
 
     @Test
     fun `publiserer løsning når sykepengeforsikring finnes`() {
-        every { sykepengeforsikringService.hentSykepengeforsikring(any(), any()) } returns SykepengeforsikringResultat(forsikret = true)
+        mocketResultatSupplier = { SykepengeforsikringResultat(forsikret = true) }
 
         rapid.sendTestMessage(behov)
 
@@ -36,7 +38,7 @@ class SykepengeforsikringRiverTest {
 
     @Test
     fun `publiserer ikke løsning ved feil`() {
-        every { sykepengeforsikringService.hentSykepengeforsikring(any(), any()) } throws RuntimeException("Tjeneste utilgjengelig")
+        mocketResultatSupplier = { error("Tjeneste utilgjengelig") }
 
         rapid.sendTestMessage(behov)
 

@@ -2,9 +2,6 @@ package no.nav.helse.sykepenger.forsikring
 
 import io.ktor.server.cio.CIO
 import io.ktor.server.engine.embeddedServer
-import io.mockk.clearAllMocks
-import io.mockk.every
-import io.mockk.mockk
 import java.net.ServerSocket
 import no.nav.security.mock.oauth2.MockOAuth2Server
 import org.apache.hc.client5.http.fluent.Request
@@ -21,7 +18,12 @@ private const val CLIENT_ID = "sp-forsikring-junit"
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class SykepengeforsikringApiTest {
     private val mockOAuth2Server = MockOAuth2Server().also(MockOAuth2Server::start)
-    private val sykepengeforsikringService = mockk<SykepengeforsikringService>()
+    private var mocketResultat: SykepengeforsikringResultat? = null
+    private val sykepengeforsikringService = object : SykepengeforsikringService {
+        override fun hentSykepengeforsikring(fødselsnummer: String, callId: String): SykepengeforsikringResultat? {
+            return mocketResultat
+        }
+    }
 
     private val port = ServerSocket(0).use { it.localPort }
     private val serverUrl = "http://localhost:$port"
@@ -36,20 +38,19 @@ class SykepengeforsikringApiTest {
             )
         }.start(wait = false)
 
+    @BeforeEach
+    fun reset() {
+        mocketResultat = null
+    }
+
     @AfterAll
     fun teardown() {
         embeddedServer.stop()
-        mockOAuth2Server.shutdown()
-    }
-
-    @BeforeEach
-    fun resetMocks() {
-        clearAllMocks()
     }
 
     @Test
     fun `returnerer 200 med svar når forsikring finnes`() {
-        every { sykepengeforsikringService.hentSykepengeforsikring(any(), any()) } returns SykepengeforsikringResultat(forsikret = true)
+        mocketResultat = SykepengeforsikringResultat(forsikret = true)
 
         val (statusCode, _) = postSykepengeforsikring(bearerToken())
 
@@ -58,8 +59,6 @@ class SykepengeforsikringApiTest {
 
     @Test
     fun `returnerer 404 når forsikring ikke finnes`() {
-        every { sykepengeforsikringService.hentSykepengeforsikring(any(), any()) } returns null
-
         val (statusCode, _) = postSykepengeforsikring(bearerToken())
 
         assertEquals(404, statusCode)
