@@ -1,0 +1,43 @@
+plugins {
+    id("application")
+    alias(libs.plugins.kotlin.jvm)
+    alias(libs.plugins.ktlint)
+}
+
+application {
+    mainClass.set("no.nav.helse.sykepenger.forsikring.AppKt")
+    applicationName = "app"
+}
+
+dependencies {
+    implementation(libs.rapids.and.rivers)
+    implementation(libs.bundles.ktor.server)
+    implementation(libs.bundles.logback)
+    implementation(libs.kotliquery)
+    implementation(libs.flyway.database.postgresql)
+    implementation(project(":migreringer"))
+
+    testImplementation(libs.tbd.libs.rapids.and.rivers.test)
+    testImplementation(libs.httpclient5.fluent)
+    testImplementation(libs.mock.oauth2.server)
+    testImplementation(libs.wiremock)
+    testImplementation(libs.testcontainers.postgres)
+    testImplementation(kotlin("test"))
+    testImplementation(platform(libs.junit.bom))
+    testImplementation(libs.junit.jupiter)
+}
+
+kotlin {
+    jvmToolchain(21)
+}
+
+tasks {
+    named<Test>("test") {
+        useJUnitPlatform()
+        testLogging {
+            events("skipped", "failed")
+            showStackTraces = true
+            exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
+        }
+    }
+}

@@ -32,8 +32,8 @@ jobs:
       - uses: nais/deploy/actions/deploy@v2
         env:
           CLUSTER: dev-gcp
-          RESOURCE: .nais/app.yaml
-          VARS: .nais/app-vars-dev.yaml
+          RESOURCE: .nais/sp-forsikring.yaml
+          VARS: .nais/sp-forsikring-vars-dev.yaml
           WORKLOAD_IMAGE: ${{ needs.build.outputs.image }}
 
 #  deployProd:
@@ -45,6 +45,6 @@ jobs:
 #      - uses: nais/deploy/actions/deploy@v2
 #        env:
 #          CLUSTER: prod-gcp
-#          RESOURCE: .nais/app.yaml
-#          VARS: .nais/app-vars-prod.yaml
+#          RESOURCE: .nais/sp-forsikring.yaml
+#          VARS: .nais/sp-forsikring-vars-prod.yaml
 #          WORKLOAD_IMAGE: ${{ needs.build.outputs.image }}

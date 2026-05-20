@@ -5,6 +5,6 @@ ENV JDK_JAVA_OPTIONS='-XX:MaxRAMPercentage=75'
 
 WORKDIR /app
 
-COPY build/install/app/ /app/
+COPY sp-forsikring/build/install/app/ /app/
 ENTRYPOINT ["java", "-cp", "/app/lib/*", "no.nav.helse.sykepenger.forsikring.AppKt"]
 CMD []

@@ -1,5 +1,11 @@
 rootProject.name = "helse-sp-forsikring"
 
+include(
+    "migreringer",
+    "sp-forsikring",
+    "opprydding-dev"
+)
+
 // Sett opp repositories basert på om vi kjører i CI eller ikke
 // Jf. https://github.com/navikt/utvikling/blob/main/docs/teknisk/Konsumere%20biblioteker%20fra%20Github%20Package%20Registry.md
 dependencyResolutionManagement {

@@ -41,7 +41,7 @@ jobs:
           java-version: 21
       - uses: gradle/actions/setup-gradle@50e97c2cd7a37755bbfafc9c5b7cafaece252f6e # v6.1.0
       - name: gradle build installDist
-        run: ./gradlew build installDist
+        run: ./gradlew :sp-forsikring:build :sp-forsikring:installDist
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
