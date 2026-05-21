@@ -9,7 +9,7 @@ testcontainers = "2.0.5"
 flyway-database-postgresql = "org.flywaydb:flyway-database-postgresql:11.5.0"
 hikaricp = "com.zaxxer:HikariCP:6.3.0"
 httpclient5-fluent = "org.apache.httpcomponents.client5:httpclient5-fluent:5.6.1"
-kotliquery = "com.github.seratch:kotliquery:1.9.0"
+kotliquery = "com.github.seratch:kotliquery:1.9.1"
 ktor-serialization-jackson = { module = "io.ktor:ktor-serialization-jackson", version.ref = "ktor" }
 ktor-server-auth = { module = "io.ktor:ktor-server-auth", version.ref = "ktor" }
 ktor-server-auth-jwt = { module = "io.ktor:ktor-server-auth-jwt", version.ref = "ktor" }
