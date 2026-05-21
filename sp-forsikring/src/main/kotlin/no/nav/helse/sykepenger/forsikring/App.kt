@@ -1,5 +1,8 @@
 package no.nav.helse.sykepenger.forsikring
 
+import com.zaxxer.hikari.HikariConfig
+import com.zaxxer.hikari.HikariDataSource
+import java.time.Duration
 import no.nav.helse.rapids_rivers.RapidApplication
 
 fun main() {
@@ -7,7 +10,22 @@ fun main() {
 }
 
 fun launchApplication(env: Map<String, String>) {
+    val replikabaseForsikringDao = ReplikabaseForsikringDao(
+        dataSource = HikariDataSource(
+            HikariConfig().apply {
+                jdbcUrl = env.getValue("ORACLE_URL")
+                username = env.getValue("ORACLE_USERNAME")
+                password = env.getValue("ORACLE_PASSWORD")
+                schema = env.getValue("ORACLE_DATABASE")
+                connectionTimeout = Duration.ofSeconds(20).toMillis()
+                maxLifetime = Duration.ofMinutes(30).toMillis()
+                initializationFailTimeout = Duration.ofMinutes(1).toMillis()
+            }
+        )
+    )
     val sykepengeforsikringService = SykepengeforsikringServiceImpl()
+
+    replikabaseForsikringDao.testDb()
 
     Unit.loggInfo("Hei fra Unit \uD83D\uDC4B")
 
@@ -23,6 +41,6 @@ fun launchApplication(env: Map<String, String>) {
             }
         })
         .apply {
-            SykepengeforsikringRiver(this, sykepengeforsikringService)
+            SykepengeforsikringRiver(this, sykepengeforsikringService) //, replikabaseForsikringDao)
         }.start()
 }

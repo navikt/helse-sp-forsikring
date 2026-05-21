@@ -9,6 +9,9 @@ application {
 }
 
 dependencies {
+    implementation(libs.hikaricp)
+    implementation(libs.postgresql)
+    implementation(libs.ojdbc11)
     implementation(libs.rapids.and.rivers)
     implementation(libs.bundles.ktor.server)
     implementation(libs.bundles.logback)
@@ -21,6 +24,7 @@ dependencies {
     testImplementation(libs.mock.oauth2.server)
     testImplementation(libs.wiremock)
     testImplementation(libs.testcontainers.postgres)
+    testImplementation(libs.testcontainers.oracle.free)
     testImplementation(kotlin("test"))
     testImplementation(platform(libs.junit.bom))
     testImplementation(libs.junit.jupiter)

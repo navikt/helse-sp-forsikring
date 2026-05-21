@@ -10,7 +10,8 @@ import io.micrometer.core.instrument.MeterRegistry
 
 class SykepengeforsikringRiver(
     rapidsConnection: RapidsConnection,
-    private val sykepengeforsikringService: SykepengeforsikringService
+    private val sykepengeforsikringService: SykepengeforsikringService,
+    //private val infotrygdForsikringDao: InfotrygdForsikringDao,
 ) : River.PacketListener {
     init {
         River(rapidsConnection)

@@ -5,7 +5,7 @@ import java.math.BigDecimal
 import java.time.Instant
 import java.time.LocalDate
 
-interface ForsikringDao {
+interface InfotrygdForsikringDao {
     fun hentForsikringer(fødselsnummer: String, skjæringstidspunkt: LocalDate): List<ForsikringDto>
     fun hentFullstendigeForsikringer(fødselsnummer: String): List<RåForsikringDto>
 

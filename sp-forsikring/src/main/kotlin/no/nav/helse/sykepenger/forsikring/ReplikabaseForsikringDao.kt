@@ -8,8 +8,19 @@ import kotliquery.queryOf
 import kotliquery.sessionOf
 import org.intellij.lang.annotations.Language
 
-class ReplikabaseForsikringDao(private val dataSource: DataSource) : ForsikringDao {
-    override fun hentForsikringer(fødselsnummer: String, skjæringstidspunkt: LocalDate): List<ForsikringDao.ForsikringDto> =
+class ReplikabaseForsikringDao(private val dataSource: DataSource) : InfotrygdForsikringDao {
+
+    fun testDb() {
+        sessionOf(dataSource).use { session ->
+            loggInfo("Tester select")
+            val en:Int? = session.run(
+                queryOf("SELECT 1 FROM DUAL").map { row -> 1 }.asSingle
+            )
+            loggInfo("fikk svar: $en")
+        }
+    }
+
+    override fun hentForsikringer(fødselsnummer: String, skjæringstidspunkt: LocalDate): List<InfotrygdForsikringDao.ForsikringDto> =
         sessionOf(dataSource).use { session ->
             @Language("Oracle")
             val statement = """
@@ -19,15 +30,15 @@ class ReplikabaseForsikringDao(private val dataSource: DataSource) : ForsikringD
             """
             session.run(
                 queryOf(statement, fødselsnummer.tilInfotrygdFødselsnummer()).map { rs ->
-                    ForsikringDao.ForsikringDto(
+                    InfotrygdForsikringDao.ForsikringDto(
                         forsikringstype = when (rs.string("IF10_TYPE").trim()) {
-                            "1" -> ForsikringDao.ForsikringDto.Forsikringstype.ÅttiProsentFraDagEn
-                            "2" -> ForsikringDao.ForsikringDto.Forsikringstype.HundreProsentFraDagSytten
+                            "1" -> InfotrygdForsikringDao.ForsikringDto.Forsikringstype.ÅttiProsentFraDagEn
+                            "2" -> InfotrygdForsikringDao.ForsikringDto.Forsikringstype.HundreProsentFraDagSytten
 
                             "3",
-                            "4" -> ForsikringDao.ForsikringDto.Forsikringstype.HundreProsentFraDagEn
+                            "4" -> InfotrygdForsikringDao.ForsikringDto.Forsikringstype.HundreProsentFraDagEn
 
-                            else -> ForsikringDao.ForsikringDto.Forsikringstype.IkkeInteressert
+                            else -> InfotrygdForsikringDao.ForsikringDto.Forsikringstype.IkkeInteressert
                         },
                         premiegrunnlag = rs.int("IF10_PREMGRL"),
                         virkningsdato = rs.intToLocalDate("IF10_VIRKDATO")!!,
@@ -37,7 +48,7 @@ class ReplikabaseForsikringDao(private val dataSource: DataSource) : ForsikringD
             )
         }
 
-    override fun hentFullstendigeForsikringer(fødselsnummer: String): List<ForsikringDao.RåForsikringDto> =
+    override fun hentFullstendigeForsikringer(fødselsnummer: String): List<InfotrygdForsikringDao.RåForsikringDto> =
         sessionOf(dataSource).use { session ->
             @Language("Oracle")
             val statement = """
@@ -62,7 +73,7 @@ class ReplikabaseForsikringDao(private val dataSource: DataSource) : ForsikringD
                     val fkonto12Rader = sessionOf(dataSource).use { innerSession ->
                         innerSession.run(
                             queryOf(fkonto12Statement, if01Kode.toString(), if01AgnrFnr, if10ForsfomSeq).map { fkRs ->
-                                ForsikringDao.IF_FKONTO_12_Rad(
+                                InfotrygdForsikringDao.IF_FKONTO_12_Rad(
                                     IF12_BETDATO_SEQ = fkRs.intOrNull("IF12_BETDATO_SEQ"),
                                     IF12_FOM = fkRs.intOrNull("IF12_FOM"),
                                     IF12_TOM = fkRs.intOrNull("IF12_TOM"),
@@ -80,7 +91,7 @@ class ReplikabaseForsikringDao(private val dataSource: DataSource) : ForsikringD
                         )
                     }
 
-                    ForsikringDao.RåForsikringDto(
+                    InfotrygdForsikringDao.RåForsikringDto(
                         IF01_KODE = if01Kode,
                         IF01_AGNR_FNR = if01AgnrFnr,
                         IF10_FORSFOM_SEQ = if10ForsfomSeq,
