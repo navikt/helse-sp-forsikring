@@ -52,14 +52,22 @@ class SykepengeforsikringBehovRiver(
             loggInfo("Henter sykepengeforsikring")
             try {
                 val vedfrivt10Rader = infotrygdForsikringDao.hentIfVedfrivt10Rader(fødselsnummer)
-                val løsning = if (vedfrivt10Rader.isNotEmpty()) {
+                val løsning = if ("JORDBRUKER" in særskilteGrupper) {
+                    Løsning.MedForsikring(
+                        oppslagId = oppslagId,
+                        dekning = if (vedfrivt10Rader.firstOrNull()?.IF10_TYPE == '4') {
+                            Løsning.MedForsikring.Dekning(grad = 100, fraDag = 1)
+                        } else {
+                            Løsning.MedForsikring.Dekning(grad = 100, fraDag = 17) // Kollektiv forsikring
+                        }
+                    )
+                } else if (vedfrivt10Rader.isNotEmpty()) {
                     Løsning.MedForsikring(
                         oppslagId = oppslagId,
                         dekning = when (val type = vedfrivt10Rader.first().IF10_TYPE) {
                             '1' -> Løsning.MedForsikring.Dekning(grad = 80, fraDag = 1)
                             '2' -> Løsning.MedForsikring.Dekning(grad = 100, fraDag = 17)
                             '3' -> Løsning.MedForsikring.Dekning(grad = 100, fraDag = 1)
-                            '4' if "JORDBRUKER" in særskilteGrupper -> Løsning.MedForsikring.Dekning(grad = 100, fraDag = 1)
                             '5' if "FRILANSER" == yrkesaktivitetstype -> Løsning.MedForsikring.Dekning(grad = 100, fraDag = 1)
 
                             else -> error("Støtter ikke kombinasjonen IF10_TYPE $type, yrkesaktivitetstype $yrkesaktivitetstype, særskilteGrupper $særskilteGrupper")
