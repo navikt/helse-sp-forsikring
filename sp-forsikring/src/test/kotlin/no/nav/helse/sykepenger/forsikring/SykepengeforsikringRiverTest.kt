@@ -63,6 +63,15 @@ internal class SykepengeforsikringRiverTest {
         }
     }
 
+    @Test
+    fun `løsning er INGEN_FORSIKRING når det ikke finnes noen forsikring`() {
+        rapid.sendTestMessage(testmelding("01020312345", LocalDate.parse("2026-01-01")))
+
+        assertEquals(1, rapid.inspektør.size)
+        val løsningMelding = rapid.inspektør.message(0)
+        assertEquals("INGEN_FORSIKRING", løsningMelding["@løsning"]["Sykepengeforsikring"]["konklusjon"]?.asText())
+    }
+
    /* @Test
     fun `Returnerer forsikring uten tilhørende fkonto12-rader`() {
         TestcontainersReplikadatabase.insertVedfrivt(
