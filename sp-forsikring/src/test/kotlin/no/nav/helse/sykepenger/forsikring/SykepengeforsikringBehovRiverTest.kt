@@ -80,6 +80,7 @@ internal class SykepengeforsikringBehovRiverTest {
     fun `løsning når det finnes en gyldig forsikring med 100% fra dag 1 inneholder riktig informasjon`() {
         TestcontainersReplikadatabase.insertVedfrivt(
             IF01_AGNR_FNR = 3020112345L,
+            IF10_TYPE = '3'
         )
 
         rapid.sendTestMessage(testmelding("01020312345", LocalDate.parse("2026-01-01")))
@@ -88,6 +89,24 @@ internal class SykepengeforsikringBehovRiverTest {
         val løsningMelding = rapid.inspektør.message(0)
         assertJsonEquals(
             expectedJson = """{ "harForsikring": true, "dekning": { "grad": 100, "fraDag": 1 } } """,
+            actualJsonNode = løsningMelding["@løsning"]["Sykepengeforsikring"],
+            bortsettFraProperties = listOf("oppslagId")
+        )
+    }
+
+    @Test
+    fun `løsning når det finnes en gyldig forsikring med 100% fra dag 17 inneholder riktig informasjon`() {
+        TestcontainersReplikadatabase.insertVedfrivt(
+            IF01_AGNR_FNR = 3020112345L,
+            IF10_TYPE = '2'
+        )
+
+        rapid.sendTestMessage(testmelding("01020312345", LocalDate.parse("2026-01-01")))
+
+        assertEquals(1, rapid.inspektør.size)
+        val løsningMelding = rapid.inspektør.message(0)
+        assertJsonEquals(
+            expectedJson = """{ "harForsikring": true, "dekning": { "grad": 100, "fraDag": 17 } } """,
             actualJsonNode = løsningMelding["@løsning"]["Sykepengeforsikring"],
             bortsettFraProperties = listOf("oppslagId")
         )

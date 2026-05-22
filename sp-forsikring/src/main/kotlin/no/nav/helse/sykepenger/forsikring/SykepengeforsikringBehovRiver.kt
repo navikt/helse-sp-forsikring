@@ -41,14 +41,16 @@ class SykepengeforsikringBehovRiver(
         medMdc(MdcKey.MELDING_ID to meldingId) {
             loggInfo("Henter sykepengeforsikring")
             try {
-                val fullstendigeForsikringer = infotrygdForsikringDao.hentIfVedfrivt10Rader(fødselsnummer)
-                val løsning = if (fullstendigeForsikringer.isNotEmpty()) {
+                val vedfrivt10Rader = infotrygdForsikringDao.hentIfVedfrivt10Rader(fødselsnummer)
+                val løsning = if (vedfrivt10Rader.isNotEmpty()) {
                     Løsning.MedForsikring(
                         oppslagId = oppslagId,
-                        dekning = Løsning.MedForsikring.Dekning(
-                            grad = 100,
-                            fraDag = 1
-                        )
+                        dekning = when (val type = vedfrivt10Rader.first().IF10_TYPE) {
+                            '2' -> Løsning.MedForsikring.Dekning(grad = 100, fraDag = 17)
+                            '3' -> Løsning.MedForsikring.Dekning(grad = 100, fraDag = 1)
+
+                            else -> error("Støttet ikke verdi på IF10_TYPE: $type")
+                        }
                     )
                 } else {
                     Løsning.UtenForsikring(oppslagId = oppslagId)
