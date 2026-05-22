@@ -300,6 +300,30 @@ internal class SykepengeforsikringBehovRiverTest {
         )
     }
 
+    @Test
+    fun `stopper med feil for ikke-frilanser dersom bruker har forsikring for frilanser`() {
+        TestcontainersReplikadatabase.insertVedfrivt(
+            IF01_AGNR_FNR = 3020112345L,
+            IF10_TYPE = '5'
+        )
+
+        rapid.sendTestMessage(
+            """
+                {
+                    "@behov": ["Sykepengeforsikring"],
+                    "fødselsnummer": "01020312345",
+                    "yrkesaktivitetstype": "SELVSTENDIG",
+                    "Sykepengeforsikring" : {
+                        "særskilteGrupper": [],
+                        "skjæringstidspunkt": "2026-01-01"
+                    }
+                }
+            """.trimIndent()
+        )
+
+        assertEquals(0, rapid.inspektør.size)
+    }
+
     private val generiskeFelter = listOf(
         "@id",
         "@opprettet",
