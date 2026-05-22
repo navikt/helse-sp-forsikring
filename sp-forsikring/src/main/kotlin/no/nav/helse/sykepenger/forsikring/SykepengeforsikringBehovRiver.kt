@@ -10,7 +10,7 @@ import com.github.navikt.tbd_libs.rapids_and_rivers_api.RapidsConnection
 import io.micrometer.core.instrument.MeterRegistry
 import java.util.*
 
-class SykepengeforsikringRiver(
+class SykepengeforsikringBehovRiver(
     rapidsConnection: RapidsConnection,
     private val infotrygdForsikringDao: InfotrygdForsikringDao,
 ) : River.PacketListener {
@@ -43,9 +43,15 @@ class SykepengeforsikringRiver(
             try {
                 val fullstendigeForsikringer = infotrygdForsikringDao.hentFullstendigeForsikringer(fødselsnummer)
                 val løsning = if (fullstendigeForsikringer.isNotEmpty()) {
-                    ForsikringLøsningMedForsikring(oppslagId, ForsikringLøsningMedForsikring.Dekning(100, 1))
+                    Løsning.MedForsikring(
+                        oppslagId = oppslagId,
+                        dekning = Løsning.MedForsikring.Dekning(
+                            grad = 100,
+                            fraDag = 1
+                        )
+                    )
                 } else {
-                    ForsikringLøsningUtenForsikring(oppslagId)
+                    Løsning.UtenForsikring(oppslagId = oppslagId)
                 }
                 packet["@løsning"] = mapOf("Sykepengeforsikring" to løsning)
                 context.publish(packet.toJson())
@@ -55,15 +61,17 @@ class SykepengeforsikringRiver(
         }
     }
 
-    sealed class ForsikringsLøsning(val oppslagId: UUID, val harForsikring: Boolean)
-    class ForsikringLøsningUtenForsikring(
-        oppslagId: UUID
-    ): ForsikringsLøsning(oppslagId = oppslagId, harForsikring = false)
-    class ForsikringLøsningMedForsikring(
-        oppslagId: UUID,
-        val dekning: Dekning
-    ): ForsikringsLøsning(oppslagId = oppslagId, harForsikring = true) {
-        data class Dekning(val grad: Int, val fraDag: Int)
+    sealed class Løsning(val oppslagId: UUID, val harForsikring: Boolean) {
+        class UtenForsikring(
+            oppslagId: UUID
+        ) : Løsning(oppslagId = oppslagId, harForsikring = false)
+
+        class MedForsikring(
+            oppslagId: UUID,
+            val dekning: Dekning
+        ) : Løsning(oppslagId = oppslagId, harForsikring = true) {
+            data class Dekning(val grad: Int, val fraDag: Int)
+        }
     }
 
     override fun onError(

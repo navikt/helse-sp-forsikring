@@ -14,11 +14,11 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertDoesNotThrow
 
-internal class SykepengeforsikringRiverTest {
+internal class SykepengeforsikringBehovRiverTest {
     private val objectMapper = jacksonObjectMapper().registerModule(JavaTimeModule())
 
     private val rapid = TestRapid().apply {
-        SykepengeforsikringRiver(
+        SykepengeforsikringBehovRiver(
             rapidsConnection = this,
             infotrygdForsikringDao = ReplikabaseForsikringDao(TestcontainersReplikadatabase.dataSource)
         )
