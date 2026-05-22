@@ -46,6 +46,7 @@ class SykepengeforsikringBehovRiver(
                     Løsning.MedForsikring(
                         oppslagId = oppslagId,
                         dekning = when (val type = vedfrivt10Rader.first().IF10_TYPE) {
+                            '1' -> Løsning.MedForsikring.Dekning(grad = 80, fraDag = 1)
                             '2' -> Løsning.MedForsikring.Dekning(grad = 100, fraDag = 17)
                             '3' -> Løsning.MedForsikring.Dekning(grad = 100, fraDag = 1)
 
