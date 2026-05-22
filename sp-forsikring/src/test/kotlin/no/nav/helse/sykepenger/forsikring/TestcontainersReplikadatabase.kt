@@ -12,7 +12,7 @@ import kotliquery.sessionOf
 import org.intellij.lang.annotations.Language
 import org.testcontainers.oracle.OracleContainer
 
-object TestcontainersDatabase {
+object TestcontainersReplikadatabase {
     private val oracleContainer: OracleContainer =
         OracleContainer("gvenzl/oracle-free:slim-faststart")
             .also { it.start() }

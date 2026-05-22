@@ -1,7 +1,6 @@
 package no.nav.helse.sykepenger.forsikring
 
 import com.github.navikt.tbd_libs.rapids_and_rivers.test_support.TestRapid
-import java.time.LocalDate
 import org.intellij.lang.annotations.Language
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.BeforeEach
@@ -18,7 +17,7 @@ class SykepengeforsikringRiverTest {
     private val rapid =
         TestRapid()
             .apply {
-                SykepengeforsikringRiver(this, ReplikabaseForsikringDao(TestcontainersDatabase.dataSource))
+                SykepengeforsikringRiver(this, ReplikabaseForsikringDao(TestcontainersReplikadatabase.dataSource))
             }
 
     @BeforeEach

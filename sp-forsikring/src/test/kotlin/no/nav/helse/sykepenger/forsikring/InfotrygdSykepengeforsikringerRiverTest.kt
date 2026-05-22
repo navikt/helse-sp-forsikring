@@ -18,13 +18,13 @@ internal class InfotrygdSykepengeforsikringerRiverTest {
     private val rapid = TestRapid().apply {
         SykepengeforsikringRiver(
             rapidsConnection = this,
-            infotrygdForsikringDao = ReplikabaseForsikringDao(TestcontainersDatabase.dataSource)
+            infotrygdForsikringDao = ReplikabaseForsikringDao(TestcontainersReplikadatabase.dataSource)
         )
     }
 
     @BeforeEach
     fun beforeEach() {
-        TestcontainersDatabase.clear()
+        TestcontainersReplikadatabase.clear()
         rapid.reset()
     }
 
@@ -50,7 +50,7 @@ internal class InfotrygdSykepengeforsikringerRiverTest {
 
     @Test
     fun `Returnerer forsikring uten tilhørende fkonto12-rader`() {
-        TestcontainersDatabase.insertVedfrivt(
+        TestcontainersReplikadatabase.insertVedfrivt(
             IF01_AGNR_FNR = 3020112345L,
             IF10_VIRKDATO = 20240101,
             IF10_FORSTOM = 20241231,
@@ -116,7 +116,7 @@ internal class InfotrygdSykepengeforsikringerRiverTest {
 
     @Test
     fun `Returnerer forsikring med tilhørende fkonto12-rader`() {
-        TestcontainersDatabase.insertVedfrivt(
+        TestcontainersReplikadatabase.insertVedfrivt(
             IF01_AGNR_FNR = 3020112345L,
             IF10_FORSFOM_SEQ = 1,
             IF10_VIRKDATO = 20240101,
@@ -127,7 +127,7 @@ internal class InfotrygdSykepengeforsikringerRiverTest {
             OPPRETTET = Instant.EPOCH,
             ENDRET_I_KILDE = Instant.EPOCH
         )
-        TestcontainersDatabase.insertFkonto12(
+        TestcontainersReplikadatabase.insertFkonto12(
             IF01_KODE = '1',
             IF01_AGNR_FNR = 3020112345L,
             IF10_FORSFOM_SEQ = 1,
@@ -141,7 +141,7 @@ internal class InfotrygdSykepengeforsikringerRiverTest {
             OPPRETTET = Instant.EPOCH,
             ENDRET_I_KILDE = Instant.EPOCH
         )
-        TestcontainersDatabase.insertFkonto12(
+        TestcontainersReplikadatabase.insertFkonto12(
             IF01_KODE = '1',
             IF01_AGNR_FNR = 3020112345L,
             IF10_FORSFOM_SEQ = 1,
@@ -240,7 +240,7 @@ internal class InfotrygdSykepengeforsikringerRiverTest {
 
     @Test
     fun `Returnerer ikke forsikringer for andre fødselsnumre`() {
-        TestcontainersDatabase.insertVedfrivt(
+        TestcontainersReplikadatabase.insertVedfrivt(
             IF01_AGNR_FNR = 3020154321L,
             IF10_VIRKDATO = 20240101,
             IF10_FORSTOM = 20241231,
@@ -271,7 +271,7 @@ internal class InfotrygdSykepengeforsikringerRiverTest {
 
     @Test
     fun `Returnerer alle forsikringer inkludert de som ikke er godkjent`() {
-        TestcontainersDatabase.insertVedfrivt(
+        TestcontainersReplikadatabase.insertVedfrivt(
             IF01_AGNR_FNR = 3020112345L,
             IF10_FORSFOM_SEQ = 0,
             IF10_VIRKDATO = 20240101,
@@ -282,7 +282,7 @@ internal class InfotrygdSykepengeforsikringerRiverTest {
             OPPRETTET = Instant.EPOCH,
             ENDRET_I_KILDE = Instant.EPOCH
         )
-        TestcontainersDatabase.insertVedfrivt(
+        TestcontainersReplikadatabase.insertVedfrivt(
             IF01_AGNR_FNR = 3020112345L,
             IF10_FORSFOM_SEQ = 1,
             IF10_VIRKDATO = 20230101,
