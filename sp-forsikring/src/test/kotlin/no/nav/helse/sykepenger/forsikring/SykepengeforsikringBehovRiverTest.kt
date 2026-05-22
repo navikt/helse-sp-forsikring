@@ -137,7 +137,13 @@ internal class SykepengeforsikringBehovRiverTest {
             IF10_TYPE = '4'
         )
 
-        rapid.sendTestMessage(testmelding("01020312345", LocalDate.parse("2026-01-01"), setOf("JORDBRUKER")))
+        rapid.sendTestMessage(
+            testmelding(
+                fødselsnummer = "01020312345",
+                skjæringstidspunkt = LocalDate.parse("2026-01-01"),
+                særskilteGrupper = setOf("JORDBRUKER")
+            )
+        )
 
         assertEquals(1, rapid.inspektør.size)
         val løsningMelding = rapid.inspektør.message(0)
@@ -160,14 +166,40 @@ internal class SykepengeforsikringBehovRiverTest {
         assertEquals(0, rapid.inspektør.size)
     }
 
+    @Test
+    fun `løsning for frilanser med gyldig forsikring med 100 prosent fra dag 1 inneholder riktig informasjon`() {
+        TestcontainersReplikadatabase.insertVedfrivt(
+            IF01_AGNR_FNR = 3020112345L,
+            IF10_TYPE = '5'
+        )
+
+        rapid.sendTestMessage(
+            testmelding(
+                fødselsnummer = "01020312345",
+                skjæringstidspunkt = LocalDate.parse("2026-01-01"),
+                yrkesaktivitetstype = "FRILANSER"
+            )
+        )
+
+        assertEquals(1, rapid.inspektør.size)
+        val løsningMelding = rapid.inspektør.message(0)
+        assertJsonEquals(
+            expectedJson = """{ "harForsikring": true, "dekning": { "grad": 100, "fraDag": 1 } } """,
+            actualJsonNode = løsningMelding["@løsning"]["Sykepengeforsikring"],
+            bortsettFraProperties = listOf("oppslagId")
+        )
+    }
+
     private fun testmelding(
         fødselsnummer: String,
         skjæringstidspunkt: LocalDate,
+        yrkesaktivitetstype: String = "SELVSTENDIG",
         særskilteGrupper: Set<String> = emptySet()
     ) = """
         {
             "@behov": ["Sykepengeforsikring"],
             "fødselsnummer": "$fødselsnummer",
+            "yrkesaktivitetstype": "$yrkesaktivitetstype",
             "Sykepengeforsikring" : {
                 "særskilteGrupper": [${særskilteGrupper.joinToString(", ") { "\"$it\"" }}],
                 "skjæringstidspunkt": "$skjæringstidspunkt"

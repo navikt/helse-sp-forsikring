@@ -23,7 +23,13 @@ class SykepengeforsikringBehovRiver(
                     it.forbid("@løsning")
                 }
                 validate {
-                    it.requireKey("@id", "fødselsnummer", "Sykepengeforsikring.særskilteGrupper", "Sykepengeforsikring.skjæringstidspunkt")
+                    it.requireKey(
+                        "@id",
+                        "fødselsnummer",
+                        "yrkesaktivitetstype",
+                        "Sykepengeforsikring.særskilteGrupper",
+                        "Sykepengeforsikring.skjæringstidspunkt"
+                    )
                     it.requireArray("Sykepengeforsikring.særskilteGrupper")
                 }
             }.register(this)
@@ -37,6 +43,7 @@ class SykepengeforsikringBehovRiver(
     ) {
         val meldingId = packet["@id"].asString()
         val fødselsnummer = packet["fødselsnummer"].asString()
+        val yrkesaktivitetstype = packet["yrkesaktivitetstype"].asString()
         val særskilteGrupper = packet["Sykepengeforsikring.særskilteGrupper"].map<JsonNode, String> { it.asString() }.toSet()
         val skjæringstidspunkt = packet["Sykepengeforsikring.skjæringstidspunkt"].asLocalDate()
         val oppslagId = UUID.randomUUID()
@@ -53,8 +60,9 @@ class SykepengeforsikringBehovRiver(
                             '2' -> Løsning.MedForsikring.Dekning(grad = 100, fraDag = 17)
                             '3' -> Løsning.MedForsikring.Dekning(grad = 100, fraDag = 1)
                             '4' if "JORDBRUKER" in særskilteGrupper -> Løsning.MedForsikring.Dekning(grad = 100, fraDag = 1)
+                            '5' if "FRILANSER" == yrkesaktivitetstype -> Løsning.MedForsikring.Dekning(grad = 100, fraDag = 1)
 
-                            else -> error("Støtter ikke kombinasjonen IF10_TYPE $type, særskilteGrupper $særskilteGrupper")
+                            else -> error("Støtter ikke kombinasjonen IF10_TYPE $type, yrkesaktivitetstype $yrkesaktivitetstype, særskilteGrupper $særskilteGrupper")
                         }
                     )
                 } else {
