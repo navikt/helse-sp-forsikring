@@ -77,7 +77,7 @@ internal class SykepengeforsikringBehovRiverTest {
     }
 
     @Test
-    fun `løsning når det finnes en gyldig forsikring med 80% fra dag 1 inneholder riktig informasjon`() {
+    fun `løsning når det finnes en gyldig forsikring med 80 prosent fra dag 1 inneholder riktig informasjon`() {
         TestcontainersReplikadatabase.insertVedfrivt(
             IF01_AGNR_FNR = 3020112345L,
             IF10_TYPE = '1'
@@ -95,7 +95,7 @@ internal class SykepengeforsikringBehovRiverTest {
     }
 
     @Test
-    fun `løsning når det finnes en gyldig forsikring med 100% fra dag 17 inneholder riktig informasjon`() {
+    fun `løsning når det finnes en gyldig forsikring med 100 prosent fra dag 17 inneholder riktig informasjon`() {
         TestcontainersReplikadatabase.insertVedfrivt(
             IF01_AGNR_FNR = 3020112345L,
             IF10_TYPE = '2'
@@ -113,7 +113,7 @@ internal class SykepengeforsikringBehovRiverTest {
     }
 
     @Test
-    fun `løsning når det finnes en gyldig forsikring med 100% fra dag 1 inneholder riktig informasjon`() {
+    fun `løsning når det finnes en gyldig forsikring med 100 prosent fra dag 1 inneholder riktig informasjon`() {
         TestcontainersReplikadatabase.insertVedfrivt(
             IF01_AGNR_FNR = 3020112345L,
             IF10_TYPE = '3'
@@ -131,7 +131,7 @@ internal class SykepengeforsikringBehovRiverTest {
     }
 
     @Test
-    fun `løsning for jordbruker med gyldig tilleggsforsikring med 100% fra dag 1 inneholder riktig informasjon`() {
+    fun `løsning for jordbruker med gyldig tilleggsforsikring med 100 prosent fra dag 1 inneholder riktig informasjon`() {
         TestcontainersReplikadatabase.insertVedfrivt(
             IF01_AGNR_FNR = 3020112345L,
             IF10_TYPE = '4'
