@@ -42,13 +42,18 @@ class SykepengeforsikringRiver(
             loggInfo("Henter sykepengeforsikring")
             try {
                 val fullstendigeForsikringer = infotrygdForsikringDao.hentFullstendigeForsikringer(fødselsnummer)
-                packet["@løsning"] = mapOf("Sykepengeforsikring" to mapOf("oppslagId" to oppslagId, "konklusjon" to "INGEN_FORSIKRING"))
+                packet["@løsning"] = mapOf("Sykepengeforsikring" to ForsikringLøsningUtenForsikring(oppslagId))
                 context.publish(packet.toJson())
             } catch (err: Exception) {
                 loggError("Feil ved håndtering av Sykepengeforsikring-behov", err)
             }
         }
     }
+
+    sealed class ForsikringsLøsning(val oppslagId: UUID, val harForsikring: Boolean)
+    class ForsikringLøsningUtenForsikring(
+        oppslagId: UUID
+    ): ForsikringsLøsning(oppslagId = oppslagId, harForsikring = false)
 
     override fun onError(
         problems: MessageProblems,

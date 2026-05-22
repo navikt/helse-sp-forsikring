@@ -2,6 +2,7 @@ package no.nav.helse.sykepenger.forsikring
 
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.node.ArrayNode
+import com.fasterxml.jackson.databind.node.BooleanNode
 import com.fasterxml.jackson.databind.node.ObjectNode
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
@@ -64,12 +65,16 @@ internal class SykepengeforsikringRiverTest {
     }
 
     @Test
-    fun `løsning er INGEN_FORSIKRING når det ikke finnes noen forsikring`() {
+    fun `løsning når det ikke finnes noen forsikring er uten forsikring`() {
         rapid.sendTestMessage(testmelding("01020312345", LocalDate.parse("2026-01-01")))
 
         assertEquals(1, rapid.inspektør.size)
         val løsningMelding = rapid.inspektør.message(0)
-        assertEquals("INGEN_FORSIKRING", løsningMelding["@løsning"]["Sykepengeforsikring"]["konklusjon"]?.asText())
+        assertJsonEquals(
+            expectedJson = """{ "harForsikring": false } """,
+            actualJsonNode = løsningMelding["@løsning"]["Sykepengeforsikring"],
+            bortsettFraProperties = listOf("oppslagId")
+        )
     }
 
     private fun testmelding(fødselsnummer: String, skjæringstidspunkt: LocalDate) = """
