@@ -9,6 +9,7 @@ import com.github.navikt.tbd_libs.rapids_and_rivers_api.MessageProblems
 import com.github.navikt.tbd_libs.rapids_and_rivers_api.RapidsConnection
 import io.micrometer.core.instrument.MeterRegistry
 import java.util.*
+import tools.jackson.databind.JsonNode
 
 class SykepengeforsikringBehovRiver(
     rapidsConnection: RapidsConnection,
@@ -22,7 +23,8 @@ class SykepengeforsikringBehovRiver(
                     it.forbid("@løsning")
                 }
                 validate {
-                    it.requireKey("@id", "fødselsnummer", "Sykepengeforsikring.skjæringstidspunkt")
+                    it.requireKey("@id", "fødselsnummer", "Sykepengeforsikring.særskilteGrupper", "Sykepengeforsikring.skjæringstidspunkt")
+                    it.requireArray("Sykepengeforsikring.særskilteGrupper")
                 }
             }.register(this)
     }
@@ -35,6 +37,7 @@ class SykepengeforsikringBehovRiver(
     ) {
         val meldingId = packet["@id"].asString()
         val fødselsnummer = packet["fødselsnummer"].asString()
+        val særskilteGrupper = packet["Sykepengeforsikring.særskilteGrupper"].map<JsonNode, String> { it.asString() }.toSet()
         val skjæringstidspunkt = packet["Sykepengeforsikring.skjæringstidspunkt"].asLocalDate()
         val oppslagId = UUID.randomUUID()
 
@@ -49,9 +52,9 @@ class SykepengeforsikringBehovRiver(
                             '1' -> Løsning.MedForsikring.Dekning(grad = 80, fraDag = 1)
                             '2' -> Løsning.MedForsikring.Dekning(grad = 100, fraDag = 17)
                             '3' -> Løsning.MedForsikring.Dekning(grad = 100, fraDag = 1)
-                            '4' -> Løsning.MedForsikring.Dekning(grad = 100, fraDag = 1)
+                            '4' if "JORDBRUKER" in særskilteGrupper -> Løsning.MedForsikring.Dekning(grad = 100, fraDag = 1)
 
-                            else -> error("Støttet ikke verdi på IF10_TYPE: $type")
+                            else -> error("Støtter ikke kombinasjonen IF10_TYPE $type, særskilteGrupper $særskilteGrupper")
                         }
                     )
                 } else {

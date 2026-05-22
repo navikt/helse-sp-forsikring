@@ -148,6 +148,18 @@ internal class SykepengeforsikringBehovRiverTest {
         )
     }
 
+    @Test
+    fun `stopper med feil for ikke-jordbruker dersom bruker har tilleggsforsikring for jordbruker`() {
+        TestcontainersReplikadatabase.insertVedfrivt(
+            IF01_AGNR_FNR = 3020112345L,
+            IF10_TYPE = '4'
+        )
+
+        rapid.sendTestMessage(testmelding("01020312345", LocalDate.parse("2026-01-01")))
+
+        assertEquals(0, rapid.inspektør.size)
+    }
+
     private fun testmelding(
         fødselsnummer: String,
         skjæringstidspunkt: LocalDate,
@@ -156,8 +168,8 @@ internal class SykepengeforsikringBehovRiverTest {
         {
             "@behov": ["Sykepengeforsikring"],
             "fødselsnummer": "$fødselsnummer",
-            "særskilteGrupper": [${særskilteGrupper.joinToString(", ") { "\"$it\"" }}],
             "Sykepengeforsikring" : {
+                "særskilteGrupper": [${særskilteGrupper.joinToString(", ") { "\"$it\"" }}],
                 "skjæringstidspunkt": "$skjæringstidspunkt"
             }
         }
