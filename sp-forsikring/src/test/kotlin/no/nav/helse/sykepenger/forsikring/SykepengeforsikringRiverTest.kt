@@ -2,18 +2,17 @@ package no.nav.helse.sykepenger.forsikring
 
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.node.ArrayNode
-import com.fasterxml.jackson.databind.node.BooleanNode
 import com.fasterxml.jackson.databind.node.ObjectNode
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.github.navikt.tbd_libs.rapids_and_rivers.test_support.TestRapid
-import org.junit.jupiter.api.BeforeEach
-import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.assertDoesNotThrow
 import java.time.LocalDate
 import java.util.UUID.fromString
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertDoesNotThrow
 
 internal class SykepengeforsikringRiverTest {
     private val objectMapper = jacksonObjectMapper().registerModule(JavaTimeModule())
@@ -72,6 +71,23 @@ internal class SykepengeforsikringRiverTest {
         val løsningMelding = rapid.inspektør.message(0)
         assertJsonEquals(
             expectedJson = """{ "harForsikring": false } """,
+            actualJsonNode = løsningMelding["@løsning"]["Sykepengeforsikring"],
+            bortsettFraProperties = listOf("oppslagId")
+        )
+    }
+
+    @Test
+    fun `løsning når det finnes en gyldig forsikring med 100% fra dag 1 inneholder riktig informasjon`() {
+        TestcontainersReplikadatabase.insertVedfrivt(
+            IF01_AGNR_FNR = 3020112345L,
+        )
+
+        rapid.sendTestMessage(testmelding("01020312345", LocalDate.parse("2026-01-01")))
+
+        assertEquals(1, rapid.inspektør.size)
+        val løsningMelding = rapid.inspektør.message(0)
+        assertJsonEquals(
+            expectedJson = """{ "harForsikring": true, "dekning": { "grad": 100, "fraDag": 1 } } """,
             actualJsonNode = løsningMelding["@løsning"]["Sykepengeforsikring"],
             bortsettFraProperties = listOf("oppslagId")
         )
