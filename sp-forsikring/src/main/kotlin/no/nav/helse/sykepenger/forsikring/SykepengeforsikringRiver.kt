@@ -8,7 +8,7 @@ import com.github.navikt.tbd_libs.rapids_and_rivers_api.MessageMetadata
 import com.github.navikt.tbd_libs.rapids_and_rivers_api.MessageProblems
 import com.github.navikt.tbd_libs.rapids_and_rivers_api.RapidsConnection
 import io.micrometer.core.instrument.MeterRegistry
-import java.util.UUID
+import java.util.*
 
 class SykepengeforsikringRiver(
     rapidsConnection: RapidsConnection,
@@ -58,37 +58,3 @@ class SykepengeforsikringRiver(
         loggError("Forstod ikke Sykepengeforsikring-behov", "extendedReport" to problems.toExtendedReport())
     }
 }
-
-/*
-data class Resultat(
-
-    val forsikringstype: Forsikringstype,
-)
-
-fun svarFraFullstendigeForsikringer(forsikringer: List<RåForsikringDto>) : ForsikringDto {
-    return ForsikringDto(
-        forsikringstype = ForsikringDto.Forsikringstype.ÅttiProsentFraDagEn, premiegrunnlag = 0, virkningsdato = LocalDate(), tom = null
-
-    )
-}
-
-data class ForsikringDto(
-    val forsikringstype: Forsikringstype,
-    val detaljer: Detaljer,
-) {
-    data class Detaljer(
-        val premiegrunnlag: Int,
-        val virkningsdato: LocalDate,
-        val tom: LocalDate?
-    )
-
-    enum class Forsikringstype {
-        ÅttiProsentFraDagEn,
-        HundreProsentFraDagEn,
-        HundreProsentFraDagSytten,
-    }
-
-    internal fun erAktivPå(dato: LocalDate): Boolean =
-        !(dato.isBefore(virkningsdato) || tom != null && dato.isAfter(tom))
-}
-*/
