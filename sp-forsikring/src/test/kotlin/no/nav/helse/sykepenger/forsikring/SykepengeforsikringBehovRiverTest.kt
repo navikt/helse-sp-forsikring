@@ -6,8 +6,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.github.navikt.tbd_libs.rapids_and_rivers.test_support.TestRapid
-import java.time.LocalDate
-import java.util.UUID.fromString
+import java.util.*
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import org.junit.jupiter.api.BeforeEach
@@ -32,14 +31,37 @@ internal class SykepengeforsikringBehovRiverTest {
 
     @Test
     fun `Sender melding i det hele tatt`() {
-        rapid.sendTestMessage(testmelding("01020312345", LocalDate.parse("2026-01-01")))
+        rapid.sendTestMessage(
+            """
+                {
+                    "@behov": ["Sykepengeforsikring"],
+                    "fødselsnummer": "01020312345",
+                    "yrkesaktivitetstype": "SELVSTENDIG",
+                    "Sykepengeforsikring" : {
+                        "særskilteGrupper": [],
+                        "skjæringstidspunkt": "2026-01-01"
+                    }
+                }
+            """.trimIndent()
+        )
 
         assertEquals(1, rapid.inspektør.size)
     }
 
     @Test
-    fun `Sender melding som er lik som den vi fikk inn som behov`() {
-        val testmelding = testmelding("01020312345", LocalDate.parse("2026-01-01"))
+    fun `Sender melding som er lik som den vi fikk inn som behov, sett bort fra løsning-feltet`() {
+        val testmelding = """
+            {
+                "@behov": ["Sykepengeforsikring"],
+                "fødselsnummer": "01020312345",
+                "yrkesaktivitetstype": "SELVSTENDIG",
+                "Sykepengeforsikring" : {
+                    "særskilteGrupper": [],
+                    "skjæringstidspunkt": "2026-01-01"
+                }
+            }
+        """.trimIndent()
+
         rapid.sendTestMessage(testmelding)
 
         assertEquals(1, rapid.inspektør.size)
@@ -51,21 +73,45 @@ internal class SykepengeforsikringBehovRiverTest {
     }
 
     @Test
-    fun `løsning har en oppslagId med forventet format`() {
-        rapid.sendTestMessage(testmelding("01020312345", LocalDate.parse("2026-01-01")))
+    fun `løsning har en oppslagId som er en UUID`() {
+        rapid.sendTestMessage(
+            """
+                {
+                    "@behov": ["Sykepengeforsikring"],
+                    "fødselsnummer": "01020312345",
+                    "yrkesaktivitetstype": "SELVSTENDIG",
+                    "Sykepengeforsikring" : {
+                        "særskilteGrupper": [],
+                        "skjæringstidspunkt": "2026-01-01"
+                    }
+                }
+            """.trimIndent()
+        )
 
         assertEquals(1, rapid.inspektør.size)
         val løsningMelding = rapid.inspektør.message(0)
         val oppslagId = løsningMelding["@løsning"]["Sykepengeforsikring"]["oppslagId"]?.asText()
         assertNotNull(oppslagId) { "Manglet oppslagId" }
         assertDoesNotThrow("oppslagId \"${oppslagId}\" kunne ikke tolkes som en UUID") {
-            fromString(oppslagId)
+            UUID.fromString(oppslagId)
         }
     }
 
     @Test
     fun `løsning når det ikke finnes noen forsikring er uten forsikring`() {
-        rapid.sendTestMessage(testmelding("01020312345", LocalDate.parse("2026-01-01")))
+        rapid.sendTestMessage(
+            """
+                {
+                    "@behov": ["Sykepengeforsikring"],
+                    "fødselsnummer": "01020312345",
+                    "yrkesaktivitetstype": "SELVSTENDIG",
+                    "Sykepengeforsikring" : {
+                        "særskilteGrupper": [],
+                        "skjæringstidspunkt": "2026-01-01"
+                    }
+                }
+            """.trimIndent()
+        )
 
         assertEquals(1, rapid.inspektør.size)
         val løsningMelding = rapid.inspektør.message(0)
@@ -83,7 +129,19 @@ internal class SykepengeforsikringBehovRiverTest {
             IF10_TYPE = '1'
         )
 
-        rapid.sendTestMessage(testmelding("01020312345", LocalDate.parse("2026-01-01")))
+        rapid.sendTestMessage(
+            """
+                {
+                    "@behov": ["Sykepengeforsikring"],
+                    "fødselsnummer": "01020312345",
+                    "yrkesaktivitetstype": "SELVSTENDIG",
+                    "Sykepengeforsikring" : {
+                        "særskilteGrupper": [],
+                        "skjæringstidspunkt": "2026-01-01"
+                    }
+                }
+            """.trimIndent()
+        )
 
         assertEquals(1, rapid.inspektør.size)
         val løsningMelding = rapid.inspektør.message(0)
@@ -101,7 +159,19 @@ internal class SykepengeforsikringBehovRiverTest {
             IF10_TYPE = '2'
         )
 
-        rapid.sendTestMessage(testmelding("01020312345", LocalDate.parse("2026-01-01")))
+        rapid.sendTestMessage(
+            """
+                {
+                    "@behov": ["Sykepengeforsikring"],
+                    "fødselsnummer": "01020312345",
+                    "yrkesaktivitetstype": "SELVSTENDIG",
+                    "Sykepengeforsikring" : {
+                        "særskilteGrupper": [],
+                        "skjæringstidspunkt": "2026-01-01"
+                    }
+                }
+            """.trimIndent()
+        )
 
         assertEquals(1, rapid.inspektør.size)
         val løsningMelding = rapid.inspektør.message(0)
@@ -119,7 +189,19 @@ internal class SykepengeforsikringBehovRiverTest {
             IF10_TYPE = '3'
         )
 
-        rapid.sendTestMessage(testmelding("01020312345", LocalDate.parse("2026-01-01")))
+        rapid.sendTestMessage(
+            """
+                {
+                    "@behov": ["Sykepengeforsikring"],
+                    "fødselsnummer": "01020312345",
+                    "yrkesaktivitetstype": "SELVSTENDIG",
+                    "Sykepengeforsikring" : {
+                        "særskilteGrupper": [],
+                        "skjæringstidspunkt": "2026-01-01"
+                    }
+                }
+            """.trimIndent()
+        )
 
         assertEquals(1, rapid.inspektør.size)
         val løsningMelding = rapid.inspektør.message(0)
@@ -138,11 +220,19 @@ internal class SykepengeforsikringBehovRiverTest {
         )
 
         rapid.sendTestMessage(
-            testmelding(
-                fødselsnummer = "01020312345",
-                skjæringstidspunkt = LocalDate.parse("2026-01-01"),
-                særskilteGrupper = setOf("JORDBRUKER")
-            )
+            """
+                {
+                    "@behov": ["Sykepengeforsikring"],
+                    "fødselsnummer": "01020312345",
+                    "yrkesaktivitetstype": "SELVSTENDIG",
+                    "Sykepengeforsikring" : {
+                        "særskilteGrupper": [${
+                setOf("JORDBRUKER")
+                    .joinToString(", ") { "\"$it\"" }}],
+                        "skjæringstidspunkt": "2026-01-01"
+                    }
+                }
+            """.trimIndent()
         )
 
         assertEquals(1, rapid.inspektør.size)
@@ -161,7 +251,19 @@ internal class SykepengeforsikringBehovRiverTest {
             IF10_TYPE = '4'
         )
 
-        rapid.sendTestMessage(testmelding("01020312345", LocalDate.parse("2026-01-01")))
+        rapid.sendTestMessage(
+            """
+                {
+                    "@behov": ["Sykepengeforsikring"],
+                    "fødselsnummer": "01020312345",
+                    "yrkesaktivitetstype": "SELVSTENDIG",
+                    "Sykepengeforsikring" : {
+                        "særskilteGrupper": [],
+                        "skjæringstidspunkt": "2026-01-01"
+                    }
+                }
+            """.trimIndent()
+        )
 
         assertEquals(0, rapid.inspektør.size)
     }
@@ -174,11 +276,19 @@ internal class SykepengeforsikringBehovRiverTest {
         )
 
         rapid.sendTestMessage(
-            testmelding(
-                fødselsnummer = "01020312345",
-                skjæringstidspunkt = LocalDate.parse("2026-01-01"),
-                yrkesaktivitetstype = "FRILANSER"
-            )
+            """
+                {
+                    "@behov": ["Sykepengeforsikring"],
+                    "fødselsnummer": "01020312345",
+                    "yrkesaktivitetstype": "${
+                "FRILANSER"
+            }",
+                    "Sykepengeforsikring" : {
+                        "særskilteGrupper": [],
+                        "skjæringstidspunkt": "2026-01-01"
+                    }
+                }
+            """.trimIndent()
         )
 
         assertEquals(1, rapid.inspektør.size)
@@ -189,23 +299,6 @@ internal class SykepengeforsikringBehovRiverTest {
             bortsettFraProperties = listOf("oppslagId")
         )
     }
-
-    private fun testmelding(
-        fødselsnummer: String,
-        skjæringstidspunkt: LocalDate,
-        yrkesaktivitetstype: String = "SELVSTENDIG",
-        særskilteGrupper: Set<String> = emptySet()
-    ) = """
-        {
-            "@behov": ["Sykepengeforsikring"],
-            "fødselsnummer": "$fødselsnummer",
-            "yrkesaktivitetstype": "$yrkesaktivitetstype",
-            "Sykepengeforsikring" : {
-                "særskilteGrupper": [${særskilteGrupper.joinToString(", ") { "\"$it\"" }}],
-                "skjæringstidspunkt": "$skjæringstidspunkt"
-            }
-        }
-    """.trimIndent()
 
     private val generiskeFelter = listOf(
         "@id",
