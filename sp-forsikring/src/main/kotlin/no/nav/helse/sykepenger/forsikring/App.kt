@@ -25,8 +25,6 @@ fun launchApplication(env: Map<String, String>) {
     )
     val sykepengeforsikringService = SykepengeforsikringServiceImpl()
 
-    replikabaseForsikringDao.testDb()
-
     Unit.loggInfo("Hei fra Unit \uD83D\uDC4B")
 
     RapidApplication

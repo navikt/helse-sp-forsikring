@@ -6,17 +6,6 @@ import kotliquery.sessionOf
 import org.intellij.lang.annotations.Language
 
 class ReplikabaseForsikringDao(private val dataSource: DataSource) : InfotrygdForsikringDao {
-
-    fun testDb() {
-        sessionOf(dataSource).use { session ->
-            loggInfo("Tester select")
-            val en:Int? = session.run(
-                queryOf("SELECT 1 FROM DUAL").map { row -> 1 }.asSingle
-            )
-            loggInfo("fikk svar: $en")
-        }
-    }
-
     override fun hentIfVedfrivt10Rader(fødselsnummer: String): List<InfotrygdForsikringDao.IF_VEDFRIVT_10_Rad> =
         sessionOf(dataSource).use { session ->
             @Language("Oracle")
