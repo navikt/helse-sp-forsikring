@@ -5,10 +5,10 @@ import com.zaxxer.hikari.HikariDataSource
 import java.math.BigDecimal
 import java.sql.Timestamp
 import java.time.Instant
-import javax.sql.DataSource
 import kotliquery.Parameter
 import kotliquery.queryOf
 import kotliquery.sessionOf
+import org.flywaydb.core.Flyway
 import org.intellij.lang.annotations.Language
 import org.testcontainers.oracle.OracleContainer
 
@@ -17,30 +17,27 @@ object TestcontainersReplikadatabase {
         OracleContainer("gvenzl/oracle-free:slim-faststart")
             .also { it.start() }
 
-    private fun loadScript(name: String) =
-        this::class.java.getResourceAsStream("/$name")!!.use { it.reader().readText() }
+    val dataSource: HikariDataSource =
+        HikariDataSource(HikariConfig().apply {
+            jdbcUrl = oracleContainer.jdbcUrl
+            username = oracleContainer.username
+            password = oracleContainer.password
+        })
 
-    val dataSource: DataSource =
-        HikariDataSource(
-            HikariConfig().apply {
-                jdbcUrl = oracleContainer.jdbcUrl
-                username = oracleContainer.username
-                password = oracleContainer.password
-                maximumPoolSize = 3
-                minimumIdle = 1
-            }
-        ).also { dataSource ->
-            sessionOf(dataSource).use { session ->
-                session.run(queryOf(loadScript("IF_VEDFRIVT_10.sql")).asExecute)
-                session.run(queryOf(loadScript("IF_FKONTO_12.sql")).asExecute)
-            }
-        }
+    private val flyway = Flyway.configure()
+        .dataSource(dataSource)
+        .cleanDisabled(false)
+        .locations("classpath:replikabase/db/migration")
+        .load()
+        .also { it.migrate() }
 
-    fun clear() {
-        sessionOf(dataSource).use {
-            it.run(queryOf("""DELETE FROM IF_FKONTO_12""").asUpdate)
-            it.run(queryOf("""DELETE FROM IF_VEDFRIVT_10""").asUpdate)
-        }
+    fun reset() {
+        flyway.clean()
+        flyway.migrate()
+    }
+
+    fun shutdown() {
+        dataSource.close()
     }
 
     fun insertVedfrivt(

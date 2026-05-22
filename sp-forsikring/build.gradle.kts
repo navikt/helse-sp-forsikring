@@ -19,6 +19,7 @@ dependencies {
     implementation(libs.flyway.database.postgresql)
     implementation(project(":migreringer"))
 
+    testImplementation(libs.flyway.database.oracle)
     testImplementation(libs.tbd.libs.rapids.and.rivers.test)
     testImplementation(libs.httpclient5.fluent)
     testImplementation(libs.mock.oauth2.server)

@@ -8,12 +8,19 @@ import com.github.navikt.tbd_libs.rapids_and_rivers_api.MessageMetadata
 import com.github.navikt.tbd_libs.rapids_and_rivers_api.MessageProblems
 import com.github.navikt.tbd_libs.rapids_and_rivers_api.RapidsConnection
 import io.micrometer.core.instrument.MeterRegistry
+import java.time.Instant
 import java.util.*
+import javax.sql.DataSource
+import kotlin.uuid.ExperimentalUuidApi
+import kotlin.uuid.Uuid
+import kotlin.uuid.toJavaUuid
+import kotliquery.sessionOf
 import tools.jackson.databind.JsonNode
 
 class SykepengeforsikringBehovRiver(
     rapidsConnection: RapidsConnection,
     private val infotrygdForsikringDao: InfotrygdForsikringDao,
+    private val spForsikringDataSource: DataSource,
 ) : River.PacketListener {
     init {
         River(rapidsConnection)
@@ -35,6 +42,7 @@ class SykepengeforsikringBehovRiver(
             }.register(this)
     }
 
+    @OptIn(ExperimentalUuidApi::class)
     override fun onPacket(
         packet: JsonMessage,
         context: MessageContext,
@@ -46,43 +54,50 @@ class SykepengeforsikringBehovRiver(
         val yrkesaktivitetstype = packet["yrkesaktivitetstype"].asString()
         val særskilteGrupper = packet["Sykepengeforsikring.særskilteGrupper"].map<JsonNode, String> { it.asString() }.toSet()
         val skjæringstidspunkt = packet["Sykepengeforsikring.skjæringstidspunkt"].asLocalDate()
-        val oppslagId = UUID.randomUUID()
+        val oppslagId = Uuid.generateV7().toJavaUuid()
 
         medMdc(MdcKey.MELDING_ID to meldingId) {
             loggInfo("Henter sykepengeforsikring")
             try {
-                val vedfrivt10Rader = infotrygdForsikringDao.hentIfVedfrivt10Rader(fødselsnummer)
-                val løsning = if ("FISKER_BLAD_B" in særskilteGrupper) {
-                    Løsning.MedForsikring(
-                        oppslagId = oppslagId,
-                        dekning = Løsning.MedForsikring.Dekning(grad = 100, fraDag = 1) // Kollektiv forsikring
-                    )
-                } else if ("JORDBRUKER" in særskilteGrupper || "REINDRIFTER" in særskilteGrupper) {
-                    Løsning.MedForsikring(
-                        oppslagId = oppslagId,
-                        dekning = if (vedfrivt10Rader.firstOrNull()?.IF10_TYPE == '4') {
-                            Løsning.MedForsikring.Dekning(grad = 100, fraDag = 1)
-                        } else {
-                            Løsning.MedForsikring.Dekning(grad = 100, fraDag = 17) // Kollektiv forsikring
-                        }
-                    )
-                } else if (vedfrivt10Rader.isNotEmpty()) {
-                    Løsning.MedForsikring(
-                        oppslagId = oppslagId,
-                        dekning = when (val type = vedfrivt10Rader.first().IF10_TYPE) {
-                            '1' -> Løsning.MedForsikring.Dekning(grad = 80, fraDag = 1)
-                            '2' -> Løsning.MedForsikring.Dekning(grad = 100, fraDag = 17)
-                            '3' -> Løsning.MedForsikring.Dekning(grad = 100, fraDag = 1)
-                            '5' if "FRILANSER" == yrkesaktivitetstype -> Løsning.MedForsikring.Dekning(grad = 100, fraDag = 1)
+                sessionOf(spForsikringDataSource).use { session ->
+                    session.transaction { transaction ->
+                        val oppslagDao = OppslagDao(transaction)
+                        oppslagDao.lagreOppslag(oppslagId, packet.toJson(), Instant.now())
+                        val vedfrivt10Rader = infotrygdForsikringDao.hentIfVedfrivt10Rader(fødselsnummer)
+                        oppslagDao.lagreIfVedfrivt10Rader(oppslagId, vedfrivt10Rader)
+                        val løsning = if ("FISKER_BLAD_B" in særskilteGrupper) {
+                            Løsning.MedForsikring(
+                                oppslagId = oppslagId,
+                                dekning = Løsning.MedForsikring.Dekning(grad = 100, fraDag = 1) // Kollektiv forsikring
+                            )
+                        } else if ("JORDBRUKER" in særskilteGrupper || "REINDRIFTER" in særskilteGrupper) {
+                            Løsning.MedForsikring(
+                                oppslagId = oppslagId,
+                                dekning = if (vedfrivt10Rader.firstOrNull()?.IF10_TYPE == '4') {
+                                    Løsning.MedForsikring.Dekning(grad = 100, fraDag = 1)
+                                } else {
+                                    Løsning.MedForsikring.Dekning(grad = 100, fraDag = 17) // Kollektiv forsikring
+                                }
+                            )
+                        } else if (vedfrivt10Rader.isNotEmpty()) {
+                            Løsning.MedForsikring(
+                                oppslagId = oppslagId,
+                                dekning = when (val type = vedfrivt10Rader.first().IF10_TYPE) {
+                                    '1' -> Løsning.MedForsikring.Dekning(grad = 80, fraDag = 1)
+                                    '2' -> Løsning.MedForsikring.Dekning(grad = 100, fraDag = 17)
+                                    '3' -> Løsning.MedForsikring.Dekning(grad = 100, fraDag = 1)
+                                    '5' if "FRILANSER" == yrkesaktivitetstype -> Løsning.MedForsikring.Dekning(grad = 100, fraDag = 1)
 
-                            else -> error("Støtter ikke kombinasjonen IF10_TYPE $type, yrkesaktivitetstype $yrkesaktivitetstype, særskilteGrupper $særskilteGrupper")
+                                    else -> error("Støtter ikke kombinasjonen IF10_TYPE $type, yrkesaktivitetstype $yrkesaktivitetstype, særskilteGrupper $særskilteGrupper")
+                                }
+                            )
+                        } else {
+                            Løsning.UtenForsikring(oppslagId = oppslagId)
                         }
-                    )
-                } else {
-                    Løsning.UtenForsikring(oppslagId = oppslagId)
+                        packet["@løsning"] = mapOf("Sykepengeforsikring" to løsning)
+                        context.publish(packet.toJson())
+                    }
                 }
-                packet["@løsning"] = mapOf("Sykepengeforsikring" to løsning)
-                context.publish(packet.toJson())
             } catch (err: Exception) {
                 loggError("Feil ved håndtering av Sykepengeforsikring-behov", err)
             }

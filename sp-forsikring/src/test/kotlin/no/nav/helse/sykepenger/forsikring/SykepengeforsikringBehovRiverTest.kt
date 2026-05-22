@@ -9,6 +9,7 @@ import com.github.navikt.tbd_libs.rapids_and_rivers.test_support.TestRapid
 import java.util.*
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
+import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertDoesNotThrow
@@ -19,14 +20,25 @@ internal class SykepengeforsikringBehovRiverTest {
     private val rapid = TestRapid().apply {
         SykepengeforsikringBehovRiver(
             rapidsConnection = this,
-            infotrygdForsikringDao = ReplikabaseForsikringDao(TestcontainersReplikadatabase.dataSource)
+            infotrygdForsikringDao = ReplikabaseForsikringDao(TestcontainersReplikadatabase.dataSource),
+            spForsikringDataSource = TestcontainersSpForsikringDatabase.dataSource
         )
     }
 
     @BeforeEach
     fun beforeEach() {
-        TestcontainersReplikadatabase.clear()
+        TestcontainersReplikadatabase.reset()
+        TestcontainersSpForsikringDatabase.reset()
         rapid.reset()
+    }
+
+    companion object {
+        @JvmStatic
+        @AfterAll
+        fun shutdown() {
+            TestcontainersReplikadatabase.shutdown()
+            TestcontainersSpForsikringDatabase.shutdown()
+        }
     }
 
     @Test
@@ -425,6 +437,62 @@ internal class SykepengeforsikringBehovRiverTest {
             actualJsonNode = løsningMelding["@løsning"]["Sykepengeforsikring"],
             bortsettFraProperties = listOf("oppslagId")
         )
+    }
+
+    @Test
+    fun `oppslag og grunnlagsdata lagres ned i databasen`() {
+        TestcontainersReplikadatabase.insertVedfrivt(
+            IF01_AGNR_FNR = 3020112345L,
+            IF10_FORSFOM_SEQ = 123,
+            IF10_TYPE = '1'
+        )
+        TestcontainersReplikadatabase.insertVedfrivt(
+            IF01_AGNR_FNR = 3020112345L,
+            IF10_FORSFOM_SEQ = 456,
+            IF10_TYPE = '2'
+        )
+        TestcontainersReplikadatabase.insertFkonto12(
+            IF01_AGNR_FNR = 3020112345L,
+            IF10_FORSFOM_SEQ = 123,
+            IF12_BETDATO_SEQ = 111
+        )
+        TestcontainersReplikadatabase.insertFkonto12(
+            IF01_AGNR_FNR = 3020112345L,
+            IF10_FORSFOM_SEQ = 123,
+            IF12_BETDATO_SEQ = 222
+        )
+        TestcontainersReplikadatabase.insertFkonto12(
+            IF01_AGNR_FNR = 3020112345L,
+            IF10_FORSFOM_SEQ = 456,
+            IF12_BETDATO_SEQ = 333
+        )
+        TestcontainersReplikadatabase.insertFkonto12(
+            IF01_AGNR_FNR = 3020112345L,
+            IF10_FORSFOM_SEQ = 456,
+            IF12_BETDATO_SEQ = 444
+        )
+
+        rapid.sendTestMessage(
+            """
+                {
+                    "@behov": [ "Sykepengeforsikring" ],
+                    "fødselsnummer": "01020312345",
+                    "yrkesaktivitetstype": "SELVSTENDIG",
+                    "Sykepengeforsikring" : {
+                        "særskilteGrupper": [],
+                        "skjæringstidspunkt": "2026-01-01"
+                    }
+                }
+            """.trimIndent()
+        )
+
+        assertEquals(1, rapid.inspektør.size)
+        val løsningMelding = rapid.inspektør.message(0)
+        val oppslagId = løsningMelding["@løsning"]["Sykepengeforsikring"]["oppslagId"]?.asText()
+        assertNotNull(oppslagId) { "Manglet oppslagId" }
+        assertEquals(1, TestcontainersSpForsikringDatabase.countOppslag(oppslagId))
+        assertEquals(2, TestcontainersSpForsikringDatabase.countOppslagIF_VEDFRIVT_10(oppslagId))
+        assertEquals(4, TestcontainersSpForsikringDatabase.countOppslagIF_FKONTO_12(oppslagId))
     }
 
     private val generiskeFelter = listOf(

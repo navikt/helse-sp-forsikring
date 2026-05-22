@@ -1,6 +1,6 @@
-CREATE TABLE OPPSLAG_IF_FKONTO_12
+CREATE TABLE oppslag_IF_FKONTO_12
 (
-    oppslag_id       UUID          NOT NULL references INFOTRYGD_FORSIKRING_OPPSLAG(oppslag_id),
+    oppslag_id       UUID          NOT NULL REFERENCES oppslag (id),
     IF01_KODE        CHAR(1)       NULL,
     IF01_AGNR_FNR    NUMERIC(11)   NULL,
     IF10_FORSFOM_SEQ NUMERIC(8)    NULL,
