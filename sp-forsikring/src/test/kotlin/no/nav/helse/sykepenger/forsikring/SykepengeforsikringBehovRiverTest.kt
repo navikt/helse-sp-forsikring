@@ -34,7 +34,7 @@ internal class SykepengeforsikringBehovRiverTest {
         rapid.sendTestMessage(
             """
                 {
-                    "@behov": ["Sykepengeforsikring"],
+                    "@behov": [ "Sykepengeforsikring" ],
                     "fødselsnummer": "01020312345",
                     "yrkesaktivitetstype": "SELVSTENDIG",
                     "Sykepengeforsikring" : {
@@ -52,7 +52,7 @@ internal class SykepengeforsikringBehovRiverTest {
     fun `Sender melding som er lik som den vi fikk inn som behov, sett bort fra løsning-feltet`() {
         val testmelding = """
             {
-                "@behov": ["Sykepengeforsikring"],
+                "@behov": [ "Sykepengeforsikring" ],
                 "fødselsnummer": "01020312345",
                 "yrkesaktivitetstype": "SELVSTENDIG",
                 "Sykepengeforsikring" : {
@@ -77,7 +77,7 @@ internal class SykepengeforsikringBehovRiverTest {
         rapid.sendTestMessage(
             """
                 {
-                    "@behov": ["Sykepengeforsikring"],
+                    "@behov": [ "Sykepengeforsikring" ],
                     "fødselsnummer": "01020312345",
                     "yrkesaktivitetstype": "SELVSTENDIG",
                     "Sykepengeforsikring" : {
@@ -102,7 +102,7 @@ internal class SykepengeforsikringBehovRiverTest {
         rapid.sendTestMessage(
             """
                 {
-                    "@behov": ["Sykepengeforsikring"],
+                    "@behov": [ "Sykepengeforsikring" ],
                     "fødselsnummer": "01020312345",
                     "yrkesaktivitetstype": "SELVSTENDIG",
                     "Sykepengeforsikring" : {
@@ -132,7 +132,7 @@ internal class SykepengeforsikringBehovRiverTest {
         rapid.sendTestMessage(
             """
                 {
-                    "@behov": ["Sykepengeforsikring"],
+                    "@behov": [ "Sykepengeforsikring" ],
                     "fødselsnummer": "01020312345",
                     "yrkesaktivitetstype": "SELVSTENDIG",
                     "Sykepengeforsikring" : {
@@ -162,7 +162,7 @@ internal class SykepengeforsikringBehovRiverTest {
         rapid.sendTestMessage(
             """
                 {
-                    "@behov": ["Sykepengeforsikring"],
+                    "@behov": [ "Sykepengeforsikring" ],
                     "fødselsnummer": "01020312345",
                     "yrkesaktivitetstype": "SELVSTENDIG",
                     "Sykepengeforsikring" : {
@@ -192,7 +192,7 @@ internal class SykepengeforsikringBehovRiverTest {
         rapid.sendTestMessage(
             """
                 {
-                    "@behov": ["Sykepengeforsikring"],
+                    "@behov": [ "Sykepengeforsikring" ],
                     "fødselsnummer": "01020312345",
                     "yrkesaktivitetstype": "SELVSTENDIG",
                     "Sykepengeforsikring" : {
@@ -222,13 +222,11 @@ internal class SykepengeforsikringBehovRiverTest {
         rapid.sendTestMessage(
             """
                 {
-                    "@behov": ["Sykepengeforsikring"],
+                    "@behov": [ "Sykepengeforsikring" ],
                     "fødselsnummer": "01020312345",
                     "yrkesaktivitetstype": "SELVSTENDIG",
                     "Sykepengeforsikring" : {
-                        "særskilteGrupper": [${
-                setOf("JORDBRUKER")
-                    .joinToString(", ") { "\"$it\"" }}],
+                        "særskilteGrupper": [ "JORDBRUKER" ],
                         "skjæringstidspunkt": "2026-01-01"
                     }
                 }
@@ -254,7 +252,7 @@ internal class SykepengeforsikringBehovRiverTest {
         rapid.sendTestMessage(
             """
                 {
-                    "@behov": ["Sykepengeforsikring"],
+                    "@behov": [ "Sykepengeforsikring" ],
                     "fødselsnummer": "01020312345",
                     "yrkesaktivitetstype": "SELVSTENDIG",
                     "Sykepengeforsikring" : {
@@ -278,7 +276,7 @@ internal class SykepengeforsikringBehovRiverTest {
         rapid.sendTestMessage(
             """
                 {
-                    "@behov": ["Sykepengeforsikring"],
+                    "@behov": [ "Sykepengeforsikring" ],
                     "fødselsnummer": "01020312345",
                     "yrkesaktivitetstype": "${
                 "FRILANSER"
@@ -310,7 +308,7 @@ internal class SykepengeforsikringBehovRiverTest {
         rapid.sendTestMessage(
             """
                 {
-                    "@behov": ["Sykepengeforsikring"],
+                    "@behov": [ "Sykepengeforsikring" ],
                     "fødselsnummer": "01020312345",
                     "yrkesaktivitetstype": "SELVSTENDIG",
                     "Sykepengeforsikring" : {
