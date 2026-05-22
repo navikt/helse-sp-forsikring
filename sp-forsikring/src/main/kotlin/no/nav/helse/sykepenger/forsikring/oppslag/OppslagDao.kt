@@ -1,22 +1,22 @@
-package no.nav.helse.sykepenger.forsikring
+package no.nav.helse.sykepenger.forsikring.oppslag
 
-import kotliquery.Session
-import kotliquery.queryOf
-import org.intellij.lang.annotations.Language
 import java.sql.Timestamp
 import java.time.Instant
-import java.util.UUID
+import java.util.*
+import kotliquery.TransactionalSession
+import kotliquery.queryOf
 import no.nav.helse.sykepenger.forsikring.replikabase.IF_FKONTO_12_Rad
 import no.nav.helse.sykepenger.forsikring.replikabase.IF_VEDFRIVT_10_Rad
+import org.intellij.lang.annotations.Language
 
-class OppslagDao(private val session: Session) {
+class OppslagDao(private val transaction: TransactionalSession) {
     fun lagreOppslag(oppslagId: UUID, opprinneligBehov: String, oppslagTidspunkt: Instant) {
         @Language("PostgreSQL")
         val statement = """
             INSERT INTO oppslag (id, opprinnelig_behov, oppslag_tidspunkt)
             VALUES (:id, :opprinnelig_behov::jsonb, :oppslag_tidspunkt)
         """
-        session.run(
+        transaction.run(
             queryOf(
                 statement,
                 mapOf(
@@ -68,7 +68,7 @@ class OppslagDao(private val session: Session) {
                 :OPPRETTET, :ENDRET_I_KILDE, :KILDE_IF, :ID_VED, :OPPDATERT
             )
         """
-        session.run(
+        transaction.run(
             queryOf(
                 statement,
                 mapOf(
@@ -130,7 +130,7 @@ class OppslagDao(private val session: Session) {
                 :OPPRETTET, :ENDRET_I_KILDE, :KILDE_IF, :ID_KONT, :OPPDATERT
             )
         """
-        session.run(
+        transaction.run(
             queryOf(
                 statement,
                 mapOf(
@@ -153,5 +153,29 @@ class OppslagDao(private val session: Session) {
                 )
             ).asUpdate
         )
+    }
+
+    fun hentOppslag(oppslagId: UUID): Oppslag {
+        @Language("PostgreSQL")
+        val statement = """
+            SELECT IF10_TYPE FROM oppslag_IF_VEDFRIVT_10 WHERE oppslag_id = :oppslag_id
+        """
+        val navKjøpteForsikringer = transaction.run(
+            queryOf(statement, mapOf("oppslag_id" to oppslagId))
+                .map { row ->
+                    NavKjøptForsikring(
+                        type = when (val type = row.string("IF10_TYPE")) {
+                            "1" -> NavKjøptForsikring.Type.SELVSTENDIG_80_PROSENT_FRA_DAG_1
+                            "2" -> NavKjøptForsikring.Type.SELVSTENDIG_100_PROSENT_FRA_DAG_17
+                            "3" -> NavKjøptForsikring.Type.SELVSTENDIG_100_PROSENT_FRA_DAG_1
+                            "4" -> NavKjøptForsikring.Type.SELVSTENDIG_JORDBRUKER_100_PROSENT_FRA_DAG_1
+                            "5" -> NavKjøptForsikring.Type.FRILANSER_100_PROSENT_FRA_DAG_1
+                            else -> error("Ukjent forsikringstype: $type")
+                        }
+                    )
+                }
+                .asList
+        )
+        return Oppslag(id = oppslagId, navKjøpteForsikringer = navKjøpteForsikringer)
     }
 }

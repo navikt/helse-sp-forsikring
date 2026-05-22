@@ -8,23 +8,19 @@ import com.github.navikt.tbd_libs.rapids_and_rivers_api.MessageMetadata
 import com.github.navikt.tbd_libs.rapids_and_rivers_api.MessageProblems
 import com.github.navikt.tbd_libs.rapids_and_rivers_api.RapidsConnection
 import io.micrometer.core.instrument.MeterRegistry
-import java.time.Instant
 import java.util.*
 import javax.sql.DataSource
 import kotlin.uuid.ExperimentalUuidApi
-import kotlin.uuid.Uuid
-import kotlin.uuid.toJavaUuid
 import kotliquery.sessionOf
-import no.nav.helse.sykepenger.forsikring.replikabase.ReplikabaseDao
+import no.nav.helse.sykepenger.forsikring.oppslag.NavKjøptForsikring.Type
+import no.nav.helse.sykepenger.forsikring.oppslag.OppslagService
 import tools.jackson.databind.JsonNode
 
 class SykepengeforsikringBehovRiver(
     rapidsConnection: RapidsConnection,
-    replikabaseDataSource: DataSource,
+    private val replikabaseDataSource: DataSource,
     private val spForsikringDataSource: DataSource,
 ) : River.PacketListener {
-    private val replikabaseDao = ReplikabaseDao(dataSource = replikabaseDataSource)
-
     init {
         River(rapidsConnection)
             .apply {
@@ -57,45 +53,43 @@ class SykepengeforsikringBehovRiver(
         val yrkesaktivitetstype = packet["yrkesaktivitetstype"].asString()
         val særskilteGrupper = packet["Sykepengeforsikring.særskilteGrupper"].map<JsonNode, String> { it.asString() }.toSet()
         val skjæringstidspunkt = packet["Sykepengeforsikring.skjæringstidspunkt"].asLocalDate()
-        val oppslagId = Uuid.generateV7().toJavaUuid()
 
         medMdc(MdcKey.MELDING_ID to meldingId) {
             loggInfo("Henter sykepengeforsikring")
             try {
                 sessionOf(spForsikringDataSource).use { session ->
                     session.transaction { transaction ->
-                        val oppslagDao = OppslagDao(transaction)
-                        oppslagDao.lagreOppslag(oppslagId, packet.toJson(), Instant.now())
-                        val vedfrivt10Rader = replikabaseDao.hentIfVedfrivt10Rader(fødselsnummer)
-                        oppslagDao.lagreIfVedfrivt10Rader(oppslagId, vedfrivt10Rader)
+                        val oppslag = OppslagService(transaction, replikabaseDataSource)
+                            .gjørNyttOppslag(fødselsnummer, packet.toJson())
+
                         val løsning = if ("FISKER_BLAD_B" in særskilteGrupper) {
                             Løsning.MedForsikring(
-                                oppslagId = oppslagId,
+                                oppslagId = oppslag.id,
                                 dekning = Løsning.MedForsikring.Dekning(grad = 100, fraDag = 1) // Kollektiv forsikring
                             )
                         } else if ("JORDBRUKER" in særskilteGrupper || "REINDRIFTER" in særskilteGrupper) {
                             Løsning.MedForsikring(
-                                oppslagId = oppslagId,
-                                dekning = if (vedfrivt10Rader.firstOrNull()?.IF10_TYPE == '4') {
+                                oppslagId = oppslag.id,
+                                dekning = if (oppslag.navKjøpteForsikringer.firstOrNull()?.type == Type.SELVSTENDIG_JORDBRUKER_100_PROSENT_FRA_DAG_1) {
                                     Løsning.MedForsikring.Dekning(grad = 100, fraDag = 1)
                                 } else {
                                     Løsning.MedForsikring.Dekning(grad = 100, fraDag = 17) // Kollektiv forsikring
                                 }
                             )
-                        } else if (vedfrivt10Rader.isNotEmpty()) {
+                        } else if (oppslag.navKjøpteForsikringer.isNotEmpty()) {
                             Løsning.MedForsikring(
-                                oppslagId = oppslagId,
-                                dekning = when (val type = vedfrivt10Rader.first().IF10_TYPE) {
-                                    '1' -> Løsning.MedForsikring.Dekning(grad = 80, fraDag = 1)
-                                    '2' -> Løsning.MedForsikring.Dekning(grad = 100, fraDag = 17)
-                                    '3' -> Løsning.MedForsikring.Dekning(grad = 100, fraDag = 1)
-                                    '5' if "FRILANSER" == yrkesaktivitetstype -> Løsning.MedForsikring.Dekning(grad = 100, fraDag = 1)
+                                oppslagId = oppslag.id,
+                                dekning = when (val type = oppslag.navKjøpteForsikringer.first().type) {
+                                    Type.SELVSTENDIG_80_PROSENT_FRA_DAG_1 -> Løsning.MedForsikring.Dekning(grad = 80, fraDag = 1)
+                                    Type.SELVSTENDIG_100_PROSENT_FRA_DAG_17 -> Løsning.MedForsikring.Dekning(grad = 100, fraDag = 17)
+                                    Type.SELVSTENDIG_100_PROSENT_FRA_DAG_1 -> Løsning.MedForsikring.Dekning(grad = 100, fraDag = 1)
+                                    Type.FRILANSER_100_PROSENT_FRA_DAG_1 if "FRILANSER" == yrkesaktivitetstype -> Løsning.MedForsikring.Dekning(grad = 100, fraDag = 1)
 
                                     else -> error("Støtter ikke kombinasjonen IF10_TYPE $type, yrkesaktivitetstype $yrkesaktivitetstype, særskilteGrupper $særskilteGrupper")
                                 }
                             )
                         } else {
-                            Løsning.UtenForsikring(oppslagId = oppslagId)
+                            Løsning.UtenForsikring(oppslagId = oppslag.id)
                         }
                         packet["@løsning"] = mapOf("Sykepengeforsikring" to løsning)
                         context.publish(packet.toJson())
