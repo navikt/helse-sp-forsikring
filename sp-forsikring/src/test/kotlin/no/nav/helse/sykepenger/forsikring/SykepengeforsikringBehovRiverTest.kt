@@ -347,6 +347,31 @@ internal class SykepengeforsikringBehovRiverTest {
         )
     }
 
+    @Test
+    fun `løsning for fiskere på blad B gir riktig informasjon`() {
+        rapid.sendTestMessage(
+            """
+                {
+                    "@behov": [ "Sykepengeforsikring" ],
+                    "fødselsnummer": "01020312345",
+                    "yrkesaktivitetstype": "SELVSTENDIG",
+                    "Sykepengeforsikring" : {
+                        "særskilteGrupper": [ "FISKER_BLAD_B" ],
+                        "skjæringstidspunkt": "2026-01-01"
+                    }
+                }
+            """.trimIndent()
+        )
+
+        assertEquals(1, rapid.inspektør.size)
+        val løsningMelding = rapid.inspektør.message(0)
+        assertJsonEquals(
+            expectedJson = """{ "harForsikring": true, "dekning": { "grad": 100, "fraDag": 1 } } """,
+            actualJsonNode = løsningMelding["@løsning"]["Sykepengeforsikring"],
+            bortsettFraProperties = listOf("oppslagId")
+        )
+    }
+
     private val generiskeFelter = listOf(
         "@id",
         "@opprettet",

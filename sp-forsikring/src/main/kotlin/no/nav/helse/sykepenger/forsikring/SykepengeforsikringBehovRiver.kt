@@ -52,7 +52,12 @@ class SykepengeforsikringBehovRiver(
             loggInfo("Henter sykepengeforsikring")
             try {
                 val vedfrivt10Rader = infotrygdForsikringDao.hentIfVedfrivt10Rader(fødselsnummer)
-                val løsning = if ("JORDBRUKER" in særskilteGrupper) {
+                val løsning = if ("FISKER_BLAD_B" in særskilteGrupper) {
+                    Løsning.MedForsikring(
+                        oppslagId = oppslagId,
+                        dekning = Løsning.MedForsikring.Dekning(grad = 100, fraDag = 1) // Kollektiv forsikring
+                    )
+                } else if ("JORDBRUKER" in særskilteGrupper) {
                     Løsning.MedForsikring(
                         oppslagId = oppslagId,
                         dekning = if (vedfrivt10Rader.firstOrNull()?.IF10_TYPE == '4') {
