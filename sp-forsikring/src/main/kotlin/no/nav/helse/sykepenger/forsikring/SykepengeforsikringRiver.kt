@@ -8,6 +8,7 @@ import com.github.navikt.tbd_libs.rapids_and_rivers_api.MessageMetadata
 import com.github.navikt.tbd_libs.rapids_and_rivers_api.MessageProblems
 import com.github.navikt.tbd_libs.rapids_and_rivers_api.RapidsConnection
 import io.micrometer.core.instrument.MeterRegistry
+import java.util.UUID
 
 class SykepengeforsikringRiver(
     rapidsConnection: RapidsConnection,
@@ -35,28 +36,13 @@ class SykepengeforsikringRiver(
         val meldingId = packet["@id"].asString()
         val fødselsnummer = packet["fødselsnummer"].asString()
         val skjæringstidspunkt = packet["Sykepengeforsikring.skjæringstidspunkt"].asLocalDate()
+        val oppslagId = UUID.randomUUID()
 
         medMdc(MdcKey.MELDING_ID to meldingId) {
             loggInfo("Henter sykepengeforsikring")
             try {
-
                 val fullstendigeForsikringer = infotrygdForsikringDao.hentFullstendigeForsikringer(fødselsnummer)
-
-                /*val resultat: ForsikringDto
-                val løsning =  mapOf(
-                    "forsikringstype" to it.forsikringstype.name,
-                    "premiegrunnlag" to it.premiegrunnlag,
-                    "startdato" to it.virkningsdato,
-                    "sluttdato" to it.tom
-                )*/
-
-                /*val resultat =
-                    sykepengeforsikringService.hentSykepengeforsikring(
-                        fødselsnummer = fødselsnummer,
-                        callId = meldingId
-                    )*/
-                TODO()
-                packet["@løsning"] = mapOf("Sykepengeforsikring" to "")
+                packet["@løsning"] = mapOf("Sykepengeforsikring" to mapOf("oppslagId" to oppslagId))
                 context.publish(packet.toJson())
             } catch (err: Exception) {
                 loggError("Feil ved håndtering av Sykepengeforsikring-behov", err)
