@@ -348,6 +348,61 @@ internal class SykepengeforsikringBehovRiverTest {
     }
 
     @Test
+    fun `løsning for reindrifter med gyldig tilleggsforsikring med 100 prosent fra dag 1 inneholder riktig informasjon`() {
+        TestcontainersReplikadatabase.insertVedfrivt(
+            IF01_AGNR_FNR = 3020112345L,
+            IF10_TYPE = '4'
+        )
+
+        rapid.sendTestMessage(
+            """
+                {
+                    "@behov": [ "Sykepengeforsikring" ],
+                    "fødselsnummer": "01020312345",
+                    "yrkesaktivitetstype": "SELVSTENDIG",
+                    "Sykepengeforsikring" : {
+                        "særskilteGrupper": [ "REINDRIFTER" ],
+                        "skjæringstidspunkt": "2026-01-01"
+                    }
+                }
+            """.trimIndent()
+        )
+
+        assertEquals(1, rapid.inspektør.size)
+        val løsningMelding = rapid.inspektør.message(0)
+        assertJsonEquals(
+            expectedJson = """{ "harForsikring": true, "dekning": { "grad": 100, "fraDag": 1 } } """,
+            actualJsonNode = løsningMelding["@løsning"]["Sykepengeforsikring"],
+            bortsettFraProperties = listOf("oppslagId")
+        )
+    }
+
+    @Test
+    fun `løsning for reindrifter som bare har kollektiv forsikring gir riktig informasjon`() {
+        rapid.sendTestMessage(
+            """
+                {
+                    "@behov": [ "Sykepengeforsikring" ],
+                    "fødselsnummer": "01020312345",
+                    "yrkesaktivitetstype": "SELVSTENDIG",
+                    "Sykepengeforsikring" : {
+                        "særskilteGrupper": [ "REINDRIFTER" ],
+                        "skjæringstidspunkt": "2026-01-01"
+                    }
+                }
+            """.trimIndent()
+        )
+
+        assertEquals(1, rapid.inspektør.size)
+        val løsningMelding = rapid.inspektør.message(0)
+        assertJsonEquals(
+            expectedJson = """{ "harForsikring": true, "dekning": { "grad": 100, "fraDag": 17 } } """,
+            actualJsonNode = løsningMelding["@løsning"]["Sykepengeforsikring"],
+            bortsettFraProperties = listOf("oppslagId")
+        )
+    }
+
+    @Test
     fun `løsning for fiskere på blad B gir riktig informasjon`() {
         rapid.sendTestMessage(
             """

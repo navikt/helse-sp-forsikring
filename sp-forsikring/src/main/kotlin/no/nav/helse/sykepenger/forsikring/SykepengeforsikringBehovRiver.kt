@@ -57,7 +57,7 @@ class SykepengeforsikringBehovRiver(
                         oppslagId = oppslagId,
                         dekning = Løsning.MedForsikring.Dekning(grad = 100, fraDag = 1) // Kollektiv forsikring
                     )
-                } else if ("JORDBRUKER" in særskilteGrupper) {
+                } else if ("JORDBRUKER" in særskilteGrupper || "REINDRIFTER" in særskilteGrupper) {
                     Løsning.MedForsikring(
                         oppslagId = oppslagId,
                         dekning = if (vedfrivt10Rader.firstOrNull()?.IF10_TYPE == '4') {
