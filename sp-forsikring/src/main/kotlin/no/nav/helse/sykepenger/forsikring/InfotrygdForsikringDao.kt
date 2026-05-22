@@ -6,7 +6,6 @@ import java.time.Instant
 import java.time.LocalDate
 
 interface InfotrygdForsikringDao {
-    fun hentForsikringer(fødselsnummer: String, skjæringstidspunkt: LocalDate): List<ForsikringDto>
     fun hentFullstendigeForsikringer(fødselsnummer: String): List<RåForsikringDto>
 
     data class ForsikringDto(

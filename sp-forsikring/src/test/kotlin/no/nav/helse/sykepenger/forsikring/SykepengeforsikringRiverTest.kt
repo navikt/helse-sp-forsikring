@@ -1,6 +1,7 @@
 package no.nav.helse.sykepenger.forsikring
 
 import com.github.navikt.tbd_libs.rapids_and_rivers.test_support.TestRapid
+import java.time.LocalDate
 import org.intellij.lang.annotations.Language
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.BeforeEach
@@ -8,16 +9,16 @@ import org.junit.jupiter.api.Test
 
 class SykepengeforsikringRiverTest {
     private var mocketResultatSupplier: () -> SykepengeforsikringResultat? = { null }
-    private val sykepengeforsikringService = object : SykepengeforsikringService {
-        override fun hentSykepengeforsikring(fødselsnummer: String, callId: String): SykepengeforsikringResultat? {
-            return mocketResultatSupplier()
+    private val sykepengeforsikringDao = object : InfotrygdForsikringDao {
+        override fun hentFullstendigeForsikringer(fødselsnummer: String): List<InfotrygdForsikringDao.RåForsikringDto> {
+            TODO("Not yet implemented")
         }
     }
 
     private val rapid =
         TestRapid()
             .apply {
-                SykepengeforsikringRiver(this, sykepengeforsikringService)
+                SykepengeforsikringRiver(this, ReplikabaseForsikringDao(TestcontainersDatabase.dataSource))
             }
 
     @BeforeEach

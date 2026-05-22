@@ -20,7 +20,7 @@ class ReplikabaseForsikringDao(private val dataSource: DataSource) : InfotrygdFo
         }
     }
 
-    override fun hentForsikringer(fødselsnummer: String, skjæringstidspunkt: LocalDate): List<InfotrygdForsikringDao.ForsikringDto> =
+    /*override fun hentForsikringer(fødselsnummer: String, skjæringstidspunkt: LocalDate): List<InfotrygdForsikringDao.ForsikringDto> =
         sessionOf(dataSource).use { session ->
             @Language("Oracle")
             val statement = """
@@ -46,7 +46,7 @@ class ReplikabaseForsikringDao(private val dataSource: DataSource) : InfotrygdFo
                     )
                 }.asList
             )
-        }
+        }*/
 
     override fun hentFullstendigeForsikringer(fødselsnummer: String): List<InfotrygdForsikringDao.RåForsikringDto> =
         sessionOf(dataSource).use { session ->

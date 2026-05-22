@@ -41,6 +41,6 @@ fun launchApplication(env: Map<String, String>) {
             }
         })
         .apply {
-            SykepengeforsikringRiver(this, sykepengeforsikringService) //, replikabaseForsikringDao)
+            SykepengeforsikringRiver(this, replikabaseForsikringDao)
         }.start()
 }

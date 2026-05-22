@@ -1,6 +1,6 @@
-CREATE TABLE IF_VEDFRIVT_10
+CREATE TABLE OPPSLAG_IF_VEDFRIVT_10
 (
-    id                 UUID         NOT NULL,
+    oppslag_id         UUID         NOT NULL references INFOTRYGD_FORSIKRING_OPPSLAG (oppslag_id),
     IF01_KODE          CHAR(1)      NOT NULL,
     IF01_AGNR_FNR      NUMERIC(11)  NOT NULL,
     IF10_FORSFOM_SEQ   NUMERIC(8)   NOT NULL,
