@@ -31,9 +31,7 @@ fun launchApplication(env: Map<String, String>) {
             initializationFailTimeout = Duration.ofMinutes(1).toMillis()
         }
     )
-    val replikabaseForsikringDao = ReplikabaseForsikringDao(
-        dataSource = replikabaseDataSource
-    )
+
     val sykepengeforsikringService = SykepengeforsikringServiceImpl()
 
     Unit.loggInfo("Hei fra Unit \uD83D\uDC4B")
@@ -66,6 +64,10 @@ fun launchApplication(env: Map<String, String>) {
             }
         })
         .apply {
-            SykepengeforsikringBehovRiver(this, replikabaseForsikringDao, spForsikringDataSource)
+            SykepengeforsikringBehovRiver(
+                rapidsConnection = this,
+                replikabaseDataSource = replikabaseDataSource,
+                spForsikringDataSource = spForsikringDataSource
+            )
         }.start()
 }

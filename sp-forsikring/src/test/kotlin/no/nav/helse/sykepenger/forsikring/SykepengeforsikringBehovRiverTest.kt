@@ -20,7 +20,7 @@ internal class SykepengeforsikringBehovRiverTest {
     private val rapid = TestRapid().apply {
         SykepengeforsikringBehovRiver(
             rapidsConnection = this,
-            infotrygdForsikringDao = ReplikabaseForsikringDao(TestcontainersReplikadatabase.dataSource),
+            replikabaseDataSource = TestcontainersReplikadatabase.dataSource,
             spForsikringDataSource = TestcontainersSpForsikringDatabase.dataSource
         )
     }

@@ -15,13 +15,16 @@ import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 import kotlin.uuid.toJavaUuid
 import kotliquery.sessionOf
+import no.nav.helse.sykepenger.forsikring.replikabase.ReplikabaseDao
 import tools.jackson.databind.JsonNode
 
 class SykepengeforsikringBehovRiver(
     rapidsConnection: RapidsConnection,
-    private val infotrygdForsikringDao: InfotrygdForsikringDao,
+    replikabaseDataSource: DataSource,
     private val spForsikringDataSource: DataSource,
 ) : River.PacketListener {
+    private val replikabaseDao = ReplikabaseDao(dataSource = replikabaseDataSource)
+
     init {
         River(rapidsConnection)
             .apply {
@@ -63,7 +66,7 @@ class SykepengeforsikringBehovRiver(
                     session.transaction { transaction ->
                         val oppslagDao = OppslagDao(transaction)
                         oppslagDao.lagreOppslag(oppslagId, packet.toJson(), Instant.now())
-                        val vedfrivt10Rader = infotrygdForsikringDao.hentIfVedfrivt10Rader(fødselsnummer)
+                        val vedfrivt10Rader = replikabaseDao.hentIfVedfrivt10Rader(fødselsnummer)
                         oppslagDao.lagreIfVedfrivt10Rader(oppslagId, vedfrivt10Rader)
                         val løsning = if ("FISKER_BLAD_B" in særskilteGrupper) {
                             Løsning.MedForsikring(

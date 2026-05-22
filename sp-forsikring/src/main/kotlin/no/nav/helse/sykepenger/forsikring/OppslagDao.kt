@@ -6,6 +6,8 @@ import org.intellij.lang.annotations.Language
 import java.sql.Timestamp
 import java.time.Instant
 import java.util.UUID
+import no.nav.helse.sykepenger.forsikring.replikabase.IF_FKONTO_12_Rad
+import no.nav.helse.sykepenger.forsikring.replikabase.IF_VEDFRIVT_10_Rad
 
 class OppslagDao(private val session: Session) {
     fun lagreOppslag(oppslagId: UUID, opprinneligBehov: String, oppslagTidspunkt: Instant) {
@@ -28,7 +30,7 @@ class OppslagDao(private val session: Session) {
 
     fun lagreIfVedfrivt10Rader(
         oppslagId: UUID,
-        rader: List<InfotrygdForsikringDao.IF_VEDFRIVT_10_Rad>,
+        rader: List<IF_VEDFRIVT_10_Rad>,
     ) {
         rader.forEach { rad ->
             lagreIfVedfrivt10Rad(oppslagId, rad)
@@ -40,7 +42,7 @@ class OppslagDao(private val session: Session) {
 
     private fun lagreIfVedfrivt10Rad(
         oppslagId: UUID,
-        rad: InfotrygdForsikringDao.IF_VEDFRIVT_10_Rad,
+        rad: IF_VEDFRIVT_10_Rad,
     ) {
         @Language("PostgreSQL")
         val statement = """
@@ -109,8 +111,8 @@ class OppslagDao(private val session: Session) {
 
     private fun lagreIfFkonto12Rad(
         oppslagId: UUID,
-        vedfrivtRad: InfotrygdForsikringDao.IF_VEDFRIVT_10_Rad,
-        rad: InfotrygdForsikringDao.IF_FKONTO_12_Rad,
+        vedfrivtRad: IF_VEDFRIVT_10_Rad,
+        rad: IF_FKONTO_12_Rad,
     ) {
         @Language("PostgreSQL")
         val statement = """

@@ -1,12 +1,12 @@
-package no.nav.helse.sykepenger.forsikring
+package no.nav.helse.sykepenger.forsikring.replikabase
 
 import javax.sql.DataSource
 import kotliquery.queryOf
 import kotliquery.sessionOf
 import org.intellij.lang.annotations.Language
 
-class ReplikabaseForsikringDao(private val dataSource: DataSource) : InfotrygdForsikringDao {
-    override fun hentIfVedfrivt10Rader(fødselsnummer: String): List<InfotrygdForsikringDao.IF_VEDFRIVT_10_Rad> =
+class ReplikabaseDao(private val dataSource: DataSource) {
+    fun hentIfVedfrivt10Rader(fødselsnummer: String): List<IF_VEDFRIVT_10_Rad> =
         sessionOf(dataSource).use { session ->
             @Language("Oracle")
             val statement = """
@@ -31,7 +31,7 @@ class ReplikabaseForsikringDao(private val dataSource: DataSource) : InfotrygdFo
                     val fkonto12Rader = sessionOf(dataSource).use { innerSession ->
                         innerSession.run(
                             queryOf(fkonto12Statement, if01Kode.toString(), if01AgnrFnr, if10ForsfomSeq).map { fkRs ->
-                                InfotrygdForsikringDao.IF_FKONTO_12_Rad(
+                                IF_FKONTO_12_Rad(
                                     IF12_BETDATO_SEQ = fkRs.intOrNull("IF12_BETDATO_SEQ"),
                                     IF12_FOM = fkRs.intOrNull("IF12_FOM"),
                                     IF12_TOM = fkRs.intOrNull("IF12_TOM"),
@@ -49,7 +49,7 @@ class ReplikabaseForsikringDao(private val dataSource: DataSource) : InfotrygdFo
                         )
                     }
 
-                    InfotrygdForsikringDao.IF_VEDFRIVT_10_Rad(
+                    IF_VEDFRIVT_10_Rad(
                         IF01_KODE = if01Kode,
                         IF01_AGNR_FNR = if01AgnrFnr,
                         IF10_FORSFOM_SEQ = if10ForsfomSeq,
