@@ -1,9 +1,6 @@
 package no.nav.helse.sykepenger.forsikring
 
-import java.time.LocalDate
-import java.time.format.DateTimeFormatter
 import javax.sql.DataSource
-import kotliquery.Row
 import kotliquery.queryOf
 import kotliquery.sessionOf
 import org.intellij.lang.annotations.Language
@@ -20,35 +17,7 @@ class ReplikabaseForsikringDao(private val dataSource: DataSource) : InfotrygdFo
         }
     }
 
-    /*override fun hentForsikringer(fødselsnummer: String, skjæringstidspunkt: LocalDate): List<InfotrygdForsikringDao.ForsikringDto> =
-        sessionOf(dataSource).use { session ->
-            @Language("Oracle")
-            val statement = """
-                SELECT IF10_VIRKDATO, IF10_TYPE, IF10_FORSTOM, IF10_PREMGRL
-                FROM IF_VEDFRIVT_10
-                WHERE IF01_KODE = '1' AND IF01_AGNR_FNR = ? AND IF10_GODKJ = 'J'
-            """
-            session.run(
-                queryOf(statement, fødselsnummer.tilInfotrygdFødselsnummer()).map { rs ->
-                    InfotrygdForsikringDao.ForsikringDto(
-                        forsikringstype = when (rs.string("IF10_TYPE").trim()) {
-                            "1" -> InfotrygdForsikringDao.ForsikringDto.Forsikringstype.ÅttiProsentFraDagEn
-                            "2" -> InfotrygdForsikringDao.ForsikringDto.Forsikringstype.HundreProsentFraDagSytten
-
-                            "3",
-                            "4" -> InfotrygdForsikringDao.ForsikringDto.Forsikringstype.HundreProsentFraDagEn
-
-                            else -> InfotrygdForsikringDao.ForsikringDto.Forsikringstype.IkkeInteressert
-                        },
-                        premiegrunnlag = rs.int("IF10_PREMGRL"),
-                        virkningsdato = rs.intToLocalDate("IF10_VIRKDATO")!!,
-                        tom = rs.intToLocalDate("IF10_FORSTOM")
-                    )
-                }.asList
-            )
-        }*/
-
-    override fun hentFullstendigeForsikringer(fødselsnummer: String): List<InfotrygdForsikringDao.RåForsikringDto> =
+    override fun hentIfVedfrivt10Rader(fødselsnummer: String): List<InfotrygdForsikringDao.IF_VEDFRIVT_10_Rad> =
         sessionOf(dataSource).use { session ->
             @Language("Oracle")
             val statement = """
@@ -91,7 +60,7 @@ class ReplikabaseForsikringDao(private val dataSource: DataSource) : InfotrygdFo
                         )
                     }
 
-                    InfotrygdForsikringDao.RåForsikringDto(
+                    InfotrygdForsikringDao.IF_VEDFRIVT_10_Rad(
                         IF01_KODE = if01Kode,
                         IF01_AGNR_FNR = if01AgnrFnr,
                         IF10_FORSFOM_SEQ = if10ForsfomSeq,
@@ -136,12 +105,4 @@ class ReplikabaseForsikringDao(private val dataSource: DataSource) : InfotrygdFo
         val id = substring(6)
         return "$år$måned$dag$id"
     }
-
-    private fun Row.intToLocalDate(label: String) = int(label).toLocalDate()
-
-    private fun Int.toLocalDate() =
-        if (this == 0) null else LocalDate.parse(this.toString().padStart(8, '0'), DateTimeFormatter.ofPattern("yyyyMMdd"))
-
-
-
 }

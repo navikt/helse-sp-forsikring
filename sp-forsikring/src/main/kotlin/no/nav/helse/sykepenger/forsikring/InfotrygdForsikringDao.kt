@@ -1,36 +1,12 @@
 package no.nav.helse.sykepenger.forsikring
 
-import com.fasterxml.jackson.annotation.JsonAutoDetect
 import java.math.BigDecimal
 import java.time.Instant
-import java.time.LocalDate
 
 interface InfotrygdForsikringDao {
-    fun hentFullstendigeForsikringer(fødselsnummer: String): List<RåForsikringDto>
+    fun hentIfVedfrivt10Rader(fødselsnummer: String): List<IF_VEDFRIVT_10_Rad>
 
-    data class ForsikringDto(
-        val forsikringstype: Forsikringstype,
-        val premiegrunnlag: Int,
-        val virkningsdato: LocalDate,
-        val tom: LocalDate?
-    ) {
-        enum class Forsikringstype {
-            ÅttiProsentFraDagEn,
-            HundreProsentFraDagEn,
-            HundreProsentFraDagSytten,
-            IkkeInteressert
-        }
-
-        internal fun erAktivPå(dato: LocalDate): Boolean =
-            !(dato.isBefore(virkningsdato) || tom != null && dato.isAfter(tom))
-    }
-
-    @JsonAutoDetect(
-        fieldVisibility = JsonAutoDetect.Visibility.ANY,
-        getterVisibility = JsonAutoDetect.Visibility.NONE,
-        isGetterVisibility = JsonAutoDetect.Visibility.NONE
-    )
-    data class RåForsikringDto(
+    data class IF_VEDFRIVT_10_Rad(
         val IF01_KODE: Char,
         val IF01_AGNR_FNR: Long,
         val IF10_FORSFOM_SEQ: Int,
@@ -65,11 +41,6 @@ interface InfotrygdForsikringDao {
         val IF_FKONTO_12_rader: List<IF_FKONTO_12_Rad>,
     )
 
-    @JsonAutoDetect(
-        fieldVisibility = JsonAutoDetect.Visibility.ANY,
-        getterVisibility = JsonAutoDetect.Visibility.NONE,
-        isGetterVisibility = JsonAutoDetect.Visibility.NONE
-    )
     data class IF_FKONTO_12_Rad(
         val IF12_BETDATO_SEQ: Int?,
         val IF12_FOM: Int?,

@@ -41,7 +41,7 @@ class SykepengeforsikringBehovRiver(
         medMdc(MdcKey.MELDING_ID to meldingId) {
             loggInfo("Henter sykepengeforsikring")
             try {
-                val fullstendigeForsikringer = infotrygdForsikringDao.hentFullstendigeForsikringer(fødselsnummer)
+                val fullstendigeForsikringer = infotrygdForsikringDao.hentIfVedfrivt10Rader(fødselsnummer)
                 val løsning = if (fullstendigeForsikringer.isNotEmpty()) {
                     Løsning.MedForsikring(
                         oppslagId = oppslagId,
