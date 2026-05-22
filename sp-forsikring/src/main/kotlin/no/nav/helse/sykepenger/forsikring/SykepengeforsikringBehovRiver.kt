@@ -49,6 +49,7 @@ class SykepengeforsikringBehovRiver(
                             '1' -> Løsning.MedForsikring.Dekning(grad = 80, fraDag = 1)
                             '2' -> Løsning.MedForsikring.Dekning(grad = 100, fraDag = 17)
                             '3' -> Løsning.MedForsikring.Dekning(grad = 100, fraDag = 1)
+                            '4' -> Løsning.MedForsikring.Dekning(grad = 100, fraDag = 1)
 
                             else -> error("Støttet ikke verdi på IF10_TYPE: $type")
                         }

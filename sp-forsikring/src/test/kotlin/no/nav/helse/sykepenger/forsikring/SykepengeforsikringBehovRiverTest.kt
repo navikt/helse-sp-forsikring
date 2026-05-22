@@ -130,10 +130,33 @@ internal class SykepengeforsikringBehovRiverTest {
         )
     }
 
-    private fun testmelding(fødselsnummer: String, skjæringstidspunkt: LocalDate) = """
+    @Test
+    fun `løsning for jordbruker med gyldig tilleggsforsikring med 100% fra dag 1 inneholder riktig informasjon`() {
+        TestcontainersReplikadatabase.insertVedfrivt(
+            IF01_AGNR_FNR = 3020112345L,
+            IF10_TYPE = '4'
+        )
+
+        rapid.sendTestMessage(testmelding("01020312345", LocalDate.parse("2026-01-01"), setOf("JORDBRUKER")))
+
+        assertEquals(1, rapid.inspektør.size)
+        val løsningMelding = rapid.inspektør.message(0)
+        assertJsonEquals(
+            expectedJson = """{ "harForsikring": true, "dekning": { "grad": 100, "fraDag": 1 } } """,
+            actualJsonNode = løsningMelding["@løsning"]["Sykepengeforsikring"],
+            bortsettFraProperties = listOf("oppslagId")
+        )
+    }
+
+    private fun testmelding(
+        fødselsnummer: String,
+        skjæringstidspunkt: LocalDate,
+        særskilteGrupper: Set<String> = emptySet()
+    ) = """
         {
             "@behov": ["Sykepengeforsikring"],
             "fødselsnummer": "$fødselsnummer",
+            "særskilteGrupper": [${særskilteGrupper.joinToString(", ") { "\"$it\"" }}],
             "Sykepengeforsikring" : {
                 "skjæringstidspunkt": "$skjæringstidspunkt"
             }
@@ -171,10 +194,12 @@ internal class SykepengeforsikringBehovRiverTest {
                         .sortedBy { (name, _) -> name }
                         .forEach { (name, value) -> sorted.set<JsonNode>(name, value.sortedDeep()) }
                 }
+
             is ArrayNode ->
                 objectMapper.createArrayNode().also { sortedArray ->
                     forEach { sortedArray.add(it.sortedDeep()) }
                 }
+
             else -> this.deepCopy()
         }
 
