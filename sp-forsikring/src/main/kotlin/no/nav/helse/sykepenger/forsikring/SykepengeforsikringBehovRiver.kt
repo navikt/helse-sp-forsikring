@@ -62,6 +62,19 @@ class SykepengeforsikringBehovRiver(
                         val oppslag = OppslagService(transaction, replikabaseDataSource)
                             .gjørNyttOppslag(fødselsnummer, packet.toJson())
 
+                        val navKjøpteForsikringer = oppslag.navKjøpteForsikringer.toMutableList()
+
+                        val foriskringerForFeilYrkesaktititet = navKjøpteForsikringer.filterNot {
+                            when (it.type) {
+                                Type.SELVSTENDIG_80_PROSENT_FRA_DAG_1 -> yrkesaktivitetstype == "SELVSTENDIG"
+                                Type.SELVSTENDIG_100_PROSENT_FRA_DAG_17 -> yrkesaktivitetstype == "SELVSTENDIG"
+                                Type.SELVSTENDIG_100_PROSENT_FRA_DAG_1 -> yrkesaktivitetstype == "SELVSTENDIG"
+                                Type.SELVSTENDIG_JORDBRUKER_100_PROSENT_FRA_DAG_1 -> yrkesaktivitetstype == "SELVSTENDIG"
+                                Type.FRILANSER_100_PROSENT_FRA_DAG_1 -> yrkesaktivitetstype == "FRILANSER"
+                            }
+                        }
+                        navKjøpteForsikringer.removeAll(foriskringerForFeilYrkesaktititet)
+
                         val løsning = if ("FISKER_BLAD_B" in særskilteGrupper) {
                             Løsning.MedForsikring(
                                 oppslagId = oppslag.id,
@@ -70,16 +83,16 @@ class SykepengeforsikringBehovRiver(
                         } else if ("JORDBRUKER" in særskilteGrupper || "REINDRIFTER" in særskilteGrupper) {
                             Løsning.MedForsikring(
                                 oppslagId = oppslag.id,
-                                dekning = if (oppslag.navKjøpteForsikringer.firstOrNull()?.type == Type.SELVSTENDIG_JORDBRUKER_100_PROSENT_FRA_DAG_1) {
+                                dekning = if (navKjøpteForsikringer.firstOrNull()?.type == Type.SELVSTENDIG_JORDBRUKER_100_PROSENT_FRA_DAG_1) {
                                     Løsning.MedForsikring.Dekning(grad = 100, fraDag = 1)
                                 } else {
                                     Løsning.MedForsikring.Dekning(grad = 100, fraDag = 17) // Kollektiv forsikring
                                 }
                             )
-                        } else if (oppslag.navKjøpteForsikringer.isNotEmpty()) {
+                        } else if (navKjøpteForsikringer.isNotEmpty()) {
                             Løsning.MedForsikring(
                                 oppslagId = oppslag.id,
-                                dekning = when (val type = oppslag.navKjøpteForsikringer.first().type) {
+                                dekning = when (val type = navKjøpteForsikringer.first().type) {
                                     Type.SELVSTENDIG_80_PROSENT_FRA_DAG_1 -> Løsning.MedForsikring.Dekning(grad = 80, fraDag = 1)
                                     Type.SELVSTENDIG_100_PROSENT_FRA_DAG_17 -> Løsning.MedForsikring.Dekning(grad = 100, fraDag = 17)
                                     Type.SELVSTENDIG_100_PROSENT_FRA_DAG_1 -> Løsning.MedForsikring.Dekning(grad = 100, fraDag = 1)
