@@ -352,7 +352,7 @@ internal class SykepengeforsikringBehovRiverTest {
     }
 
     @Test
-    fun `stopper med feil for ikke-jordbruker dersom bruker har tilleggsforsikring for jordbruker`() {
+    fun `ikke-jordbruker med forsikring for jordbruker gir ingen forsikring`() {
         TestcontainersReplikadatabase.insertVedfrivt(
             IF01_AGNR_FNR = 3020112345L,
             IF10_TYPE = '4'
@@ -372,7 +372,7 @@ internal class SykepengeforsikringBehovRiverTest {
             """.trimIndent()
         )
 
-        assertEquals(0, rapid.inspektør.size)
+        forventLøsning("""{ "harForsikring": false } """)
     }
 
     @Test

@@ -12,6 +12,7 @@ import java.util.*
 import javax.sql.DataSource
 import kotlin.uuid.ExperimentalUuidApi
 import kotliquery.sessionOf
+import no.nav.helse.sykepenger.forsikring.SykepengeforsikringBehovRiver.Løsning.MedForsikring.Dekning
 import no.nav.helse.sykepenger.forsikring.oppslag.NavKjøptForsikring.Type
 import no.nav.helse.sykepenger.forsikring.oppslag.OppslagService
 import tools.jackson.databind.JsonNode
@@ -75,31 +76,33 @@ class SykepengeforsikringBehovRiver(
                         }
                         navKjøpteForsikringer.removeAll(forsikringerForFeilYrkesaktititet)
 
-                        val løsning = if ("FISKER_BLAD_B" in særskilteGrupper) {
+                        if ("JORDBRUKER" !in særskilteGrupper && "REINDRIFTER" !in særskilteGrupper) {
+                            val irrelevanteJordbrukerforsikringer = navKjøpteForsikringer.filter {
+                                it.type == Type.SELVSTENDIG_JORDBRUKER_100_PROSENT_FRA_DAG_1
+                            }
+                            navKjøpteForsikringer.removeAll(irrelevanteJordbrukerforsikringer)
+                        }
+
+                        val løsning = if (navKjøpteForsikringer.isNotEmpty()) {
                             Løsning.MedForsikring(
                                 oppslagId = oppslag.id,
-                                dekning = Løsning.MedForsikring.Dekning(grad = 100, fraDag = 1) // Kollektiv forsikring
+                                dekning = when (navKjøpteForsikringer.first().type) {
+                                    Type.SELVSTENDIG_80_PROSENT_FRA_DAG_1 -> Dekning(grad = 80, fraDag = 1)
+                                    Type.SELVSTENDIG_100_PROSENT_FRA_DAG_17 -> Dekning(grad = 100, fraDag = 17)
+                                    Type.SELVSTENDIG_100_PROSENT_FRA_DAG_1 -> Dekning(grad = 100, fraDag = 1)
+                                    Type.SELVSTENDIG_JORDBRUKER_100_PROSENT_FRA_DAG_1 -> Dekning(grad = 100, fraDag = 1)
+                                    Type.FRILANSER_100_PROSENT_FRA_DAG_1 -> Dekning(grad = 100, fraDag = 1)
+                                }
+                            )
+                        } else if ("FISKER_BLAD_B" in særskilteGrupper) {
+                            Løsning.MedForsikring(
+                                oppslagId = oppslag.id,
+                                dekning = Dekning(grad = 100, fraDag = 1) // Kollektiv forsikring
                             )
                         } else if ("JORDBRUKER" in særskilteGrupper || "REINDRIFTER" in særskilteGrupper) {
                             Løsning.MedForsikring(
                                 oppslagId = oppslag.id,
-                                dekning = if (navKjøpteForsikringer.firstOrNull()?.type == Type.SELVSTENDIG_JORDBRUKER_100_PROSENT_FRA_DAG_1) {
-                                    Løsning.MedForsikring.Dekning(grad = 100, fraDag = 1)
-                                } else {
-                                    Løsning.MedForsikring.Dekning(grad = 100, fraDag = 17) // Kollektiv forsikring
-                                }
-                            )
-                        } else if (navKjøpteForsikringer.isNotEmpty()) {
-                            Løsning.MedForsikring(
-                                oppslagId = oppslag.id,
-                                dekning = when (val type = navKjøpteForsikringer.first().type) {
-                                    Type.SELVSTENDIG_80_PROSENT_FRA_DAG_1 -> Løsning.MedForsikring.Dekning(grad = 80, fraDag = 1)
-                                    Type.SELVSTENDIG_100_PROSENT_FRA_DAG_17 -> Løsning.MedForsikring.Dekning(grad = 100, fraDag = 17)
-                                    Type.SELVSTENDIG_100_PROSENT_FRA_DAG_1 -> Løsning.MedForsikring.Dekning(grad = 100, fraDag = 1)
-                                    Type.FRILANSER_100_PROSENT_FRA_DAG_1 if "FRILANS" == yrkesaktivitetstype -> Løsning.MedForsikring.Dekning(grad = 100, fraDag = 1)
-
-                                    else -> error("Støtter ikke kombinasjonen IF10_TYPE $type, yrkesaktivitetstype $yrkesaktivitetstype, særskilteGrupper $særskilteGrupper")
-                                }
+                                dekning = Dekning(grad = 100, fraDag = 17) // Kollektiv forsikring
                             )
                         } else {
                             Løsning.UtenForsikring(oppslagId = oppslag.id)
