@@ -98,7 +98,7 @@ internal class SykepengeforsikringBehovRiverTest {
     }
 
     @Test
-    fun `løsning når det ikke finnes noen forsikring er uten forsikring`() {
+    fun `selvstendig næringsdrivende uten nav-kjøpt forsikring gir ingen forsikring`() {
         rapid.sendTestMessage(
             """
                 {
@@ -189,6 +189,30 @@ internal class SykepengeforsikringBehovRiverTest {
     }
 
     @Test
+    fun `frilanser med forsikring for selvstendig næringsdrivende med 100 prosent fra dag 17 gir ingen forsikring`() {
+        TestcontainersReplikadatabase.insertVedfrivt(
+            IF01_AGNR_FNR = 3020112345L,
+            IF10_TYPE = '2'
+        )
+
+        rapid.sendTestMessage(
+            """
+                {
+                    "@behov": [ "Sykepengeforsikring" ],
+                    "fødselsnummer": "01020312345",
+                    "yrkesaktivitetstype": "FRILANS",
+                    "Sykepengeforsikring" : {
+                        "særskilteGrupper": [],
+                        "skjæringstidspunkt": "2026-01-01"
+                    }
+                }
+            """.trimIndent()
+        )
+
+        forventLøsning("""{ "harForsikring": false } """)
+    }
+
+    @Test
     fun `selvstendig næringsdrivende med forsikring med 100 prosent fra dag 1 fungerer`() {
         TestcontainersReplikadatabase.insertVedfrivt(
             IF01_AGNR_FNR = 3020112345L,
@@ -210,6 +234,30 @@ internal class SykepengeforsikringBehovRiverTest {
         )
 
         forventLøsning("""{ "harForsikring": true, "dekning": { "grad": 100, "fraDag": 1 } } """)
+    }
+
+    @Test
+    fun `frilanser med forsikring for selvstendig næringsdrivende med 100 prosent fra dag 1 gir ingen forsikring`() {
+        TestcontainersReplikadatabase.insertVedfrivt(
+            IF01_AGNR_FNR = 3020112345L,
+            IF10_TYPE = '3'
+        )
+
+        rapid.sendTestMessage(
+            """
+                {
+                    "@behov": [ "Sykepengeforsikring" ],
+                    "fødselsnummer": "01020312345",
+                    "yrkesaktivitetstype": "FRILANS",
+                    "Sykepengeforsikring" : {
+                        "særskilteGrupper": [],
+                        "skjæringstidspunkt": "2026-01-01"
+                    }
+                }
+            """.trimIndent()
+        )
+
+        forventLøsning("""{ "harForsikring": false } """)
     }
 
     @Test
@@ -371,7 +419,7 @@ internal class SykepengeforsikringBehovRiverTest {
     }
 
     @Test
-    fun `fisker på blad B har kollektiv forsikring når hen ikke har en nav-kjøpt forsikring`() {
+    fun `selvstendig næringsdrivende-fisker på blad B har kollektiv forsikring når hen ikke har en nav-kjøpt forsikring`() {
         rapid.sendTestMessage(
             """
                 {
@@ -387,6 +435,75 @@ internal class SykepengeforsikringBehovRiverTest {
         )
 
         forventLøsning("""{ "harForsikring": true, "dekning": { "grad": 100, "fraDag": 1 } } """)
+    }
+
+    @Test
+    fun `arbeidstaker-fisker på blad B har kollektiv forsikring når hen ikke har en nav-kjøpt forsikring`() {
+        rapid.sendTestMessage(
+            """
+                {
+                    "@behov": [ "Sykepengeforsikring" ],
+                    "fødselsnummer": "01020312345",
+                    "yrkesaktivitetstype": "ARBEIDSTAKER",
+                    "Sykepengeforsikring" : {
+                        "særskilteGrupper": [ "FISKER_BLAD_B" ],
+                        "skjæringstidspunkt": "2026-01-01"
+                    }
+                }
+            """.trimIndent()
+        )
+
+        forventLøsning("""{ "harForsikring": true, "dekning": { "grad": 100, "fraDag": 1 } } """)
+    }
+
+    @Test
+    fun `arbeidstaker-fisker på blad B har kollektiv forsikring uansett hvilke nav-kjøpte forsikringer hen har ellers`() {
+        TestcontainersReplikadatabase.insertVedfrivt(IF01_AGNR_FNR = 3020112345L, IF10_TYPE = '1')
+        TestcontainersReplikadatabase.insertVedfrivt(IF01_AGNR_FNR = 3020112345L, IF10_TYPE = '2')
+        TestcontainersReplikadatabase.insertVedfrivt(IF01_AGNR_FNR = 3020112345L, IF10_TYPE = '3')
+        TestcontainersReplikadatabase.insertVedfrivt(IF01_AGNR_FNR = 3020112345L, IF10_TYPE = '4')
+        TestcontainersReplikadatabase.insertVedfrivt(IF01_AGNR_FNR = 3020112345L, IF10_TYPE = '5')
+
+        rapid.sendTestMessage(
+            """
+                {
+                    "@behov": [ "Sykepengeforsikring" ],
+                    "fødselsnummer": "01020312345",
+                    "yrkesaktivitetstype": "ARBEIDSTAKER",
+                    "Sykepengeforsikring" : {
+                        "særskilteGrupper": [ "FISKER_BLAD_B" ],
+                        "skjæringstidspunkt": "2026-01-01"
+                    }
+                }
+            """.trimIndent()
+        )
+
+        forventLøsning("""{ "harForsikring": true, "dekning": { "grad": 100, "fraDag": 1 } } """)
+    }
+
+    @Test
+    fun `arbeidstaker utenom særskilte grupper gir ingen forsikring`() {
+        TestcontainersReplikadatabase.insertVedfrivt(IF01_AGNR_FNR = 3020112345L, IF10_TYPE = '1')
+        TestcontainersReplikadatabase.insertVedfrivt(IF01_AGNR_FNR = 3020112345L, IF10_TYPE = '2')
+        TestcontainersReplikadatabase.insertVedfrivt(IF01_AGNR_FNR = 3020112345L, IF10_TYPE = '3')
+        TestcontainersReplikadatabase.insertVedfrivt(IF01_AGNR_FNR = 3020112345L, IF10_TYPE = '4')
+        TestcontainersReplikadatabase.insertVedfrivt(IF01_AGNR_FNR = 3020112345L, IF10_TYPE = '5')
+
+        rapid.sendTestMessage(
+            """
+                {
+                    "@behov": [ "Sykepengeforsikring" ],
+                    "fødselsnummer": "01020312345",
+                    "yrkesaktivitetstype": "ARBEIDSTAKER",
+                    "Sykepengeforsikring" : {
+                        "særskilteGrupper": [],
+                        "skjæringstidspunkt": "2026-01-01"
+                    }
+                }
+            """.trimIndent()
+        )
+
+        forventLøsning("""{ "harForsikring": false } """)
     }
 
     private fun forventLøsning(forventetLøsningUtenOppslagId: String) {
