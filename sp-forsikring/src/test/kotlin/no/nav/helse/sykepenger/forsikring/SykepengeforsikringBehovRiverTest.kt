@@ -13,6 +13,8 @@ import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertDoesNotThrow
+import org.junit.jupiter.params.ParameterizedTest
+import org.junit.jupiter.params.provider.CsvSource
 
 internal class SykepengeforsikringBehovRiverTest {
     private val objectMapper = jacksonObjectMapper().registerModule(JavaTimeModule())
@@ -97,406 +99,67 @@ internal class SykepengeforsikringBehovRiverTest {
         }
     }
 
-    @Test
-    fun `selvstendig næringsdrivende uten nav-kjøpt forsikring gir ingen forsikring`() {
+    @ParameterizedTest(name = "{0} særskilt {1} infotrygd-type {2} -> {3} fra dag {4}", quoteTextArguments = false)
+    @CsvSource(
+        "SELVSTENDIG, , 1, 80, 1",
+        "SELVSTENDIG, , 2, 100, 17",
+        "SELVSTENDIG, , 3, 100, 1",
+        "SELVSTENDIG, JORDBRUKER, 4, 100, 1",
+        "SELVSTENDIG, REINDRIFTER, 4, 100, 1",
+        "FRILANS, , 5, 100, 1",
+        // Kollektive forsikringer
+        "SELVSTENDIG, JORDBRUKER, , 100, 17",
+        "SELVSTENDIG, REINDRIFTER, , 100, 17",
+        "ARBEIDSTAKER, FISKER_BLAD_B, , 100, 1",
+        "SELVSTENDIG, FISKER_BLAD_B, , 100, 1",
+    )
+    fun `gir løsning med forsikring`(yrkesaktivitetstype: String, særskiltGruppe: String?, IF10_TYPE: Char?, grad: Int, fraDag: Int) {
+        IF10_TYPE?.let { TestcontainersReplikadatabase.insertVedfrivt(IF01_AGNR_FNR = 3020112345L, IF10_TYPE = it) }
+
         rapid.sendTestMessage(
             """
                 {
                     "@behov": [ "Sykepengeforsikring" ],
                     "fødselsnummer": "01020312345",
-                    "yrkesaktivitetstype": "SELVSTENDIG",
+                    "yrkesaktivitetstype": "$yrkesaktivitetstype",
                     "Sykepengeforsikring" : {
-                        "særskilteGrupper": [],
+                        "særskilteGrupper": [ ${særskiltGruppe?.let { "\"$it\"" }.orEmpty()} ],
                         "skjæringstidspunkt": "2026-01-01"
                     }
                 }
             """.trimIndent()
         )
 
-        forventLøsning("""{ "harForsikring": false } """)
+        forventLøsning("""{ "harForsikring": true, "dekning": { "grad": $grad, "fraDag": $fraDag } } """)
     }
 
-    @Test
-    fun `selvstendig næringsdrivende med forsikring med 80 prosent fra dag 1 fungerer`() {
-        TestcontainersReplikadatabase.insertVedfrivt(
-            IF01_AGNR_FNR = 3020112345L,
-            IF10_TYPE = '1'
-        )
+    @ParameterizedTest(name = "{0} særskilt {1} infotrygd-type {2}", quoteTextArguments = false)
+    @CsvSource(
+        "ARBEIDSTAKER, , ",
+        "ARBEIDSTAKER, , 1",
+        "ARBEIDSTAKER, , 2",
+        "ARBEIDSTAKER, , 3",
+        "ARBEIDSTAKER, , 4",
+        "ARBEIDSTAKER, , 5",
+        "SELVSTENDIG, , ",
+        "SELVSTENDIG, , 4",
+        "FRILANS, , ",
+        "FRILANS, , 1",
+        "FRILANS, , 2",
+        "FRILANS, , 3",
+        "FRILANS, , 4"
+    )
+    fun `gir løsning uten forsikring`(yrkesaktivitetstype: String, særskiltGruppe: String?, IF10_TYPE: Char?) {
+        IF10_TYPE?.let { TestcontainersReplikadatabase.insertVedfrivt(IF01_AGNR_FNR = 3020112345L, IF10_TYPE = it) }
 
         rapid.sendTestMessage(
             """
                 {
                     "@behov": [ "Sykepengeforsikring" ],
                     "fødselsnummer": "01020312345",
-                    "yrkesaktivitetstype": "SELVSTENDIG",
+                    "yrkesaktivitetstype": "$yrkesaktivitetstype",
                     "Sykepengeforsikring" : {
-                        "særskilteGrupper": [],
-                        "skjæringstidspunkt": "2026-01-01"
-                    }
-                }
-            """.trimIndent()
-        )
-
-        forventLøsning("""{ "harForsikring": true, "dekning": { "grad": 80, "fraDag": 1 } } """)
-    }
-
-    @Test
-    fun `frilanser med forsikring for selvstendig næringsdrivende med 80 prosent fra dag 1 gir ingen forsikring`() {
-        TestcontainersReplikadatabase.insertVedfrivt(
-            IF01_AGNR_FNR = 3020112345L,
-            IF10_TYPE = '1'
-        )
-
-        rapid.sendTestMessage(
-            """
-                {
-                    "@behov": [ "Sykepengeforsikring" ],
-                    "fødselsnummer": "01020312345",
-                    "yrkesaktivitetstype": "FRILANS",
-                    "Sykepengeforsikring" : {
-                        "særskilteGrupper": [],
-                        "skjæringstidspunkt": "2026-01-01"
-                    }
-                }
-            """.trimIndent()
-        )
-
-        forventLøsning("""{ "harForsikring": false } """)
-    }
-
-    @Test
-    fun `selvstendig næringsdrivende med forsikring med 100 prosent fra dag 17 fungerer`() {
-        TestcontainersReplikadatabase.insertVedfrivt(
-            IF01_AGNR_FNR = 3020112345L,
-            IF10_TYPE = '2'
-        )
-
-        rapid.sendTestMessage(
-            """
-                {
-                    "@behov": [ "Sykepengeforsikring" ],
-                    "fødselsnummer": "01020312345",
-                    "yrkesaktivitetstype": "SELVSTENDIG",
-                    "Sykepengeforsikring" : {
-                        "særskilteGrupper": [],
-                        "skjæringstidspunkt": "2026-01-01"
-                    }
-                }
-            """.trimIndent()
-        )
-
-        forventLøsning("""{ "harForsikring": true, "dekning": { "grad": 100, "fraDag": 17 } } """)
-    }
-
-    @Test
-    fun `frilanser med forsikring for selvstendig næringsdrivende med 100 prosent fra dag 17 gir ingen forsikring`() {
-        TestcontainersReplikadatabase.insertVedfrivt(
-            IF01_AGNR_FNR = 3020112345L,
-            IF10_TYPE = '2'
-        )
-
-        rapid.sendTestMessage(
-            """
-                {
-                    "@behov": [ "Sykepengeforsikring" ],
-                    "fødselsnummer": "01020312345",
-                    "yrkesaktivitetstype": "FRILANS",
-                    "Sykepengeforsikring" : {
-                        "særskilteGrupper": [],
-                        "skjæringstidspunkt": "2026-01-01"
-                    }
-                }
-            """.trimIndent()
-        )
-
-        forventLøsning("""{ "harForsikring": false } """)
-    }
-
-    @Test
-    fun `selvstendig næringsdrivende med forsikring med 100 prosent fra dag 1 fungerer`() {
-        TestcontainersReplikadatabase.insertVedfrivt(
-            IF01_AGNR_FNR = 3020112345L,
-            IF10_TYPE = '3'
-        )
-
-        rapid.sendTestMessage(
-            """
-                {
-                    "@behov": [ "Sykepengeforsikring" ],
-                    "fødselsnummer": "01020312345",
-                    "yrkesaktivitetstype": "SELVSTENDIG",
-                    "Sykepengeforsikring" : {
-                        "særskilteGrupper": [],
-                        "skjæringstidspunkt": "2026-01-01"
-                    }
-                }
-            """.trimIndent()
-        )
-
-        forventLøsning("""{ "harForsikring": true, "dekning": { "grad": 100, "fraDag": 1 } } """)
-    }
-
-    @Test
-    fun `frilanser med forsikring for selvstendig næringsdrivende med 100 prosent fra dag 1 gir ingen forsikring`() {
-        TestcontainersReplikadatabase.insertVedfrivt(
-            IF01_AGNR_FNR = 3020112345L,
-            IF10_TYPE = '3'
-        )
-
-        rapid.sendTestMessage(
-            """
-                {
-                    "@behov": [ "Sykepengeforsikring" ],
-                    "fødselsnummer": "01020312345",
-                    "yrkesaktivitetstype": "FRILANS",
-                    "Sykepengeforsikring" : {
-                        "særskilteGrupper": [],
-                        "skjæringstidspunkt": "2026-01-01"
-                    }
-                }
-            """.trimIndent()
-        )
-
-        forventLøsning("""{ "harForsikring": false } """)
-    }
-
-    @Test
-    fun `frilanser med forsikring med 100 prosent fra dag 1 fungerer`() {
-        TestcontainersReplikadatabase.insertVedfrivt(
-            IF01_AGNR_FNR = 3020112345L,
-            IF10_TYPE = '5'
-        )
-
-        rapid.sendTestMessage(
-            """
-                {
-                    "@behov": [ "Sykepengeforsikring" ],
-                    "fødselsnummer": "01020312345",
-                    "yrkesaktivitetstype": "FRILANS",
-                    "Sykepengeforsikring" : {
-                        "særskilteGrupper": [],
-                        "skjæringstidspunkt": "2026-01-01"
-                    }
-                }
-            """.trimIndent()
-        )
-
-        forventLøsning("""{ "harForsikring": true, "dekning": { "grad": 100, "fraDag": 1 } } """)
-    }
-
-    @Test
-    fun `selvstendig næringsdrivende med forsikring for frilanser gir ingen forsikring`() {
-        TestcontainersReplikadatabase.insertVedfrivt(
-            IF01_AGNR_FNR = 3020112345L,
-            IF10_TYPE = '5'
-        )
-
-        rapid.sendTestMessage(
-            """
-                {
-                    "@behov": [ "Sykepengeforsikring" ],
-                    "fødselsnummer": "01020312345",
-                    "yrkesaktivitetstype": "SELVSTENDIG",
-                    "Sykepengeforsikring" : {
-                        "særskilteGrupper": [],
-                        "skjæringstidspunkt": "2026-01-01"
-                    }
-                }
-            """.trimIndent()
-        )
-
-        forventLøsning("""{ "harForsikring": false } """)
-    }
-
-    @Test
-    fun `jordbruker har kollektiv forsikring når hen ikke har en nav-kjøpt forsikring`() {
-        rapid.sendTestMessage(
-            """
-                {
-                    "@behov": [ "Sykepengeforsikring" ],
-                    "fødselsnummer": "01020312345",
-                    "yrkesaktivitetstype": "SELVSTENDIG",
-                    "Sykepengeforsikring" : {
-                        "særskilteGrupper": [ "JORDBRUKER" ],
-                        "skjæringstidspunkt": "2026-01-01"
-                    }
-                }
-            """.trimIndent()
-        )
-
-        forventLøsning("""{ "harForsikring": true, "dekning": { "grad": 100, "fraDag": 17 } } """)
-    }
-
-    @Test
-    fun `jordbruker med tilleggsforsikring med 100 prosent fra dag 1 fungerer`() {
-        TestcontainersReplikadatabase.insertVedfrivt(
-            IF01_AGNR_FNR = 3020112345L,
-            IF10_TYPE = '4'
-        )
-
-        rapid.sendTestMessage(
-            """
-                {
-                    "@behov": [ "Sykepengeforsikring" ],
-                    "fødselsnummer": "01020312345",
-                    "yrkesaktivitetstype": "SELVSTENDIG",
-                    "Sykepengeforsikring" : {
-                        "særskilteGrupper": [ "JORDBRUKER" ],
-                        "skjæringstidspunkt": "2026-01-01"
-                    }
-                }
-            """.trimIndent()
-        )
-
-        forventLøsning("""{ "harForsikring": true, "dekning": { "grad": 100, "fraDag": 1 } } """)
-    }
-
-    @Test
-    fun `ikke-jordbruker med forsikring for jordbruker gir ingen forsikring`() {
-        TestcontainersReplikadatabase.insertVedfrivt(
-            IF01_AGNR_FNR = 3020112345L,
-            IF10_TYPE = '4'
-        )
-
-        rapid.sendTestMessage(
-            """
-                {
-                    "@behov": [ "Sykepengeforsikring" ],
-                    "fødselsnummer": "01020312345",
-                    "yrkesaktivitetstype": "SELVSTENDIG",
-                    "Sykepengeforsikring" : {
-                        "særskilteGrupper": [],
-                        "skjæringstidspunkt": "2026-01-01"
-                    }
-                }
-            """.trimIndent()
-        )
-
-        forventLøsning("""{ "harForsikring": false } """)
-    }
-
-    @Test
-    fun `reindrifter har kollektiv forsikring når hen ikke har en nav-kjøpt forsikring`() {
-        rapid.sendTestMessage(
-            """
-                {
-                    "@behov": [ "Sykepengeforsikring" ],
-                    "fødselsnummer": "01020312345",
-                    "yrkesaktivitetstype": "SELVSTENDIG",
-                    "Sykepengeforsikring" : {
-                        "særskilteGrupper": [ "REINDRIFTER" ],
-                        "skjæringstidspunkt": "2026-01-01"
-                    }
-                }
-            """.trimIndent()
-        )
-
-        forventLøsning("""{ "harForsikring": true, "dekning": { "grad": 100, "fraDag": 17 } } """)
-    }
-
-    @Test
-    fun `reindrifter med tilleggsforsikring med 100 prosent fra dag 1 fungerer`() {
-        TestcontainersReplikadatabase.insertVedfrivt(
-            IF01_AGNR_FNR = 3020112345L,
-            IF10_TYPE = '4'
-        )
-
-        rapid.sendTestMessage(
-            """
-                {
-                    "@behov": [ "Sykepengeforsikring" ],
-                    "fødselsnummer": "01020312345",
-                    "yrkesaktivitetstype": "SELVSTENDIG",
-                    "Sykepengeforsikring" : {
-                        "særskilteGrupper": [ "REINDRIFTER" ],
-                        "skjæringstidspunkt": "2026-01-01"
-                    }
-                }
-            """.trimIndent()
-        )
-
-        forventLøsning("""{ "harForsikring": true, "dekning": { "grad": 100, "fraDag": 1 } } """)
-    }
-
-    @Test
-    fun `selvstendig næringsdrivende-fisker på blad B har kollektiv forsikring når hen ikke har en nav-kjøpt forsikring`() {
-        rapid.sendTestMessage(
-            """
-                {
-                    "@behov": [ "Sykepengeforsikring" ],
-                    "fødselsnummer": "01020312345",
-                    "yrkesaktivitetstype": "SELVSTENDIG",
-                    "Sykepengeforsikring" : {
-                        "særskilteGrupper": [ "FISKER_BLAD_B" ],
-                        "skjæringstidspunkt": "2026-01-01"
-                    }
-                }
-            """.trimIndent()
-        )
-
-        forventLøsning("""{ "harForsikring": true, "dekning": { "grad": 100, "fraDag": 1 } } """)
-    }
-
-    @Test
-    fun `arbeidstaker-fisker på blad B har kollektiv forsikring når hen ikke har en nav-kjøpt forsikring`() {
-        rapid.sendTestMessage(
-            """
-                {
-                    "@behov": [ "Sykepengeforsikring" ],
-                    "fødselsnummer": "01020312345",
-                    "yrkesaktivitetstype": "ARBEIDSTAKER",
-                    "Sykepengeforsikring" : {
-                        "særskilteGrupper": [ "FISKER_BLAD_B" ],
-                        "skjæringstidspunkt": "2026-01-01"
-                    }
-                }
-            """.trimIndent()
-        )
-
-        forventLøsning("""{ "harForsikring": true, "dekning": { "grad": 100, "fraDag": 1 } } """)
-    }
-
-    @Test
-    fun `arbeidstaker-fisker på blad B har kollektiv forsikring uansett hvilke nav-kjøpte forsikringer hen har ellers`() {
-        TestcontainersReplikadatabase.insertVedfrivt(IF01_AGNR_FNR = 3020112345L, IF10_TYPE = '1')
-        TestcontainersReplikadatabase.insertVedfrivt(IF01_AGNR_FNR = 3020112345L, IF10_TYPE = '2')
-        TestcontainersReplikadatabase.insertVedfrivt(IF01_AGNR_FNR = 3020112345L, IF10_TYPE = '3')
-        TestcontainersReplikadatabase.insertVedfrivt(IF01_AGNR_FNR = 3020112345L, IF10_TYPE = '4')
-        TestcontainersReplikadatabase.insertVedfrivt(IF01_AGNR_FNR = 3020112345L, IF10_TYPE = '5')
-
-        rapid.sendTestMessage(
-            """
-                {
-                    "@behov": [ "Sykepengeforsikring" ],
-                    "fødselsnummer": "01020312345",
-                    "yrkesaktivitetstype": "ARBEIDSTAKER",
-                    "Sykepengeforsikring" : {
-                        "særskilteGrupper": [ "FISKER_BLAD_B" ],
-                        "skjæringstidspunkt": "2026-01-01"
-                    }
-                }
-            """.trimIndent()
-        )
-
-        forventLøsning("""{ "harForsikring": true, "dekning": { "grad": 100, "fraDag": 1 } } """)
-    }
-
-    @Test
-    fun `arbeidstaker utenom særskilte grupper gir ingen forsikring`() {
-        TestcontainersReplikadatabase.insertVedfrivt(IF01_AGNR_FNR = 3020112345L, IF10_TYPE = '1')
-        TestcontainersReplikadatabase.insertVedfrivt(IF01_AGNR_FNR = 3020112345L, IF10_TYPE = '2')
-        TestcontainersReplikadatabase.insertVedfrivt(IF01_AGNR_FNR = 3020112345L, IF10_TYPE = '3')
-        TestcontainersReplikadatabase.insertVedfrivt(IF01_AGNR_FNR = 3020112345L, IF10_TYPE = '4')
-        TestcontainersReplikadatabase.insertVedfrivt(IF01_AGNR_FNR = 3020112345L, IF10_TYPE = '5')
-
-        rapid.sendTestMessage(
-            """
-                {
-                    "@behov": [ "Sykepengeforsikring" ],
-                    "fødselsnummer": "01020312345",
-                    "yrkesaktivitetstype": "ARBEIDSTAKER",
-                    "Sykepengeforsikring" : {
-                        "særskilteGrupper": [],
+                        "særskilteGrupper": [ ${særskiltGruppe?.let { "\"$it\"" }.orEmpty()} ],
                         "skjæringstidspunkt": "2026-01-01"
                     }
                 }
