@@ -152,7 +152,7 @@ internal class SykepengeforsikringBehovRiverTest {
                 {
                     "@behov": [ "Sykepengeforsikring" ],
                     "fødselsnummer": "01020312345",
-                    "yrkesaktivitetstype": "FRILANSER",
+                    "yrkesaktivitetstype": "FRILANS",
                     "Sykepengeforsikring" : {
                         "særskilteGrupper": [],
                         "skjæringstidspunkt": "2026-01-01"
@@ -224,7 +224,7 @@ internal class SykepengeforsikringBehovRiverTest {
                 {
                     "@behov": [ "Sykepengeforsikring" ],
                     "fødselsnummer": "01020312345",
-                    "yrkesaktivitetstype": "FRILANSER",
+                    "yrkesaktivitetstype": "FRILANS",
                     "Sykepengeforsikring" : {
                         "særskilteGrupper": [],
                         "skjæringstidspunkt": "2026-01-01"

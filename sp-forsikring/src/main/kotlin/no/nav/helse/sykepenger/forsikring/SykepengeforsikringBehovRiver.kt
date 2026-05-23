@@ -64,16 +64,16 @@ class SykepengeforsikringBehovRiver(
 
                         val navKjøpteForsikringer = oppslag.navKjøpteForsikringer.toMutableList()
 
-                        val foriskringerForFeilYrkesaktititet = navKjøpteForsikringer.filterNot {
+                        val forsikringerForFeilYrkesaktititet = navKjøpteForsikringer.filterNot {
                             when (it.type) {
                                 Type.SELVSTENDIG_80_PROSENT_FRA_DAG_1 -> yrkesaktivitetstype == "SELVSTENDIG"
                                 Type.SELVSTENDIG_100_PROSENT_FRA_DAG_17 -> yrkesaktivitetstype == "SELVSTENDIG"
                                 Type.SELVSTENDIG_100_PROSENT_FRA_DAG_1 -> yrkesaktivitetstype == "SELVSTENDIG"
                                 Type.SELVSTENDIG_JORDBRUKER_100_PROSENT_FRA_DAG_1 -> yrkesaktivitetstype == "SELVSTENDIG"
-                                Type.FRILANSER_100_PROSENT_FRA_DAG_1 -> yrkesaktivitetstype == "FRILANSER"
+                                Type.FRILANSER_100_PROSENT_FRA_DAG_1 -> yrkesaktivitetstype == "FRILANS"
                             }
                         }
-                        navKjøpteForsikringer.removeAll(foriskringerForFeilYrkesaktititet)
+                        navKjøpteForsikringer.removeAll(forsikringerForFeilYrkesaktititet)
 
                         val løsning = if ("FISKER_BLAD_B" in særskilteGrupper) {
                             Løsning.MedForsikring(
@@ -96,7 +96,7 @@ class SykepengeforsikringBehovRiver(
                                     Type.SELVSTENDIG_80_PROSENT_FRA_DAG_1 -> Løsning.MedForsikring.Dekning(grad = 80, fraDag = 1)
                                     Type.SELVSTENDIG_100_PROSENT_FRA_DAG_17 -> Løsning.MedForsikring.Dekning(grad = 100, fraDag = 17)
                                     Type.SELVSTENDIG_100_PROSENT_FRA_DAG_1 -> Løsning.MedForsikring.Dekning(grad = 100, fraDag = 1)
-                                    Type.FRILANSER_100_PROSENT_FRA_DAG_1 if "FRILANSER" == yrkesaktivitetstype -> Løsning.MedForsikring.Dekning(grad = 100, fraDag = 1)
+                                    Type.FRILANSER_100_PROSENT_FRA_DAG_1 if "FRILANS" == yrkesaktivitetstype -> Løsning.MedForsikring.Dekning(grad = 100, fraDag = 1)
 
                                     else -> error("Støtter ikke kombinasjonen IF10_TYPE $type, yrkesaktivitetstype $yrkesaktivitetstype, særskilteGrupper $særskilteGrupper")
                                 }
