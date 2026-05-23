@@ -42,26 +42,7 @@ internal class SykepengeforsikringBehovRiverTest {
     }
 
     @Test
-    fun `Sender melding i det hele tatt`() {
-        rapid.sendTestMessage(
-            """
-                {
-                    "@behov": [ "Sykepengeforsikring" ],
-                    "fødselsnummer": "01020312345",
-                    "yrkesaktivitetstype": "SELVSTENDIG",
-                    "Sykepengeforsikring" : {
-                        "særskilteGrupper": [],
-                        "skjæringstidspunkt": "2026-01-01"
-                    }
-                }
-            """.trimIndent()
-        )
-
-        assertEquals(1, rapid.inspektør.size)
-    }
-
-    @Test
-    fun `Sender melding som er lik som den vi fikk inn som behov, sett bort fra løsning-feltet`() {
+    fun `løsningmelding er lik behovsmeldingen, sett bort fra løsning-feltet og rapids and rivers-genererte felter`() {
         val testmelding = """
             {
                 "@behov": [ "Sykepengeforsikring" ],
@@ -80,7 +61,14 @@ internal class SykepengeforsikringBehovRiverTest {
         assertJsonEquals(
             expectedJson = testmelding,
             actualJsonNode = rapid.inspektør.message(0),
-            bortsettFraProperties = generiskeFelter + "@løsning"
+            bortsettFraProperties = setOf(
+                "@løsning",
+                "@id",
+                "@opprettet",
+                "system_read_count",
+                "system_participating_services",
+                "@forårsaket_av"
+            )
         )
     }
 
@@ -125,17 +113,11 @@ internal class SykepengeforsikringBehovRiverTest {
             """.trimIndent()
         )
 
-        assertEquals(1, rapid.inspektør.size)
-        val løsningMelding = rapid.inspektør.message(0)
-        assertJsonEquals(
-            expectedJson = """{ "harForsikring": false } """,
-            actualJsonNode = løsningMelding["@løsning"]["Sykepengeforsikring"],
-            bortsettFraProperties = listOf("oppslagId")
-        )
+        forventLøsning("""{ "harForsikring": false } """)
     }
 
     @Test
-    fun `selvstendig næringsdrivende med gyldig forsikring med 80 prosent fra dag 1 fungerer`() {
+    fun `selvstendig næringsdrivende med forsikring med 80 prosent fra dag 1 fungerer`() {
         TestcontainersReplikadatabase.insertVedfrivt(
             IF01_AGNR_FNR = 3020112345L,
             IF10_TYPE = '1'
@@ -155,13 +137,7 @@ internal class SykepengeforsikringBehovRiverTest {
             """.trimIndent()
         )
 
-        assertEquals(1, rapid.inspektør.size)
-        val løsningMelding = rapid.inspektør.message(0)
-        assertJsonEquals(
-            expectedJson = """{ "harForsikring": true, "dekning": { "grad": 80, "fraDag": 1 } } """,
-            actualJsonNode = løsningMelding["@løsning"]["Sykepengeforsikring"],
-            bortsettFraProperties = listOf("oppslagId")
-        )
+        forventLøsning("""{ "harForsikring": true, "dekning": { "grad": 80, "fraDag": 1 } } """)
     }
 
     @Test
@@ -185,17 +161,11 @@ internal class SykepengeforsikringBehovRiverTest {
             """.trimIndent()
         )
 
-        assertEquals(1, rapid.inspektør.size)
-        val løsningMelding = rapid.inspektør.message(0)
-        assertJsonEquals(
-            expectedJson = """{ "harForsikring": false } """,
-            actualJsonNode = løsningMelding["@løsning"]["Sykepengeforsikring"],
-            bortsettFraProperties = listOf("oppslagId")
-        )
+        forventLøsning("""{ "harForsikring": false } """)
     }
 
     @Test
-    fun `løsning når det finnes en gyldig forsikring med 100 prosent fra dag 17 inneholder riktig informasjon`() {
+    fun `selvstendig næringsdrivende med forsikring med 100 prosent fra dag 17 fungerer`() {
         TestcontainersReplikadatabase.insertVedfrivt(
             IF01_AGNR_FNR = 3020112345L,
             IF10_TYPE = '2'
@@ -215,17 +185,11 @@ internal class SykepengeforsikringBehovRiverTest {
             """.trimIndent()
         )
 
-        assertEquals(1, rapid.inspektør.size)
-        val løsningMelding = rapid.inspektør.message(0)
-        assertJsonEquals(
-            expectedJson = """{ "harForsikring": true, "dekning": { "grad": 100, "fraDag": 17 } } """,
-            actualJsonNode = løsningMelding["@løsning"]["Sykepengeforsikring"],
-            bortsettFraProperties = listOf("oppslagId")
-        )
+        forventLøsning("""{ "harForsikring": true, "dekning": { "grad": 100, "fraDag": 17 } } """)
     }
 
     @Test
-    fun `løsning når det finnes en gyldig forsikring med 100 prosent fra dag 1 inneholder riktig informasjon`() {
+    fun `selvstendig næringsdrivende med forsikring med 100 prosent fra dag 1 fungerer`() {
         TestcontainersReplikadatabase.insertVedfrivt(
             IF01_AGNR_FNR = 3020112345L,
             IF10_TYPE = '3'
@@ -245,17 +209,78 @@ internal class SykepengeforsikringBehovRiverTest {
             """.trimIndent()
         )
 
-        assertEquals(1, rapid.inspektør.size)
-        val løsningMelding = rapid.inspektør.message(0)
-        assertJsonEquals(
-            expectedJson = """{ "harForsikring": true, "dekning": { "grad": 100, "fraDag": 1 } } """,
-            actualJsonNode = løsningMelding["@løsning"]["Sykepengeforsikring"],
-            bortsettFraProperties = listOf("oppslagId")
-        )
+        forventLøsning("""{ "harForsikring": true, "dekning": { "grad": 100, "fraDag": 1 } } """)
     }
 
     @Test
-    fun `løsning for jordbruker med gyldig tilleggsforsikring med 100 prosent fra dag 1 inneholder riktig informasjon`() {
+    fun `frilanser med forsikring med 100 prosent fra dag 1 fungerer`() {
+        TestcontainersReplikadatabase.insertVedfrivt(
+            IF01_AGNR_FNR = 3020112345L,
+            IF10_TYPE = '5'
+        )
+
+        rapid.sendTestMessage(
+            """
+                {
+                    "@behov": [ "Sykepengeforsikring" ],
+                    "fødselsnummer": "01020312345",
+                    "yrkesaktivitetstype": "FRILANSER",
+                    "Sykepengeforsikring" : {
+                        "særskilteGrupper": [],
+                        "skjæringstidspunkt": "2026-01-01"
+                    }
+                }
+            """.trimIndent()
+        )
+
+        forventLøsning("""{ "harForsikring": true, "dekning": { "grad": 100, "fraDag": 1 } } """)
+    }
+
+    @Test
+    fun `selvstendig næringsdrivende med forsikring for frilanser gir ingen forsikring`() {
+        TestcontainersReplikadatabase.insertVedfrivt(
+            IF01_AGNR_FNR = 3020112345L,
+            IF10_TYPE = '5'
+        )
+
+        rapid.sendTestMessage(
+            """
+                {
+                    "@behov": [ "Sykepengeforsikring" ],
+                    "fødselsnummer": "01020312345",
+                    "yrkesaktivitetstype": "SELVSTENDIG",
+                    "Sykepengeforsikring" : {
+                        "særskilteGrupper": [],
+                        "skjæringstidspunkt": "2026-01-01"
+                    }
+                }
+            """.trimIndent()
+        )
+
+        forventLøsning("""{ "harForsikring": false } """)
+    }
+
+    @Test
+    fun `jordbruker har kollektiv forsikring når hen ikke har en nav-kjøpt forsikring`() {
+        rapid.sendTestMessage(
+            """
+                {
+                    "@behov": [ "Sykepengeforsikring" ],
+                    "fødselsnummer": "01020312345",
+                    "yrkesaktivitetstype": "SELVSTENDIG",
+                    "Sykepengeforsikring" : {
+                        "særskilteGrupper": [ "JORDBRUKER" ],
+                        "skjæringstidspunkt": "2026-01-01"
+                    }
+                }
+            """.trimIndent()
+        )
+
+        forventLøsning("""{ "harForsikring": true, "dekning": { "grad": 100, "fraDag": 17 } } """)
+    }
+
+    @Test
+    fun `jordbruker med tilleggsforsikring med 100 prosent fra dag 1 fungerer`() {
         TestcontainersReplikadatabase.insertVedfrivt(
             IF01_AGNR_FNR = 3020112345L,
             IF10_TYPE = '4'
@@ -275,13 +300,7 @@ internal class SykepengeforsikringBehovRiverTest {
             """.trimIndent()
         )
 
-        assertEquals(1, rapid.inspektør.size)
-        val løsningMelding = rapid.inspektør.message(0)
-        assertJsonEquals(
-            expectedJson = """{ "harForsikring": true, "dekning": { "grad": 100, "fraDag": 1 } } """,
-            actualJsonNode = løsningMelding["@løsning"]["Sykepengeforsikring"],
-            bortsettFraProperties = listOf("oppslagId")
-        )
+        forventLøsning("""{ "harForsikring": true, "dekning": { "grad": 100, "fraDag": 1 } } """)
     }
 
     @Test
@@ -309,42 +328,7 @@ internal class SykepengeforsikringBehovRiverTest {
     }
 
     @Test
-    fun `løsning for frilanser med gyldig forsikring med 100 prosent fra dag 1 inneholder riktig informasjon`() {
-        TestcontainersReplikadatabase.insertVedfrivt(
-            IF01_AGNR_FNR = 3020112345L,
-            IF10_TYPE = '5'
-        )
-
-        rapid.sendTestMessage(
-            """
-                {
-                    "@behov": [ "Sykepengeforsikring" ],
-                    "fødselsnummer": "01020312345",
-                    "yrkesaktivitetstype": "FRILANSER",
-                    "Sykepengeforsikring" : {
-                        "særskilteGrupper": [],
-                        "skjæringstidspunkt": "2026-01-01"
-                    }
-                }
-            """.trimIndent()
-        )
-
-        assertEquals(1, rapid.inspektør.size)
-        val løsningMelding = rapid.inspektør.message(0)
-        assertJsonEquals(
-            expectedJson = """{ "harForsikring": true, "dekning": { "grad": 100, "fraDag": 1 } } """,
-            actualJsonNode = løsningMelding["@løsning"]["Sykepengeforsikring"],
-            bortsettFraProperties = listOf("oppslagId")
-        )
-    }
-
-    @Test
-    fun `selvstendig næringsdrivende med forsikring for frilanser gir ingen forsikring`() {
-        TestcontainersReplikadatabase.insertVedfrivt(
-            IF01_AGNR_FNR = 3020112345L,
-            IF10_TYPE = '5'
-        )
-
+    fun `reindrifter har kollektiv forsikring når hen ikke har en nav-kjøpt forsikring`() {
         rapid.sendTestMessage(
             """
                 {
@@ -352,49 +336,18 @@ internal class SykepengeforsikringBehovRiverTest {
                     "fødselsnummer": "01020312345",
                     "yrkesaktivitetstype": "SELVSTENDIG",
                     "Sykepengeforsikring" : {
-                        "særskilteGrupper": [],
+                        "særskilteGrupper": [ "REINDRIFTER" ],
                         "skjæringstidspunkt": "2026-01-01"
                     }
                 }
             """.trimIndent()
         )
 
-        assertEquals(1, rapid.inspektør.size)
-        val løsningMelding = rapid.inspektør.message(0)
-        assertJsonEquals(
-            expectedJson = """{ "harForsikring": false } """,
-            actualJsonNode = løsningMelding["@løsning"]["Sykepengeforsikring"],
-            bortsettFraProperties = listOf("oppslagId")
-        )
+        forventLøsning("""{ "harForsikring": true, "dekning": { "grad": 100, "fraDag": 17 } } """)
     }
 
     @Test
-    fun `løsning for jordbruker som bare har kollektiv forsikring gir riktig informasjon`() {
-        rapid.sendTestMessage(
-            """
-                {
-                    "@behov": [ "Sykepengeforsikring" ],
-                    "fødselsnummer": "01020312345",
-                    "yrkesaktivitetstype": "SELVSTENDIG",
-                    "Sykepengeforsikring" : {
-                        "særskilteGrupper": [ "JORDBRUKER" ],
-                        "skjæringstidspunkt": "2026-01-01"
-                    }
-                }
-            """.trimIndent()
-        )
-
-        assertEquals(1, rapid.inspektør.size)
-        val løsningMelding = rapid.inspektør.message(0)
-        assertJsonEquals(
-            expectedJson = """{ "harForsikring": true, "dekning": { "grad": 100, "fraDag": 17 } } """,
-            actualJsonNode = løsningMelding["@løsning"]["Sykepengeforsikring"],
-            bortsettFraProperties = listOf("oppslagId")
-        )
-    }
-
-    @Test
-    fun `løsning for reindrifter med gyldig tilleggsforsikring med 100 prosent fra dag 1 inneholder riktig informasjon`() {
+    fun `reindrifter med tilleggsforsikring med 100 prosent fra dag 1 fungerer`() {
         TestcontainersReplikadatabase.insertVedfrivt(
             IF01_AGNR_FNR = 3020112345L,
             IF10_TYPE = '4'
@@ -414,42 +367,11 @@ internal class SykepengeforsikringBehovRiverTest {
             """.trimIndent()
         )
 
-        assertEquals(1, rapid.inspektør.size)
-        val løsningMelding = rapid.inspektør.message(0)
-        assertJsonEquals(
-            expectedJson = """{ "harForsikring": true, "dekning": { "grad": 100, "fraDag": 1 } } """,
-            actualJsonNode = løsningMelding["@løsning"]["Sykepengeforsikring"],
-            bortsettFraProperties = listOf("oppslagId")
-        )
+        forventLøsning("""{ "harForsikring": true, "dekning": { "grad": 100, "fraDag": 1 } } """)
     }
 
     @Test
-    fun `løsning for reindrifter som bare har kollektiv forsikring gir riktig informasjon`() {
-        rapid.sendTestMessage(
-            """
-                {
-                    "@behov": [ "Sykepengeforsikring" ],
-                    "fødselsnummer": "01020312345",
-                    "yrkesaktivitetstype": "SELVSTENDIG",
-                    "Sykepengeforsikring" : {
-                        "særskilteGrupper": [ "REINDRIFTER" ],
-                        "skjæringstidspunkt": "2026-01-01"
-                    }
-                }
-            """.trimIndent()
-        )
-
-        assertEquals(1, rapid.inspektør.size)
-        val løsningMelding = rapid.inspektør.message(0)
-        assertJsonEquals(
-            expectedJson = """{ "harForsikring": true, "dekning": { "grad": 100, "fraDag": 17 } } """,
-            actualJsonNode = løsningMelding["@løsning"]["Sykepengeforsikring"],
-            bortsettFraProperties = listOf("oppslagId")
-        )
-    }
-
-    @Test
-    fun `løsning for fiskere på blad B gir riktig informasjon`() {
+    fun `fisker på blad B har kollektiv forsikring når hen ikke har en nav-kjøpt forsikring`() {
         rapid.sendTestMessage(
             """
                 {
@@ -464,12 +386,16 @@ internal class SykepengeforsikringBehovRiverTest {
             """.trimIndent()
         )
 
+        forventLøsning("""{ "harForsikring": true, "dekning": { "grad": 100, "fraDag": 1 } } """)
+    }
+
+    private fun forventLøsning(forventetLøsningUtenOppslagId: String) {
         assertEquals(1, rapid.inspektør.size)
         val løsningMelding = rapid.inspektør.message(0)
         assertJsonEquals(
-            expectedJson = """{ "harForsikring": true, "dekning": { "grad": 100, "fraDag": 1 } } """,
+            expectedJson = forventetLøsningUtenOppslagId,
             actualJsonNode = løsningMelding["@løsning"]["Sykepengeforsikring"],
-            bortsettFraProperties = listOf("oppslagId")
+            bortsettFraProperties = setOf("oppslagId")
         )
     }
 
@@ -529,18 +455,10 @@ internal class SykepengeforsikringBehovRiverTest {
         assertEquals(4, TestcontainersSpForsikringDatabase.countOppslagIF_FKONTO_12(oppslagId))
     }
 
-    private val generiskeFelter = listOf(
-        "@id",
-        "@opprettet",
-        "system_read_count",
-        "system_participating_services",
-        "@forårsaket_av"
-    )
-
     private fun assertJsonEquals(
         expectedJson: String,
         actualJsonNode: JsonNode,
-        bortsettFraProperties: List<String> = emptyList()
+        bortsettFraProperties: Set<String> = emptySet()
     ) {
         val expected = objectMapper.readTree(expectedJson).deepSortedObjectNodeCopy()
             .apply { bortsettFraProperties.forEach { remove(it) } }
