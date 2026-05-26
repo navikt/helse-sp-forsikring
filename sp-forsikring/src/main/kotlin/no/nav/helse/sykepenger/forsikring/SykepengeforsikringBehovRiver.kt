@@ -97,7 +97,7 @@ class SykepengeforsikringBehovRiver(
                             }
                         }
 
-                        // Kontroller mismatch mellom spesiell yrkesgruppe og type tilleggsforsikring i Infotrgyd
+                        // Kontroller mismatch mellom spesiell yrkesgruppe og type tilleggsforsikring i Infotrygd
                         if (navKjøpteForsikringer.any { it.type == Type.SELVSTENDIG_JORDBRUKER_100_PROSENT_FRA_DAG_1 }
                             && spesielleYrkesgrupper.none { it in setOf("JORDBRUKER", "REINDRIFTER") }) {
                             val feilmelding = "Bruker har Nav-kjøpt forsikring av type ${Type.SELVSTENDIG_JORDBRUKER_100_PROSENT_FRA_DAG_1}, " +
