@@ -292,11 +292,11 @@ internal class SykepengeforsikringBehovRiverTest {
     }
 
     @Test
-    fun `eliminerer forsikring hvor virkningsdato er før skjæringstidspunkt`() {
+    fun `eliminerer forsikring hvor virkningsdato er etter skjæringstidspunkt`() {
         TestcontainersReplikadatabase.insertVedfrivt(
             IF01_AGNR_FNR = 3020112345L,
             IF10_TYPE = '2',
-            IF10_VIRKDATO = 20251231
+            IF10_VIRKDATO = 20260102
         )
 
         rapid.sendTestMessage(
@@ -342,11 +342,11 @@ internal class SykepengeforsikringBehovRiverTest {
     }
 
     @Test
-    fun `beholder forsikring hvor virkningsdato er etter skjæringstidspunkt`() {
+    fun `beholder forsikring hvor virkningsdato er før skjæringstidspunkt`() {
         TestcontainersReplikadatabase.insertVedfrivt(
             IF01_AGNR_FNR = 3020112345L,
             IF10_TYPE = '2',
-            IF10_VIRKDATO = 20260102
+            IF10_VIRKDATO = 20251231
         )
 
         rapid.sendTestMessage(

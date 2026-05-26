@@ -83,10 +83,10 @@ class SykepengeforsikringBehovRiver(
                             navKjøpteForsikringer.removeAll(irrelevanteJordbrukerforsikringer)
                         }
 
-                        val forsikringerFørSkjæringstidspunkt = navKjøpteForsikringer.filter {
-                            it.virkningsdato < skjæringstidspunkt
+                        val forsikringerEtterSkjæringstidspunkt = navKjøpteForsikringer.filter {
+                            it.virkningsdato > skjæringstidspunkt
                         }
-                        navKjøpteForsikringer.removeAll(forsikringerFørSkjæringstidspunkt)
+                        navKjøpteForsikringer.removeAll(forsikringerEtterSkjæringstidspunkt)
 
                         val forsikringerUtløptFørSkjæringstidspunkt = navKjøpteForsikringer.filter { forsikring ->
                             forsikring.tom != null && skjæringstidspunkt > forsikring.tom
