@@ -46,7 +46,7 @@ object TestcontainersReplikadatabase {
         IF10_FORSFOM_SEQ: Int = 0,
         IF10_GODKJ: Char = 'J',
         IF10_FORSFOM: Int = 0,
-        IF10_VIRKDATO: Int = 0,
+        IF10_VIRKDATO: Int = 20260101,
         IF10_TYPE: Char = '1',
         IF10_SELVFOM: String = " ",
         IF10_KOMBI: Char = ' ',

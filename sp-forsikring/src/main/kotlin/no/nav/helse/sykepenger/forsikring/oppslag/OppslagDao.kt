@@ -2,7 +2,10 @@ package no.nav.helse.sykepenger.forsikring.oppslag
 
 import java.sql.Timestamp
 import java.time.Instant
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
 import java.util.*
+import kotliquery.Row
 import kotliquery.TransactionalSession
 import kotliquery.queryOf
 import no.nav.helse.sykepenger.forsikring.replikabase.IF_FKONTO_12_Rad
@@ -158,7 +161,7 @@ class OppslagDao(private val transaction: TransactionalSession) {
     fun hentOppslag(oppslagId: UUID): Oppslag {
         @Language("PostgreSQL")
         val statement = """
-            SELECT IF10_TYPE FROM oppslag_IF_VEDFRIVT_10 WHERE oppslag_id = :oppslag_id
+            SELECT IF10_TYPE, IF10_VIRKDATO, IF10_FORSTOM FROM oppslag_IF_VEDFRIVT_10 WHERE oppslag_id = :oppslag_id
         """
         val navKjøpteForsikringer = transaction.run(
             queryOf(statement, mapOf("oppslag_id" to oppslagId))
@@ -171,11 +174,18 @@ class OppslagDao(private val transaction: TransactionalSession) {
                             "4" -> NavKjøptForsikring.Type.SELVSTENDIG_JORDBRUKER_100_PROSENT_FRA_DAG_1
                             "5" -> NavKjøptForsikring.Type.FRILANSER_100_PROSENT_FRA_DAG_1
                             else -> error("Ukjent forsikringstype: $type")
-                        }
+                        },
+                        virkningsdato = row.intToLocalDate("IF10_VIRKDATO")!!,
+                        tom = row.intToLocalDate("IF10_FORSTOM")
                     )
                 }
                 .asList
         )
         return Oppslag(id = oppslagId, navKjøpteForsikringer = navKjøpteForsikringer)
     }
+
+    private fun Row.intToLocalDate(label: String) = int(label).toLocalDate()
+
+    private fun Int.toLocalDate() =
+        if (this == 0) null else LocalDate.parse(this.toString().padStart(8, '0'), DateTimeFormatter.ofPattern("yyyyMMdd"))
 }

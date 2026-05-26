@@ -83,6 +83,16 @@ class SykepengeforsikringBehovRiver(
                             navKjøpteForsikringer.removeAll(irrelevanteJordbrukerforsikringer)
                         }
 
+                        val forsikringerFørSkjæringstidspunkt = navKjøpteForsikringer.filter {
+                            it.virkningsdato < skjæringstidspunkt
+                        }
+                        navKjøpteForsikringer.removeAll(forsikringerFørSkjæringstidspunkt)
+
+                        val forsikringerUtløptFørSkjæringstidspunkt = navKjøpteForsikringer.filter { forsikring ->
+                            forsikring.tom != null && skjæringstidspunkt > forsikring.tom
+                        }
+                        navKjøpteForsikringer.removeAll(forsikringerUtløptFørSkjæringstidspunkt)
+
                         val dekninger = navKjøpteForsikringer.map {
                             when (it.type) {
                                 Type.SELVSTENDIG_80_PROSENT_FRA_DAG_1 -> Dekning(grad = 80, fraDag = 1)

@@ -192,6 +192,181 @@ internal class SykepengeforsikringBehovRiverTest {
     }
 
     @Test
+    fun `eliminerer forsikring hvor skjæringstidspunkt er etter tom`() {
+        TestcontainersReplikadatabase.insertVedfrivt(
+            IF01_AGNR_FNR = 3020112345L,
+            IF10_TYPE = '2',
+            IF10_FORSTOM = 20251231
+        )
+
+        rapid.sendTestMessage(
+            """
+                {
+                    "@behov": [ "Sykepengeforsikring" ],
+                    "fødselsnummer": "01020312345",
+                    "yrkesaktivitetstype": "SELVSTENDIG",
+                    "Sykepengeforsikring" : {
+                        "særskilteGrupper": [],
+                        "skjæringstidspunkt": "2026-01-01"
+                    }
+                }
+            """.trimIndent()
+        )
+
+        forventLøsning("""{ "harForsikring": false }""")
+    }
+
+    @Test
+    fun `beholder forsikring hvor skjæringstidspunkt er lik tom`() {
+        TestcontainersReplikadatabase.insertVedfrivt(
+            IF01_AGNR_FNR = 3020112345L,
+            IF10_TYPE = '2',
+            IF10_FORSTOM = 20260101
+        )
+
+        rapid.sendTestMessage(
+            """
+                {
+                    "@behov": [ "Sykepengeforsikring" ],
+                    "fødselsnummer": "01020312345",
+                    "yrkesaktivitetstype": "SELVSTENDIG",
+                    "Sykepengeforsikring" : {
+                        "særskilteGrupper": [],
+                        "skjæringstidspunkt": "2026-01-01"
+                    }
+                }
+            """.trimIndent()
+        )
+
+        forventLøsning("""{ "harForsikring": true, "dekning": { "grad": 100, "fraDag": 17 } }""")
+    }
+
+    @Test
+    fun `beholder forsikring hvor skjæringstidspunkt er før tom`() {
+        TestcontainersReplikadatabase.insertVedfrivt(
+            IF01_AGNR_FNR = 3020112345L,
+            IF10_TYPE = '2',
+            IF10_FORSTOM = 20260102
+        )
+
+        rapid.sendTestMessage(
+            """
+                {
+                    "@behov": [ "Sykepengeforsikring" ],
+                    "fødselsnummer": "01020312345",
+                    "yrkesaktivitetstype": "SELVSTENDIG",
+                    "Sykepengeforsikring" : {
+                        "særskilteGrupper": [],
+                        "skjæringstidspunkt": "2026-01-01"
+                    }
+                }
+            """.trimIndent()
+        )
+
+        forventLøsning("""{ "harForsikring": true, "dekning": { "grad": 100, "fraDag": 17 } }""")
+    }
+
+    @Test
+    fun `beholder forsikring uten tom`() {
+        TestcontainersReplikadatabase.insertVedfrivt(
+            IF01_AGNR_FNR = 3020112345L,
+            IF10_TYPE = '2',
+            IF10_FORSTOM = 0
+        )
+
+        rapid.sendTestMessage(
+            """
+                {
+                    "@behov": [ "Sykepengeforsikring" ],
+                    "fødselsnummer": "01020312345",
+                    "yrkesaktivitetstype": "SELVSTENDIG",
+                    "Sykepengeforsikring" : {
+                        "særskilteGrupper": [],
+                        "skjæringstidspunkt": "2026-01-01"
+                    }
+                }
+            """.trimIndent()
+        )
+
+        forventLøsning("""{ "harForsikring": true, "dekning": { "grad": 100, "fraDag": 17 } }""")
+    }
+
+    @Test
+    fun `eliminerer forsikring hvor virkningsdato er før skjæringstidspunkt`() {
+        TestcontainersReplikadatabase.insertVedfrivt(
+            IF01_AGNR_FNR = 3020112345L,
+            IF10_TYPE = '2',
+            IF10_VIRKDATO = 20251231
+        )
+
+        rapid.sendTestMessage(
+            """
+                {
+                    "@behov": [ "Sykepengeforsikring" ],
+                    "fødselsnummer": "01020312345",
+                    "yrkesaktivitetstype": "SELVSTENDIG",
+                    "Sykepengeforsikring" : {
+                        "særskilteGrupper": [],
+                        "skjæringstidspunkt": "2026-01-01"
+                    }
+                }
+            """.trimIndent()
+        )
+
+        forventLøsning("""{ "harForsikring": false }""")
+    }
+
+    @Test
+    fun `beholder forsikring hvor virkningsdato er lik skjæringstidspunkt`() {
+        TestcontainersReplikadatabase.insertVedfrivt(
+            IF01_AGNR_FNR = 3020112345L,
+            IF10_TYPE = '2',
+            IF10_VIRKDATO = 20260101
+        )
+
+        rapid.sendTestMessage(
+            """
+                {
+                    "@behov": [ "Sykepengeforsikring" ],
+                    "fødselsnummer": "01020312345",
+                    "yrkesaktivitetstype": "SELVSTENDIG",
+                    "Sykepengeforsikring" : {
+                        "særskilteGrupper": [],
+                        "skjæringstidspunkt": "2026-01-01"
+                    }
+                }
+            """.trimIndent()
+        )
+
+        forventLøsning("""{ "harForsikring": true, "dekning": { "grad": 100, "fraDag": 17 } }""")
+    }
+
+    @Test
+    fun `beholder forsikring hvor virkningsdato er etter skjæringstidspunkt`() {
+        TestcontainersReplikadatabase.insertVedfrivt(
+            IF01_AGNR_FNR = 3020112345L,
+            IF10_TYPE = '2',
+            IF10_VIRKDATO = 20260102
+        )
+
+        rapid.sendTestMessage(
+            """
+                {
+                    "@behov": [ "Sykepengeforsikring" ],
+                    "fødselsnummer": "01020312345",
+                    "yrkesaktivitetstype": "SELVSTENDIG",
+                    "Sykepengeforsikring" : {
+                        "særskilteGrupper": [],
+                        "skjæringstidspunkt": "2026-01-01"
+                    }
+                }
+            """.trimIndent()
+        )
+
+        forventLøsning("""{ "harForsikring": true, "dekning": { "grad": 100, "fraDag": 17 } }""")
+    }
+
+    @Test
     fun `gir ikke løsning når dekninger har ulike grader`() {
         TestcontainersReplikadatabase.insertVedfrivt(IF01_AGNR_FNR = 3020112345L, IF10_FORSFOM_SEQ = 1, IF10_TYPE = '1') // grad=80, fraDag=1
         TestcontainersReplikadatabase.insertVedfrivt(IF01_AGNR_FNR = 3020112345L, IF10_FORSFOM_SEQ = 2, IF10_TYPE = '2') // grad=100, fraDag=17
