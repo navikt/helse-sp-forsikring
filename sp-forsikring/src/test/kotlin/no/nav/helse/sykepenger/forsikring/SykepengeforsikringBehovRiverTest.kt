@@ -51,7 +51,7 @@ internal class SykepengeforsikringBehovRiverTest {
                 "fødselsnummer": "01020312345",
                 "yrkesaktivitetstype": "SELVSTENDIG",
                 "Sykepengeforsikring" : {
-                    "særskilteGrupper": [],
+                    "spesielleYrkesgrupper": [],
                     "skjæringstidspunkt": "2026-01-01"
                 }
             }
@@ -83,7 +83,7 @@ internal class SykepengeforsikringBehovRiverTest {
                     "fødselsnummer": "01020312345",
                     "yrkesaktivitetstype": "SELVSTENDIG",
                     "Sykepengeforsikring" : {
-                        "særskilteGrupper": [],
+                        "spesielleYrkesgrupper": [],
                         "skjæringstidspunkt": "2026-01-01"
                     }
                 }
@@ -123,7 +123,7 @@ internal class SykepengeforsikringBehovRiverTest {
                     "fødselsnummer": "01020312345",
                     "yrkesaktivitetstype": "$yrkesaktivitetstype",
                     "Sykepengeforsikring" : {
-                        "særskilteGrupper": [ ${særskiltGruppe?.let { "\"$it\"" }.orEmpty()} ],
+                        "spesielleYrkesgrupper": [ ${særskiltGruppe?.let { "\"$it\"" }.orEmpty()} ],
                         "skjæringstidspunkt": "2026-01-01"
                     }
                 }
@@ -136,18 +136,8 @@ internal class SykepengeforsikringBehovRiverTest {
     @ParameterizedTest(name = "{0} særskilt {1} infotrygd-type {2}", quoteTextArguments = false)
     @CsvSource(
         "ARBEIDSTAKER, , ",
-        "ARBEIDSTAKER, , 1",
-        "ARBEIDSTAKER, , 2",
-        "ARBEIDSTAKER, , 3",
-        "ARBEIDSTAKER, , 4",
-        "ARBEIDSTAKER, , 5",
         "SELVSTENDIG, , ",
-        "SELVSTENDIG, , 4",
         "FRILANS, , ",
-        "FRILANS, , 1",
-        "FRILANS, , 2",
-        "FRILANS, , 3",
-        "FRILANS, , 4"
     )
     fun `gir løsning uten forsikring`(yrkesaktivitetstype: String, særskiltGruppe: String?, IF10_TYPE: Char?) {
         IF10_TYPE?.let { TestcontainersReplikadatabase.insertVedfrivt(IF01_AGNR_FNR = 3020112345L, IF10_TYPE = it) }
@@ -159,7 +149,7 @@ internal class SykepengeforsikringBehovRiverTest {
                     "fødselsnummer": "01020312345",
                     "yrkesaktivitetstype": "$yrkesaktivitetstype",
                     "Sykepengeforsikring" : {
-                        "særskilteGrupper": [ ${særskiltGruppe?.let { "\"$it\"" }.orEmpty()} ],
+                        "spesielleYrkesgrupper": [ ${særskiltGruppe?.let { "\"$it\"" }.orEmpty()} ],
                         "skjæringstidspunkt": "2026-01-01"
                     }
                 }
@@ -167,6 +157,39 @@ internal class SykepengeforsikringBehovRiverTest {
         )
 
         forventLøsning("""{ "harForsikring": false } """)
+    }
+
+    @ParameterizedTest(name = "{0} særskilt {1} infotrygd-type {2}", quoteTextArguments = false)
+    @CsvSource(
+        "ARBEIDSTAKER, , 1",
+        "ARBEIDSTAKER, , 2",
+        "ARBEIDSTAKER, , 3",
+        "ARBEIDSTAKER, , 4",
+        "ARBEIDSTAKER, , 5",
+        "SELVSTENDIG, , 4",
+        "FRILANS, , 1",
+        "FRILANS, , 2",
+        "FRILANS, , 3",
+        "FRILANS, , 4"
+    )
+    fun `feiler ved ugyldig kombinasjon`(yrkesaktivitetstype: String, særskiltGruppe: String?, IF10_TYPE: Char?) {
+        IF10_TYPE?.let { TestcontainersReplikadatabase.insertVedfrivt(IF01_AGNR_FNR = 3020112345L, IF10_TYPE = it) }
+
+        rapid.sendTestMessage(
+            """
+                {
+                    "@behov": [ "Sykepengeforsikring" ],
+                    "fødselsnummer": "01020312345",
+                    "yrkesaktivitetstype": "$yrkesaktivitetstype",
+                    "Sykepengeforsikring" : {
+                        "spesielleYrkesgrupper": [ ${særskiltGruppe?.let { "\"$it\"" }.orEmpty()} ],
+                        "skjæringstidspunkt": "2026-01-01"
+                    }
+                }
+            """.trimIndent()
+        )
+
+        assertEquals(0, rapid.inspektør.size)
     }
 
     @Test
@@ -181,7 +204,7 @@ internal class SykepengeforsikringBehovRiverTest {
                     "fødselsnummer": "01020312345",
                     "yrkesaktivitetstype": "SELVSTENDIG",
                     "Sykepengeforsikring" : {
-                        "særskilteGrupper": [],
+                        "spesielleYrkesgrupper": [],
                         "skjæringstidspunkt": "2026-01-01"
                     }
                 }
@@ -206,7 +229,7 @@ internal class SykepengeforsikringBehovRiverTest {
                     "fødselsnummer": "01020312345",
                     "yrkesaktivitetstype": "SELVSTENDIG",
                     "Sykepengeforsikring" : {
-                        "særskilteGrupper": [],
+                        "spesielleYrkesgrupper": [],
                         "skjæringstidspunkt": "2026-01-01"
                     }
                 }
@@ -231,7 +254,7 @@ internal class SykepengeforsikringBehovRiverTest {
                     "fødselsnummer": "01020312345",
                     "yrkesaktivitetstype": "SELVSTENDIG",
                     "Sykepengeforsikring" : {
-                        "særskilteGrupper": [],
+                        "spesielleYrkesgrupper": [],
                         "skjæringstidspunkt": "2026-01-01"
                     }
                 }
@@ -256,7 +279,7 @@ internal class SykepengeforsikringBehovRiverTest {
                     "fødselsnummer": "01020312345",
                     "yrkesaktivitetstype": "SELVSTENDIG",
                     "Sykepengeforsikring" : {
-                        "særskilteGrupper": [],
+                        "spesielleYrkesgrupper": [],
                         "skjæringstidspunkt": "2026-01-01"
                     }
                 }
@@ -281,7 +304,7 @@ internal class SykepengeforsikringBehovRiverTest {
                     "fødselsnummer": "01020312345",
                     "yrkesaktivitetstype": "SELVSTENDIG",
                     "Sykepengeforsikring" : {
-                        "særskilteGrupper": [],
+                        "spesielleYrkesgrupper": [],
                         "skjæringstidspunkt": "2026-01-01"
                     }
                 }
@@ -306,7 +329,7 @@ internal class SykepengeforsikringBehovRiverTest {
                     "fødselsnummer": "01020312345",
                     "yrkesaktivitetstype": "SELVSTENDIG",
                     "Sykepengeforsikring" : {
-                        "særskilteGrupper": [],
+                        "spesielleYrkesgrupper": [],
                         "skjæringstidspunkt": "2026-01-01"
                     }
                 }
@@ -331,7 +354,7 @@ internal class SykepengeforsikringBehovRiverTest {
                     "fødselsnummer": "01020312345",
                     "yrkesaktivitetstype": "SELVSTENDIG",
                     "Sykepengeforsikring" : {
-                        "særskilteGrupper": [],
+                        "spesielleYrkesgrupper": [],
                         "skjæringstidspunkt": "2026-01-01"
                     }
                 }
@@ -356,7 +379,7 @@ internal class SykepengeforsikringBehovRiverTest {
                     "fødselsnummer": "01020312345",
                     "yrkesaktivitetstype": "SELVSTENDIG",
                     "Sykepengeforsikring" : {
-                        "særskilteGrupper": [],
+                        "spesielleYrkesgrupper": [],
                         "skjæringstidspunkt": "2026-01-01"
                     }
                 }
@@ -378,7 +401,7 @@ internal class SykepengeforsikringBehovRiverTest {
                     "fødselsnummer": "01020312345",
                     "yrkesaktivitetstype": "SELVSTENDIG",
                     "Sykepengeforsikring" : {
-                        "særskilteGrupper": [],
+                        "spesielleYrkesgrupper": [],
                         "skjæringstidspunkt": "2026-01-01"
                     }
                 }
@@ -438,7 +461,7 @@ internal class SykepengeforsikringBehovRiverTest {
                     "fødselsnummer": "01020312345",
                     "yrkesaktivitetstype": "SELVSTENDIG",
                     "Sykepengeforsikring" : {
-                        "særskilteGrupper": [],
+                        "spesielleYrkesgrupper": [],
                         "skjæringstidspunkt": "2026-01-01"
                     }
                 }

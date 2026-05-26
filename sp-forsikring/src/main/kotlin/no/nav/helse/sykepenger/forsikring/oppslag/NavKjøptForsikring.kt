@@ -5,7 +5,7 @@ import java.time.LocalDate
 data class NavKjøptForsikring(
     val type: Type,
     val virkningsdato: LocalDate,
-    val tom: LocalDate?,
+    val opphørsdato: LocalDate?,
 ) {
     enum class Type {
         SELVSTENDIG_80_PROSENT_FRA_DAG_1,

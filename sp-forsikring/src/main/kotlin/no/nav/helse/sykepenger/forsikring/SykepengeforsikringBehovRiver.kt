@@ -34,10 +34,10 @@ class SykepengeforsikringBehovRiver(
                         "@id",
                         "fødselsnummer",
                         "yrkesaktivitetstype",
-                        "Sykepengeforsikring.særskilteGrupper",
+                        "Sykepengeforsikring.spesielleYrkesgrupper",
                         "Sykepengeforsikring.skjæringstidspunkt"
                     )
-                    it.requireArray("Sykepengeforsikring.særskilteGrupper")
+                    it.requireArray("Sykepengeforsikring.spesielleYrkesgrupper")
                 }
             }.register(this)
     }
@@ -52,7 +52,7 @@ class SykepengeforsikringBehovRiver(
         val meldingId = packet["@id"].asString()
         val fødselsnummer = packet["fødselsnummer"].asString()
         val yrkesaktivitetstype = packet["yrkesaktivitetstype"].asString()
-        val særskilteGrupper = packet["Sykepengeforsikring.særskilteGrupper"].map<JsonNode, String> { it.asString() }.toSet()
+        val spesielleYrkesgrupper = packet["Sykepengeforsikring.spesielleYrkesgrupper"].map<JsonNode, String> { it.asString() }.toSet()
         val skjæringstidspunkt = packet["Sykepengeforsikring.skjæringstidspunkt"].asLocalDate()
 
         medMdc(MdcKey.MELDING_ID to meldingId) {
@@ -65,33 +65,47 @@ class SykepengeforsikringBehovRiver(
 
                         val navKjøpteForsikringer = oppslag.navKjøpteForsikringer.toMutableList()
 
-                        val forsikringerForFeilYrkesaktititet = navKjøpteForsikringer.filterNot {
-                            when (it.type) {
-                                Type.SELVSTENDIG_80_PROSENT_FRA_DAG_1 -> yrkesaktivitetstype == "SELVSTENDIG"
-                                Type.SELVSTENDIG_100_PROSENT_FRA_DAG_17 -> yrkesaktivitetstype == "SELVSTENDIG"
-                                Type.SELVSTENDIG_100_PROSENT_FRA_DAG_1 -> yrkesaktivitetstype == "SELVSTENDIG"
-                                Type.SELVSTENDIG_JORDBRUKER_100_PROSENT_FRA_DAG_1 -> yrkesaktivitetstype == "SELVSTENDIG"
-                                Type.FRILANSER_100_PROSENT_FRA_DAG_1 -> yrkesaktivitetstype == "FRILANS"
-                            }
-                        }
-                        navKjøpteForsikringer.removeAll(forsikringerForFeilYrkesaktititet)
-
-                        if ("JORDBRUKER" !in særskilteGrupper && "REINDRIFTER" !in særskilteGrupper) {
-                            val irrelevanteJordbrukerforsikringer = navKjøpteForsikringer.filter {
-                                it.type == Type.SELVSTENDIG_JORDBRUKER_100_PROSENT_FRA_DAG_1
-                            }
-                            navKjøpteForsikringer.removeAll(irrelevanteJordbrukerforsikringer)
-                        }
-
-                        val forsikringerEtterSkjæringstidspunkt = navKjøpteForsikringer.filter {
+                        // Skjæringstidspunkt må være etter eller lik virkningsdato
+                        val forsikringerMedVirkningsdatoEtterSkjæringstidspunkt = navKjøpteForsikringer.filter {
                             it.virkningsdato > skjæringstidspunkt
                         }
-                        navKjøpteForsikringer.removeAll(forsikringerEtterSkjæringstidspunkt)
+                        navKjøpteForsikringer.removeAll(forsikringerMedVirkningsdatoEtterSkjæringstidspunkt)
 
-                        val forsikringerUtløptFørSkjæringstidspunkt = navKjøpteForsikringer.filter { forsikring ->
-                            forsikring.tom != null && skjæringstidspunkt > forsikring.tom
+                        // Skjæringstidspunkt må være før eller lik opphørsdato (hvis det er en opphørsdato)
+                        val forsikringerMedOpphørsdatoFørSkjæringstidspunkt = navKjøpteForsikringer.filter { forsikring ->
+                            forsikring.opphørsdato != null && skjæringstidspunkt > forsikring.opphørsdato
                         }
-                        navKjøpteForsikringer.removeAll(forsikringerUtløptFørSkjæringstidspunkt)
+                        navKjøpteForsikringer.removeAll(forsikringerMedOpphørsdatoFørSkjæringstidspunkt)
+
+                        // TODO: Forsikringen er ikke betalt noen gang (ennå) - filtreres ut
+
+                        // Kontroller mismatch mellom yrkesaktivitetstype og type forsikring i Infotrygd
+                        navKjøpteForsikringer.forEach {
+                            val forventetYrkesaktivitetstype = when (it.type) {
+                                Type.SELVSTENDIG_80_PROSENT_FRA_DAG_1 -> "SELVSTENDIG"
+                                Type.SELVSTENDIG_100_PROSENT_FRA_DAG_17 -> "SELVSTENDIG"
+                                Type.SELVSTENDIG_100_PROSENT_FRA_DAG_1 -> "SELVSTENDIG"
+                                Type.SELVSTENDIG_JORDBRUKER_100_PROSENT_FRA_DAG_1 -> "SELVSTENDIG"
+                                Type.FRILANSER_100_PROSENT_FRA_DAG_1 -> "FRILANS"
+                            }
+                            if (yrkesaktivitetstype != forventetYrkesaktivitetstype) {
+                                val feilmelding = "Nav-kjøpt forsikring er av type ${it.type}, " +
+                                    "der forventet yrkesaktivitetstype er $forventetYrkesaktivitetstype, " +
+                                    "men yrkesaktivitetstypen var $yrkesaktivitetstype"
+                                loggError(feilmelding, "behov" to packet.toJson()) // TODO: Logge alle nav-kjøpte forsikringer som ble funnet?
+                                error(feilmelding)
+                            }
+                        }
+
+                        // Kontroller mismatch mellom spesiell yrkesgruppe og type tilleggsforsikring i Infotrgyd
+                        if (navKjøpteForsikringer.any { it.type == Type.SELVSTENDIG_JORDBRUKER_100_PROSENT_FRA_DAG_1 }
+                            && spesielleYrkesgrupper.none { it in setOf("JORDBRUKER", "REINDRIFTER") }) {
+                            val feilmelding = "Bruker har Nav-kjøpt forsikring av type ${Type.SELVSTENDIG_JORDBRUKER_100_PROSENT_FRA_DAG_1}, " +
+                                "som kun gjelder for de spesielle yrkesgruppene JORDBRUKER eller REINDRIFTER, " +
+                                "men spesielle yrkesgrupper var $spesielleYrkesgrupper"
+                            loggError(feilmelding, "behov" to packet.toJson()) // TODO: Logge alle nav-kjøpte forsikringer som ble funnet?
+                            error(feilmelding)
+                        }
 
                         val dekninger = navKjøpteForsikringer.map {
                             when (it.type) {
@@ -102,10 +116,10 @@ class SykepengeforsikringBehovRiver(
                                 Type.FRILANSER_100_PROSENT_FRA_DAG_1 -> Dekning(grad = 100, fraDag = 1)
                             }
                         }.toMutableList()
-                        if ("FISKER_BLAD_B" in særskilteGrupper) {
+                        if ("FISKER_BLAD_B" in spesielleYrkesgrupper) {
                             dekninger.add(Dekning(grad = 100, fraDag = 1)) // Kollektiv forsikring
                         }
-                        if ("JORDBRUKER" in særskilteGrupper || "REINDRIFTER" in særskilteGrupper) {
+                        if ("JORDBRUKER" in spesielleYrkesgrupper || "REINDRIFTER" in spesielleYrkesgrupper) {
                             dekninger.add(Dekning(grad = 100, fraDag = 17)) // Kollektiv forsikring
                         }
 

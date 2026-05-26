@@ -176,7 +176,7 @@ class OppslagDao(private val transaction: TransactionalSession) {
                             else -> error("Ukjent forsikringstype: $type")
                         },
                         virkningsdato = row.intToLocalDate("IF10_VIRKDATO")!!,
-                        tom = row.intToLocalDate("IF10_FORSTOM")
+                        opphørsdato = row.intToLocalDate("IF10_FORSTOM")
                     )
                 }
                 .asList
