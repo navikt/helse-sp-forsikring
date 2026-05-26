@@ -9,10 +9,12 @@ import com.github.navikt.tbd_libs.rapids_and_rivers.test_support.TestRapid
 import java.util.*
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
+import no.nav.helse.sykepenger.forsikring.oppslag.NavKjøptForsikring
 import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertDoesNotThrow
+import org.junit.jupiter.api.assertThrows
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.CsvSource
 
@@ -175,8 +177,9 @@ internal class SykepengeforsikringBehovRiverTest {
     fun `feiler ved ugyldig kombinasjon`(yrkesaktivitetstype: String, særskiltGruppe: String?, IF10_TYPE: Char?) {
         IF10_TYPE?.let { TestcontainersReplikadatabase.insertVedfrivt(IF01_AGNR_FNR = 3020112345L, IF10_TYPE = it) }
 
-        rapid.sendTestMessage(
-            """
+        assertThrows<NavKjøptForsikring.Valideringsfeil> {
+            rapid.sendTestMessage(
+                """
                 {
                     "@behov": [ "Sykepengeforsikring" ],
                     "fødselsnummer": "01020312345",
@@ -187,9 +190,8 @@ internal class SykepengeforsikringBehovRiverTest {
                     }
                 }
             """.trimIndent()
-        )
-
-        assertEquals(0, rapid.inspektør.size)
+            )
+        }
     }
 
     @Test
@@ -390,12 +392,13 @@ internal class SykepengeforsikringBehovRiverTest {
     }
 
     @Test
-    fun `gir ikke løsning når dekninger har ulike grader`() {
+    fun `feiler når dekninger har ulike grader`() {
         TestcontainersReplikadatabase.insertVedfrivt(IF01_AGNR_FNR = 3020112345L, IF10_FORSFOM_SEQ = 1, IF10_TYPE = '1') // grad=80, fraDag=1
         TestcontainersReplikadatabase.insertVedfrivt(IF01_AGNR_FNR = 3020112345L, IF10_FORSFOM_SEQ = 2, IF10_TYPE = '2') // grad=100, fraDag=17
 
-        rapid.sendTestMessage(
-            """
+        assertThrows<IllegalStateException> {
+            rapid.sendTestMessage(
+                """
                 {
                     "@behov": [ "Sykepengeforsikring" ],
                     "fødselsnummer": "01020312345",
@@ -406,7 +409,8 @@ internal class SykepengeforsikringBehovRiverTest {
                     }
                 }
             """.trimIndent()
-        )
+            )
+        }
 
         assertEquals(0, rapid.inspektør.size)
     }

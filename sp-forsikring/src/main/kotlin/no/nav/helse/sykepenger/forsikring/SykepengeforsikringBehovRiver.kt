@@ -43,7 +43,7 @@ class SykepengeforsikringBehovRiver(
             }.register(this)
     }
 
-    inline fun <reified T : Enum<T>> JsonNode.asEnum(): T = enumValueOf<T>(asText())
+    inline fun <reified T : Enum<T>> JsonNode.asEnum(): T = enumValueOf<T>(asString())
 
     @OptIn(ExperimentalUuidApi::class)
     override fun onPacket(
@@ -122,7 +122,8 @@ class SykepengeforsikringBehovRiver(
                     }
                 }
             } catch (err: Exception) {
-                loggError("Feil ved håndtering av Sykepengeforsikring-behov", err)
+                loggError("Feil ved håndtering av Sykepengeforsikring-behov", err, "melding" to packet.toJson())
+                throw err
             }
         }
     }

@@ -44,13 +44,15 @@ data class NavKjøptForsikring(
         }
     }
 
+    class Valideringsfeil(message: String): Exception(message)
+
     private fun valider(
         forventetYrkesaktivitetstype: Yrkesaktivitetstype,
         faktiskYrkesaktivitetstype: Yrkesaktivitetstype,
         type: Type,
     ) {
         if (faktiskYrkesaktivitetstype != forventetYrkesaktivitetstype) {
-            error(
+            throw Valideringsfeil(
                 "Nav-kjøpt forsikring er av type $type, " +
                     "der forventet yrkesaktivitetstype er $forventetYrkesaktivitetstype, " +
                     "men yrkesaktivitetstypen var $faktiskYrkesaktivitetstype"
@@ -63,7 +65,7 @@ data class NavKjøptForsikring(
         vararg forventetEnAvSpesielleYrkesgrupper: SpesiellYrkesgruppe,
     ) {
         if (faktiskeSpesielleYrkesgrupper.none { it in forventetEnAvSpesielleYrkesgrupper }) {
-            error(
+            throw Valideringsfeil(
                 "Nav-kjøpt forsikring er av type $type, " +
                     "der det var forventet at spesielle yrkesgrupper inneholdt en av ${forventetEnAvSpesielleYrkesgrupper.toSet()}, " +
                     "men spesielle yrkesgrupper var $faktiskeSpesielleYrkesgrupper"
