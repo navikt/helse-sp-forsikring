@@ -23,85 +23,51 @@ data class NavKjøptForsikring(
     fun erOpphørtPå(dato: LocalDate) =
         opphørsdato != null && dato > opphørsdato
 
-    sealed interface Valideringsresultat {
-        data object OK : Valideringsresultat
-        class UoverenstemmelseMedYrkesaktivitetstype(
-            forventetYrkesaktivitetstype: Yrkesaktivitetstype,
-            faktiskYrkesaktivitetstype: Yrkesaktivitetstype,
-            type: Type,
-        ) : Valideringsresultat {
-            val melding =
-                "Nav-kjøpt forsikring er av type ${type}, " +
-                    "der forventet yrkesaktivitetstype er $forventetYrkesaktivitetstype, " +
-                    "men yrkesaktivitetstypen var $faktiskYrkesaktivitetstype"
-        }
-
-        class UoverenstemmelseMedSpesielleYrkesgrupper(
-            forventetEnAvSpesielleYrkesgrupper: Set<SpesiellYrkesgruppe>,
-            faktiskeSpesielleYrkesgrupper: Set<SpesiellYrkesgruppe>,
-            type: Type,
-        ) : Valideringsresultat {
-            val melding =
-                "Nav-kjøpt forsikring er av type ${type}, " +
-                    "der det var forventet at spesielle yrkesgrupper inneholdt en av $forventetEnAvSpesielleYrkesgrupper, " +
-                    "men spesielle yrkesgrupper var $faktiskeSpesielleYrkesgrupper"
-        }
-    }
-
-    fun validerType(yrkesaktivitetstype: Yrkesaktivitetstype, spesielleYrkesgrupper: Set<SpesiellYrkesgruppe>): Valideringsresultat =
+    fun validerType(yrkesaktivitetstype: Yrkesaktivitetstype, spesielleYrkesgrupper: Set<SpesiellYrkesgruppe>) {
         when (type) {
-            Type.SELVSTENDIG_80_PROSENT_FRA_DAG_1 -> {
+            Type.SELVSTENDIG_80_PROSENT_FRA_DAG_1 ->
                 valider(Yrkesaktivitetstype.SELVSTENDIG, yrkesaktivitetstype, type)
-            }
 
-            Type.SELVSTENDIG_100_PROSENT_FRA_DAG_17 -> {
+            Type.SELVSTENDIG_100_PROSENT_FRA_DAG_17 ->
                 valider(Yrkesaktivitetstype.SELVSTENDIG, yrkesaktivitetstype, type)
-            }
 
-            Type.SELVSTENDIG_100_PROSENT_FRA_DAG_1 -> {
+            Type.SELVSTENDIG_100_PROSENT_FRA_DAG_1 ->
                 valider(Yrkesaktivitetstype.SELVSTENDIG, yrkesaktivitetstype, type)
-            }
 
             Type.SELVSTENDIG_JORDBRUKER_100_PROSENT_FRA_DAG_1 -> {
-                val førsteValidering = valider(Yrkesaktivitetstype.SELVSTENDIG, yrkesaktivitetstype, type)
-                if (førsteValidering == Valideringsresultat.OK) {
-                    validerEnAv(spesielleYrkesgrupper, SpesiellYrkesgruppe.Jordbruker, SpesiellYrkesgruppe.Reindrifter)
-                } else {
-                    førsteValidering
-                }
+                valider(Yrkesaktivitetstype.SELVSTENDIG, yrkesaktivitetstype, type)
+                validerEnAv(spesielleYrkesgrupper, SpesiellYrkesgruppe.Jordbruker, SpesiellYrkesgruppe.Reindrifter)
             }
 
-            Type.FRILANSER_100_PROSENT_FRA_DAG_1 -> {
+            Type.FRILANSER_100_PROSENT_FRA_DAG_1 ->
                 valider(Yrkesaktivitetstype.FRILANS, yrkesaktivitetstype, type)
-            }
         }
+    }
 
     private fun valider(
         forventetYrkesaktivitetstype: Yrkesaktivitetstype,
         faktiskYrkesaktivitetstype: Yrkesaktivitetstype,
         type: Type,
-    ): Valideringsresultat =
+    ) {
         if (faktiskYrkesaktivitetstype != forventetYrkesaktivitetstype) {
-            Valideringsresultat.UoverenstemmelseMedYrkesaktivitetstype(
-                forventetYrkesaktivitetstype,
-                faktiskYrkesaktivitetstype,
-                type
+            error(
+                "Nav-kjøpt forsikring er av type $type, " +
+                    "der forventet yrkesaktivitetstype er $forventetYrkesaktivitetstype, " +
+                    "men yrkesaktivitetstypen var $faktiskYrkesaktivitetstype"
             )
-        } else {
-            Valideringsresultat.OK
         }
+    }
 
     private fun validerEnAv(
         faktiskeSpesielleYrkesgrupper: Set<SpesiellYrkesgruppe>,
-        vararg forventetEnAvSpesielleYrkesgrupper: SpesiellYrkesgruppe
-    ): Valideringsresultat =
+        vararg forventetEnAvSpesielleYrkesgrupper: SpesiellYrkesgruppe,
+    ) {
         if (faktiskeSpesielleYrkesgrupper.none { it in forventetEnAvSpesielleYrkesgrupper }) {
-            Valideringsresultat.UoverenstemmelseMedSpesielleYrkesgrupper(
-                forventetEnAvSpesielleYrkesgrupper.toSet(),
-                faktiskeSpesielleYrkesgrupper,
-                type
+            error(
+                "Nav-kjøpt forsikring er av type $type, " +
+                    "der det var forventet at spesielle yrkesgrupper inneholdt en av ${forventetEnAvSpesielleYrkesgrupper.toSet()}, " +
+                    "men spesielle yrkesgrupper var $faktiskeSpesielleYrkesgrupper"
             )
-        } else {
-            Valideringsresultat.OK
         }
+    }
 }

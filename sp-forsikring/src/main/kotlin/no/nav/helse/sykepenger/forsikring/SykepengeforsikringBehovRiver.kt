@@ -14,7 +14,6 @@ import kotlin.uuid.ExperimentalUuidApi
 import kotliquery.sessionOf
 import no.nav.helse.sykepenger.forsikring.SpesiellYrkesgruppe.Fisker.Blad
 import no.nav.helse.sykepenger.forsikring.SykepengeforsikringBehovRiver.Løsning.MedForsikring.Dekning
-import no.nav.helse.sykepenger.forsikring.oppslag.NavKjøptForsikring
 import no.nav.helse.sykepenger.forsikring.oppslag.NavKjøptForsikring.Type
 import no.nav.helse.sykepenger.forsikring.oppslag.OppslagService
 import tools.jackson.databind.JsonNode
@@ -92,15 +91,7 @@ class SykepengeforsikringBehovRiver(
 
                         // Kontroller mismatch mellom yrkesaktivitetstype og type forsikring i Infotrygd
                         navKjøpteForsikringer.forEach {
-                            val validering = it.validerType(yrkesaktivitetstype, spesielleYrkesgrupper)
-                            if (validering != NavKjøptForsikring.Valideringsresultat.OK) {
-                                loggError(
-                                    "Feil i validering av type på forsikring",
-                                    "valideringsresultat" to validering,
-                                    "behov" to packet.toJson()
-                                )
-                                error("Feil i validering av type på forsikring")
-                            }
+                            it.validerType(yrkesaktivitetstype, spesielleYrkesgrupper)
                         }
 
                         val dekninger = navKjøpteForsikringer.map {
