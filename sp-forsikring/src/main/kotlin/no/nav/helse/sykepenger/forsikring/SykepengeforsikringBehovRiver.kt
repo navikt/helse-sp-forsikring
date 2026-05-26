@@ -83,30 +83,28 @@ class SykepengeforsikringBehovRiver(
                             navKjøpteForsikringer.removeAll(irrelevanteJordbrukerforsikringer)
                         }
 
-                        val løsning = if (navKjøpteForsikringer.isNotEmpty()) {
-                            Løsning.MedForsikring(
-                                oppslagId = oppslag.id,
-                                dekning = when (navKjøpteForsikringer.first().type) {
-                                    Type.SELVSTENDIG_80_PROSENT_FRA_DAG_1 -> Dekning(grad = 80, fraDag = 1)
-                                    Type.SELVSTENDIG_100_PROSENT_FRA_DAG_17 -> Dekning(grad = 100, fraDag = 17)
-                                    Type.SELVSTENDIG_100_PROSENT_FRA_DAG_1 -> Dekning(grad = 100, fraDag = 1)
-                                    Type.SELVSTENDIG_JORDBRUKER_100_PROSENT_FRA_DAG_1 -> Dekning(grad = 100, fraDag = 1)
-                                    Type.FRILANSER_100_PROSENT_FRA_DAG_1 -> Dekning(grad = 100, fraDag = 1)
-                                }
-                            )
-                        } else if ("FISKER_BLAD_B" in særskilteGrupper) {
-                            Løsning.MedForsikring(
-                                oppslagId = oppslag.id,
-                                dekning = Dekning(grad = 100, fraDag = 1) // Kollektiv forsikring
-                            )
-                        } else if ("JORDBRUKER" in særskilteGrupper || "REINDRIFTER" in særskilteGrupper) {
-                            Løsning.MedForsikring(
-                                oppslagId = oppslag.id,
-                                dekning = Dekning(grad = 100, fraDag = 17) // Kollektiv forsikring
-                            )
+                        val dekninger = navKjøpteForsikringer.map {
+                            when (it.type) {
+                                Type.SELVSTENDIG_80_PROSENT_FRA_DAG_1 -> Dekning(grad = 80, fraDag = 1)
+                                Type.SELVSTENDIG_100_PROSENT_FRA_DAG_17 -> Dekning(grad = 100, fraDag = 17)
+                                Type.SELVSTENDIG_100_PROSENT_FRA_DAG_1 -> Dekning(grad = 100, fraDag = 1)
+                                Type.SELVSTENDIG_JORDBRUKER_100_PROSENT_FRA_DAG_1 -> Dekning(grad = 100, fraDag = 1)
+                                Type.FRILANSER_100_PROSENT_FRA_DAG_1 -> Dekning(grad = 100, fraDag = 1)
+                            }
+                        }.toMutableList()
+                        if ("FISKER_BLAD_B" in særskilteGrupper) {
+                            dekninger.add(Dekning(grad = 100, fraDag = 1)) // Kollektiv forsikring
+                        }
+                        if ("JORDBRUKER" in særskilteGrupper || "REINDRIFTER" in særskilteGrupper) {
+                            dekninger.add(Dekning(grad = 100, fraDag = 17)) // Kollektiv forsikring
+                        }
+
+                        val løsning = if (dekninger.isNotEmpty()) {
+                            Løsning.MedForsikring(oppslagId = oppslag.id, dekning = dekninger.first())
                         } else {
                             Løsning.UtenForsikring(oppslagId = oppslag.id)
                         }
+
                         packet["@løsning"] = mapOf("Sykepengeforsikring" to løsning)
                         context.publish(packet.toJson())
                     }
