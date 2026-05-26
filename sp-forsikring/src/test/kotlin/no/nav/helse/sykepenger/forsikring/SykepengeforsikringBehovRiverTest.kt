@@ -169,6 +169,50 @@ internal class SykepengeforsikringBehovRiverTest {
         forventLøsning("""{ "harForsikring": false } """)
     }
 
+    @Test
+    fun `velger dekning med lavest fraDag når det finnes flere dekninger med samme grad`() {
+        TestcontainersReplikadatabase.insertVedfrivt(IF01_AGNR_FNR = 3020112345L, IF10_FORSFOM_SEQ = 1, IF10_TYPE = '2') // grad=100, fraDag=17
+        TestcontainersReplikadatabase.insertVedfrivt(IF01_AGNR_FNR = 3020112345L, IF10_FORSFOM_SEQ = 2, IF10_TYPE = '3') // grad=100, fraDag=1
+
+        rapid.sendTestMessage(
+            """
+                {
+                    "@behov": [ "Sykepengeforsikring" ],
+                    "fødselsnummer": "01020312345",
+                    "yrkesaktivitetstype": "SELVSTENDIG",
+                    "Sykepengeforsikring" : {
+                        "særskilteGrupper": [],
+                        "skjæringstidspunkt": "2026-01-01"
+                    }
+                }
+            """.trimIndent()
+        )
+
+        forventLøsning("""{ "harForsikring": true, "dekning": { "grad": 100, "fraDag": 1 } }""")
+    }
+
+    @Test
+    fun `gir ikke løsning når dekninger har ulike grader`() {
+        TestcontainersReplikadatabase.insertVedfrivt(IF01_AGNR_FNR = 3020112345L, IF10_FORSFOM_SEQ = 1, IF10_TYPE = '1') // grad=80, fraDag=1
+        TestcontainersReplikadatabase.insertVedfrivt(IF01_AGNR_FNR = 3020112345L, IF10_FORSFOM_SEQ = 2, IF10_TYPE = '2') // grad=100, fraDag=17
+
+        rapid.sendTestMessage(
+            """
+                {
+                    "@behov": [ "Sykepengeforsikring" ],
+                    "fødselsnummer": "01020312345",
+                    "yrkesaktivitetstype": "SELVSTENDIG",
+                    "Sykepengeforsikring" : {
+                        "særskilteGrupper": [],
+                        "skjæringstidspunkt": "2026-01-01"
+                    }
+                }
+            """.trimIndent()
+        )
+
+        assertEquals(0, rapid.inspektør.size)
+    }
+
     private fun forventLøsning(forventetLøsningUtenOppslagId: String) {
         assertEquals(1, rapid.inspektør.size)
         val løsningMelding = rapid.inspektør.message(0)
@@ -184,12 +228,12 @@ internal class SykepengeforsikringBehovRiverTest {
         TestcontainersReplikadatabase.insertVedfrivt(
             IF01_AGNR_FNR = 3020112345L,
             IF10_FORSFOM_SEQ = 123,
-            IF10_TYPE = '1'
+            IF10_TYPE = '2'
         )
         TestcontainersReplikadatabase.insertVedfrivt(
             IF01_AGNR_FNR = 3020112345L,
             IF10_FORSFOM_SEQ = 456,
-            IF10_TYPE = '2'
+            IF10_TYPE = '3'
         )
         TestcontainersReplikadatabase.insertFkonto12(
             IF01_AGNR_FNR = 3020112345L,

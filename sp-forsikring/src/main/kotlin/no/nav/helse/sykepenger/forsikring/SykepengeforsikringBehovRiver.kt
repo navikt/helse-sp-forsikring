@@ -99,11 +99,12 @@ class SykepengeforsikringBehovRiver(
                             dekninger.add(Dekning(grad = 100, fraDag = 17)) // Kollektiv forsikring
                         }
 
-                        val løsning = if (dekninger.isNotEmpty()) {
-                            Løsning.MedForsikring(oppslagId = oppslag.id, dekning = dekninger.first())
-                        } else {
-                            Løsning.UtenForsikring(oppslagId = oppslag.id)
-                        }
+                        val grader = dekninger.map { it.grad }.distinct()
+                        if (grader.size > 1) error("Fant dekninger med ulike grader: $grader")
+
+                        val dekning = dekninger.minByOrNull { it.fraDag }
+                        val løsning = dekning?.let { Løsning.MedForsikring(oppslagId = oppslag.id, dekning = it) }
+                            ?: Løsning.UtenForsikring(oppslagId = oppslag.id)
 
                         packet["@løsning"] = mapOf("Sykepengeforsikring" to løsning)
                         context.publish(packet.toJson())
