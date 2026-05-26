@@ -12,7 +12,9 @@ import java.util.*
 import javax.sql.DataSource
 import kotlin.uuid.ExperimentalUuidApi
 import kotliquery.sessionOf
+import no.nav.helse.sykepenger.forsikring.SpesiellYrkesgruppe.Fisker.Blad
 import no.nav.helse.sykepenger.forsikring.SykepengeforsikringBehovRiver.Løsning.MedForsikring.Dekning
+import no.nav.helse.sykepenger.forsikring.oppslag.NavKjøptForsikring
 import no.nav.helse.sykepenger.forsikring.oppslag.NavKjøptForsikring.Type
 import no.nav.helse.sykepenger.forsikring.oppslag.OppslagService
 import tools.jackson.databind.JsonNode
@@ -42,6 +44,8 @@ class SykepengeforsikringBehovRiver(
             }.register(this)
     }
 
+    inline fun <reified T : Enum<T>> JsonNode.asEnum(): T = enumValueOf<T>(asText())
+
     @OptIn(ExperimentalUuidApi::class)
     override fun onPacket(
         packet: JsonMessage,
@@ -51,8 +55,15 @@ class SykepengeforsikringBehovRiver(
     ) {
         val meldingId = packet["@id"].asString()
         val fødselsnummer = packet["fødselsnummer"].asString()
-        val yrkesaktivitetstype = packet["yrkesaktivitetstype"].asString()
-        val spesielleYrkesgrupper = packet["Sykepengeforsikring.spesielleYrkesgrupper"].map<JsonNode, String> { it.asString() }.toSet()
+        val yrkesaktivitetstype = packet["yrkesaktivitetstype"].asEnum<Yrkesaktivitetstype>()
+        val spesielleYrkesgrupper = packet["Sykepengeforsikring.spesielleYrkesgrupper"].map<JsonNode, SpesiellYrkesgruppe> {
+            when (val spesiellYrkesgruppe = it.asString()) {
+                "FISKER_BLAD_B" -> SpesiellYrkesgruppe.Fisker(Blad.B)
+                "JORDBRUKER" -> SpesiellYrkesgruppe.Jordbruker
+                "REINDRIFTER" -> SpesiellYrkesgruppe.Reindrifter
+                else -> SpesiellYrkesgruppe.Ukjent(spesiellYrkesgruppe)
+            }
+        }.toSet()
         val skjæringstidspunkt = packet["Sykepengeforsikring.skjæringstidspunkt"].asLocalDate()
 
         medMdc(MdcKey.MELDING_ID to meldingId) {
@@ -67,44 +78,29 @@ class SykepengeforsikringBehovRiver(
 
                         // Skjæringstidspunkt må være etter eller lik virkningsdato
                         val forsikringerMedVirkningsdatoEtterSkjæringstidspunkt = navKjøpteForsikringer.filter {
-                            it.virkningsdato > skjæringstidspunkt
+                            it.harVirkningPå(skjæringstidspunkt)
                         }
                         navKjøpteForsikringer.removeAll(forsikringerMedVirkningsdatoEtterSkjæringstidspunkt)
 
                         // Skjæringstidspunkt må være før eller lik opphørsdato (hvis det er en opphørsdato)
-                        val forsikringerMedOpphørsdatoFørSkjæringstidspunkt = navKjøpteForsikringer.filter { forsikring ->
-                            forsikring.opphørsdato != null && skjæringstidspunkt > forsikring.opphørsdato
+                        val opphørteForsikringer = navKjøpteForsikringer.filter { forsikring ->
+                            forsikring.erOpphørtPå(skjæringstidspunkt)
                         }
-                        navKjøpteForsikringer.removeAll(forsikringerMedOpphørsdatoFørSkjæringstidspunkt)
+                        navKjøpteForsikringer.removeAll(opphørteForsikringer)
 
                         // TODO: Forsikringen er ikke betalt noen gang (ennå) - filtreres ut
 
                         // Kontroller mismatch mellom yrkesaktivitetstype og type forsikring i Infotrygd
                         navKjøpteForsikringer.forEach {
-                            val forventetYrkesaktivitetstype = when (it.type) {
-                                Type.SELVSTENDIG_80_PROSENT_FRA_DAG_1 -> "SELVSTENDIG"
-                                Type.SELVSTENDIG_100_PROSENT_FRA_DAG_17 -> "SELVSTENDIG"
-                                Type.SELVSTENDIG_100_PROSENT_FRA_DAG_1 -> "SELVSTENDIG"
-                                Type.SELVSTENDIG_JORDBRUKER_100_PROSENT_FRA_DAG_1 -> "SELVSTENDIG"
-                                Type.FRILANSER_100_PROSENT_FRA_DAG_1 -> "FRILANS"
+                            val validering = it.validerType(yrkesaktivitetstype, spesielleYrkesgrupper)
+                            if (validering != NavKjøptForsikring.Valideringsresultat.OK) {
+                                loggError(
+                                    "Feil i validering av type på forsikring",
+                                    "valideringsresultat" to validering,
+                                    "behov" to packet.toJson()
+                                )
+                                error("Feil i validering av type på forsikring")
                             }
-                            if (yrkesaktivitetstype != forventetYrkesaktivitetstype) {
-                                val feilmelding = "Nav-kjøpt forsikring er av type ${it.type}, " +
-                                    "der forventet yrkesaktivitetstype er $forventetYrkesaktivitetstype, " +
-                                    "men yrkesaktivitetstypen var $yrkesaktivitetstype"
-                                loggError(feilmelding, "behov" to packet.toJson()) // TODO: Logge alle nav-kjøpte forsikringer som ble funnet?
-                                error(feilmelding)
-                            }
-                        }
-
-                        // Kontroller mismatch mellom spesiell yrkesgruppe og type tilleggsforsikring i Infotrygd
-                        if (navKjøpteForsikringer.any { it.type == Type.SELVSTENDIG_JORDBRUKER_100_PROSENT_FRA_DAG_1 }
-                            && spesielleYrkesgrupper.none { it in setOf("JORDBRUKER", "REINDRIFTER") }) {
-                            val feilmelding = "Bruker har Nav-kjøpt forsikring av type ${Type.SELVSTENDIG_JORDBRUKER_100_PROSENT_FRA_DAG_1}, " +
-                                "som kun gjelder for de spesielle yrkesgruppene JORDBRUKER eller REINDRIFTER, " +
-                                "men spesielle yrkesgrupper var $spesielleYrkesgrupper"
-                            loggError(feilmelding, "behov" to packet.toJson()) // TODO: Logge alle nav-kjøpte forsikringer som ble funnet?
-                            error(feilmelding)
                         }
 
                         val dekninger = navKjøpteForsikringer.map {
@@ -116,10 +112,10 @@ class SykepengeforsikringBehovRiver(
                                 Type.FRILANSER_100_PROSENT_FRA_DAG_1 -> Dekning(grad = 100, fraDag = 1)
                             }
                         }.toMutableList()
-                        if ("FISKER_BLAD_B" in spesielleYrkesgrupper) {
+                        if (SpesiellYrkesgruppe.Fisker(Blad.B) in spesielleYrkesgrupper) {
                             dekninger.add(Dekning(grad = 100, fraDag = 1)) // Kollektiv forsikring
                         }
-                        if ("JORDBRUKER" in spesielleYrkesgrupper || "REINDRIFTER" in spesielleYrkesgrupper) {
+                        if (SpesiellYrkesgruppe.Jordbruker in spesielleYrkesgrupper || SpesiellYrkesgruppe.Reindrifter in spesielleYrkesgrupper) {
                             dekninger.add(Dekning(grad = 100, fraDag = 17)) // Kollektiv forsikring
                         }
 
