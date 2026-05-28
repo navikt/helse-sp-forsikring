@@ -438,7 +438,7 @@ internal class SykepengeforsikringBehovRiverTest {
     @Test
     fun `eliminerer forsikring med betdato null`() {
         TestcontainersReplikadatabase.insertVedfrivt(IF01_AGNR_FNR = 3020112345L, IF10_FORSFOM_SEQ = 0, IF10_TYPE = '2')
-        TestcontainersReplikadatabase.insertFkonto12(IF01_AGNR_FNR = 3020112345L, IF10_FORSFOM_SEQ = 0, IF12_BETDATO = null)
+        TestcontainersReplikadatabase.insertFkonto12(IF01_AGNR_FNR = 3020112345L, IF10_FORSFOM_SEQ = 0, IF12_BETDATO_SEQ = 1, IF12_BETDATO = null)
 
         rapid.sendTestMessage(
             """
@@ -460,7 +460,7 @@ internal class SykepengeforsikringBehovRiverTest {
     @Test
     fun `eliminerer forsikring med betdato 0`() {
         TestcontainersReplikadatabase.insertVedfrivt(IF01_AGNR_FNR = 3020112345L, IF10_FORSFOM_SEQ = 0, IF10_TYPE = '2')
-        TestcontainersReplikadatabase.insertFkonto12(IF01_AGNR_FNR = 3020112345L, IF10_FORSFOM_SEQ = 0, IF12_BETDATO = 0)
+        TestcontainersReplikadatabase.insertFkonto12(IF01_AGNR_FNR = 3020112345L, IF10_FORSFOM_SEQ = 0, IF12_BETDATO_SEQ = 1, IF12_BETDATO = 0)
 
         rapid.sendTestMessage(
             """
@@ -477,6 +477,110 @@ internal class SykepengeforsikringBehovRiverTest {
         )
 
         forventLøsning("""{ "harForsikring": false }""")
+    }
+
+    @Test
+    fun `eliminerer forsikring hvor skjæringstidspunkt er innenfor opptjeningstid`() {
+        insertBetaltVedfrivt(
+            IF01_AGNR_FNR = 3020112345L,
+            IF10_TYPE = '2',
+            IF10_FORSFOM = 20251201,
+            IF10_VIRKDATO = 20260201
+        )
+
+        rapid.sendTestMessage(
+            """
+                {
+                    "@behov": [ "Sykepengeforsikring" ],
+                    "fødselsnummer": "01020312345",
+                    "yrkesaktivitetstype": "SELVSTENDIG",
+                    "Sykepengeforsikring" : {
+                        "spesielleYrkesgrupper": [],
+                        "skjæringstidspunkt": "2026-01-01"
+                    }
+                }
+            """.trimIndent()
+        )
+
+        forventLøsning("""{ "harForsikring": false }""")
+    }
+
+    @Test
+    fun `eliminerer forsikring hvor skjæringstidspunkt er lik start av opptjeningstid`() {
+        insertBetaltVedfrivt(
+            IF01_AGNR_FNR = 3020112345L,
+            IF10_TYPE = '2',
+            IF10_FORSFOM = 20260101,
+            IF10_VIRKDATO = 20260201
+        )
+
+        rapid.sendTestMessage(
+            """
+                {
+                    "@behov": [ "Sykepengeforsikring" ],
+                    "fødselsnummer": "01020312345",
+                    "yrkesaktivitetstype": "SELVSTENDIG",
+                    "Sykepengeforsikring" : {
+                        "spesielleYrkesgrupper": [],
+                        "skjæringstidspunkt": "2026-01-01"
+                    }
+                }
+            """.trimIndent()
+        )
+
+        forventLøsning("""{ "harForsikring": false }""")
+    }
+
+    @Test
+    fun `beholder forsikring hvor skjæringstidspunkt er lik virkningsdato (slutt av opptjeningstid)`() {
+        insertBetaltVedfrivt(
+            IF01_AGNR_FNR = 3020112345L,
+            IF10_TYPE = '2',
+            IF10_FORSFOM = 20251201,
+            IF10_VIRKDATO = 20260101
+        )
+
+        rapid.sendTestMessage(
+            """
+                {
+                    "@behov": [ "Sykepengeforsikring" ],
+                    "fødselsnummer": "01020312345",
+                    "yrkesaktivitetstype": "SELVSTENDIG",
+                    "Sykepengeforsikring" : {
+                        "spesielleYrkesgrupper": [],
+                        "skjæringstidspunkt": "2026-01-01"
+                    }
+                }
+            """.trimIndent()
+        )
+
+        forventLøsning("""{ "harForsikring": true, "dekning": { "grad": 100, "fraDag": 17 } }""")
+    }
+
+    @Test
+    fun `beholder forsikring uten opptjeningstid`() {
+        insertBetaltVedfrivt(
+            IF01_AGNR_FNR = 3020112345L,
+            IF10_TYPE = '2',
+            IF10_FORSFOM = 0,
+            IF10_VIRKDATO = 20260101
+        )
+
+        rapid.sendTestMessage(
+            """
+                {
+                    "@behov": [ "Sykepengeforsikring" ],
+                    "fødselsnummer": "01020312345",
+                    "yrkesaktivitetstype": "SELVSTENDIG",
+                    "Sykepengeforsikring" : {
+                        "spesielleYrkesgrupper": [],
+                        "skjæringstidspunkt": "2026-01-01"
+                    }
+                }
+            """.trimIndent()
+        )
+
+        forventLøsning("""{ "harForsikring": true, "dekning": { "grad": 100, "fraDag": 17 } }""")
     }
 
     private fun forventLøsning(forventetLøsningUtenOppslagId: String) {
@@ -549,10 +653,10 @@ internal class SykepengeforsikringBehovRiverTest {
     fun `ekskluderingsårsaker lagres for forsikringer som ikke er kandidater`() {
         // seq=1: virkningsdato etter skjæringstidspunkt
         TestcontainersReplikadatabase.insertVedfrivt(IF01_AGNR_FNR = 3020112345L, IF10_FORSFOM_SEQ = 1, IF10_TYPE = '2', IF10_VIRKDATO = 20260102)
-        TestcontainersReplikadatabase.insertFkonto12(IF01_AGNR_FNR = 3020112345L, IF10_FORSFOM_SEQ = 1, IF12_BETDATO = 20260101)
+        TestcontainersReplikadatabase.insertFkonto12(IF01_AGNR_FNR = 3020112345L, IF10_FORSFOM_SEQ = 1, IF12_BETDATO_SEQ = 1, IF12_BETDATO = 20260101)
         // seq=2: opphørt på skjæringstidspunkt
         TestcontainersReplikadatabase.insertVedfrivt(IF01_AGNR_FNR = 3020112345L, IF10_FORSFOM_SEQ = 2, IF10_TYPE = '2', IF10_FORSTOM = 20251231)
-        TestcontainersReplikadatabase.insertFkonto12(IF01_AGNR_FNR = 3020112345L, IF10_FORSFOM_SEQ = 2, IF12_BETDATO = 20260101)
+        TestcontainersReplikadatabase.insertFkonto12(IF01_AGNR_FNR = 3020112345L, IF10_FORSFOM_SEQ = 2, IF12_BETDATO_SEQ = 1, IF12_BETDATO = 20260101)
         // seq=3: aldri betalt
         TestcontainersReplikadatabase.insertVedfrivt(IF01_AGNR_FNR = 3020112345L, IF10_FORSFOM_SEQ = 3, IF10_TYPE = '2')
 
@@ -583,6 +687,7 @@ internal class SykepengeforsikringBehovRiverTest {
         IF01_AGNR_FNR: Long,
         IF10_FORSFOM_SEQ: Int = 0,
         IF10_TYPE: Char = '1',
+        IF10_FORSFOM: Int = 0,
         IF10_VIRKDATO: Int = 20260101,
         IF10_FORSTOM: Int = 0,
     ) {
@@ -590,12 +695,14 @@ internal class SykepengeforsikringBehovRiverTest {
             IF01_AGNR_FNR = IF01_AGNR_FNR,
             IF10_FORSFOM_SEQ = IF10_FORSFOM_SEQ,
             IF10_TYPE = IF10_TYPE,
+            IF10_FORSFOM = IF10_FORSFOM,
             IF10_VIRKDATO = IF10_VIRKDATO,
             IF10_FORSTOM = IF10_FORSTOM,
         )
         TestcontainersReplikadatabase.insertFkonto12(
             IF01_AGNR_FNR = IF01_AGNR_FNR,
             IF10_FORSFOM_SEQ = IF10_FORSFOM_SEQ,
+            IF12_BETDATO_SEQ = 1,
             IF12_BETDATO = 20260101,
         )
     }

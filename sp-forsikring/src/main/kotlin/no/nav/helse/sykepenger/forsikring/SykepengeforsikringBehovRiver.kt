@@ -77,6 +77,15 @@ class SykepengeforsikringBehovRiver(
                         val ekskluderinger = mutableListOf<Pair<NavKjøptForsikring, NavKjøptForsikring.Ekskluderingsårsak>>()
                         val oppslagDao = OppslagDao(transaction)
 
+                        // Skjæringstidspunkt må ikke være i opptjeningstid [IF10_FORSFOM, IF10_VIRKDATO)
+                        val forsikringerIOpptjeningstid = navKjøpteForsikringer.filter {
+                            it.erIOpptjeningstid(skjæringstidspunkt)
+                        }
+                        navKjøpteForsikringer.removeAll(forsikringerIOpptjeningstid)
+                        forsikringerIOpptjeningstid.forEach {
+                            ekskluderinger.add(it to NavKjøptForsikring.Ekskluderingsårsak.SKJÆRINGSTIDSPUNKT_I_OPPTJENINGSTID)
+                        }
+
                         // Skjæringstidspunkt må være etter eller lik virkningsdato
                         val forsikringerMedVirkningsdatoEtterSkjæringstidspunkt = navKjøpteForsikringer.filter {
                             it.harVirkningPå(skjæringstidspunkt)

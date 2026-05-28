@@ -7,6 +7,7 @@ data class NavKjøptForsikring(
     val IF01_AGNR_FNR: Long,
     val IF10_FORSFOM_SEQ: Int,
     val type: Type,
+    val forsikringFom: LocalDate?,
     val virkningsdato: LocalDate,
     val opphørsdato: LocalDate?,
     val erBetaltNoenGang: Boolean,
@@ -18,6 +19,9 @@ data class NavKjøptForsikring(
         SELVSTENDIG_JORDBRUKER_100_PROSENT_FRA_DAG_1(100, 1),
         FRILANSER_100_PROSENT_FRA_DAG_1(100, 1),
     }
+
+    fun erIOpptjeningstid(dato: LocalDate) =
+        forsikringFom != null && dato >= forsikringFom && dato < virkningsdato
 
     fun harVirkningPå(dato: LocalDate) =
         virkningsdato > dato
@@ -51,6 +55,7 @@ data class NavKjøptForsikring(
     }
 
     enum class Ekskluderingsårsak {
+        SKJÆRINGSTIDSPUNKT_I_OPPTJENINGSTID,
         VIRKNINGSDATO_ETTER_SKJÆRINGSTIDSPUNKT,
         OPPHØRT_PÅ_SKJÆRINGSTIDSPUNKT,
         ALDRI_BETALT,

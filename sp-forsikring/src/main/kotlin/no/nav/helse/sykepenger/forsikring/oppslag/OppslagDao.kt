@@ -167,6 +167,7 @@ class OppslagDao(private val transaction: TransactionalSession) {
                 v.IF01_AGNR_FNR,
                 v.IF10_FORSFOM_SEQ,
                 v.IF10_TYPE,
+                v.IF10_FORSFOM,
                 v.IF10_VIRKDATO,
                 v.IF10_FORSTOM,
                 EXISTS (
@@ -197,6 +198,7 @@ class OppslagDao(private val transaction: TransactionalSession) {
                             "5" -> NavKjøptForsikring.Type.FRILANSER_100_PROSENT_FRA_DAG_1
                             else -> error("Ukjent forsikringstype: $type")
                         },
+                        forsikringFom = row.intToLocalDate("IF10_FORSFOM"),
                         virkningsdato = row.intToLocalDate("IF10_VIRKDATO")!!,
                         opphørsdato = row.intToLocalDate("IF10_FORSTOM"),
                         erBetaltNoenGang = row.boolean("er_betalt_noen_gang"),
