@@ -1,21 +1,19 @@
-package no.nav.helse.sykepenger.forsikring.oppslag
+package no.nav.helse.sykepenger.forsikring
 
 import java.time.LocalDate
-import no.nav.helse.sykepenger.forsikring.SpesiellYrkesgruppe
-import no.nav.helse.sykepenger.forsikring.Yrkesaktivitetstype
 
 data class NavKjøptForsikring(
     val type: Type,
     val virkningsdato: LocalDate,
     val opphørsdato: LocalDate?,
     val erBetaltNoenGang: Boolean,
-) {
-    enum class Type {
-        SELVSTENDIG_80_PROSENT_FRA_DAG_1,
-        SELVSTENDIG_100_PROSENT_FRA_DAG_17,
-        SELVSTENDIG_100_PROSENT_FRA_DAG_1,
-        SELVSTENDIG_JORDBRUKER_100_PROSENT_FRA_DAG_1,
-        FRILANSER_100_PROSENT_FRA_DAG_1,
+): Forsikring {
+    enum class Type(val dekningGrad: Int, val dekningFraDag: Int) {
+        SELVSTENDIG_80_PROSENT_FRA_DAG_1(80, 1),
+        SELVSTENDIG_100_PROSENT_FRA_DAG_17(100, 17),
+        SELVSTENDIG_100_PROSENT_FRA_DAG_1(100, 1),
+        SELVSTENDIG_JORDBRUKER_100_PROSENT_FRA_DAG_1(100, 1),
+        FRILANSER_100_PROSENT_FRA_DAG_1(100, 1),
     }
 
     fun harVirkningPå(dato: LocalDate) =
@@ -23,6 +21,10 @@ data class NavKjøptForsikring(
 
     fun erOpphørtPå(dato: LocalDate) =
         opphørsdato != null && dato > opphørsdato
+
+    override fun dekningGrad(): Int = type.dekningGrad
+
+    override fun dekningFraDag(): Int = type.dekningFraDag
 
     fun validerType(yrkesaktivitetstype: Yrkesaktivitetstype, spesielleYrkesgrupper: Set<SpesiellYrkesgruppe>) {
         when (type) {
@@ -45,7 +47,7 @@ data class NavKjøptForsikring(
         }
     }
 
-    class Valideringsfeil(message: String): Exception(message)
+    class Valideringsfeil(message: String) : Exception(message)
 
     private fun valider(
         forventetYrkesaktivitetstype: Yrkesaktivitetstype,

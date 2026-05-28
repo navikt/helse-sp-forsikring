@@ -14,8 +14,6 @@ import kotlin.uuid.ExperimentalUuidApi
 import kotliquery.sessionOf
 import no.nav.helse.sykepenger.forsikring.SpesiellYrkesgruppe.Fisker.Blad
 import no.nav.helse.sykepenger.forsikring.SykepengeforsikringBehovRiver.Løsning.MedForsikring.Dekning
-import no.nav.helse.sykepenger.forsikring.oppslag.NavKjøptForsikring
-import no.nav.helse.sykepenger.forsikring.oppslag.NavKjøptForsikring.Type
 import no.nav.helse.sykepenger.forsikring.oppslag.OppslagService
 import tools.jackson.databind.JsonNode
 
@@ -97,25 +95,22 @@ class SykepengeforsikringBehovRiver(
                             it.validerType(yrkesaktivitetstype, spesielleYrkesgrupper)
                         }
 
-                        val dekninger = navKjøpteForsikringer.map {
-                            when (it.type) {
-                                Type.SELVSTENDIG_80_PROSENT_FRA_DAG_1 -> Dekning(grad = 80, fraDag = 1)
-                                Type.SELVSTENDIG_100_PROSENT_FRA_DAG_17 -> Dekning(grad = 100, fraDag = 17)
-                                Type.SELVSTENDIG_100_PROSENT_FRA_DAG_1 -> Dekning(grad = 100, fraDag = 1)
-                                Type.SELVSTENDIG_JORDBRUKER_100_PROSENT_FRA_DAG_1 -> Dekning(grad = 100, fraDag = 1)
-                                Type.FRILANSER_100_PROSENT_FRA_DAG_1 -> Dekning(grad = 100, fraDag = 1)
-                            }
-                        }.toMutableList()
+                        val alleForsikringer = navKjøpteForsikringer + kollektiveForsikringerFor(spesielleYrkesgrupper)
 
-                        if (SpesiellYrkesgruppe.Fisker(Blad.B) in spesielleYrkesgrupper) {
-                            dekninger.add(Dekning(grad = 100, fraDag = 1)) // Kollektiv forsikring
-                        }
-                        if (SpesiellYrkesgruppe.Jordbruker in spesielleYrkesgrupper || SpesiellYrkesgruppe.Reindrifter in spesielleYrkesgrupper) {
-                            dekninger.add(Dekning(grad = 100, fraDag = 17)) // Kollektiv forsikring
+                        val dekninger = alleForsikringer.map {
+                            Dekning(grad = it.dekningGrad(), fraDag = it.dekningFraDag())
                         }
 
-                        val grader = dekninger.map { it.grad }.distinct()
-                        if (grader.size > 1) error("Fant dekninger med ulike grader: $grader")
+                        if (alleForsikringer.distinctBy { it.dekningGrad() }.size > 1) {
+                            val message = "Bruker har flere gyldige forsikringer med ulike dekningsgrader"
+                            loggError(message, "forsikringer" to alleForsikringer.map {
+                                when (it) {
+                                    is KollektivForsikring -> "Kollektiv forsikring for ${it.spesiellYrkesgruppe}"
+                                    is NavKjøptForsikring -> "Nav-kjøpt forsikring av type ${it.type}"
+                                }
+                            })
+                            error(message)
+                        }
 
                         val dekning = dekninger.minByOrNull { it.fraDag }
                         val løsning = dekning?.let { Løsning.MedForsikring(oppslagId = oppslag.id, dekning = it) }

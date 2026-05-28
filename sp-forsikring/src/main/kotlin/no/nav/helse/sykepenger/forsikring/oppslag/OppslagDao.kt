@@ -8,6 +8,7 @@ import java.util.*
 import kotliquery.Row
 import kotliquery.TransactionalSession
 import kotliquery.queryOf
+import no.nav.helse.sykepenger.forsikring.NavKjøptForsikring
 import no.nav.helse.sykepenger.forsikring.replikabase.IF_FKONTO_12_Rad
 import no.nav.helse.sykepenger.forsikring.replikabase.IF_VEDFRIVT_10_Rad
 import org.intellij.lang.annotations.Language
