@@ -3,6 +3,9 @@ package no.nav.helse.sykepenger.forsikring
 import java.time.LocalDate
 
 data class NavKjøptForsikring(
+    val IF01_KODE: Char,
+    val IF01_AGNR_FNR: Long,
+    val IF10_FORSFOM_SEQ: Int,
     val type: Type,
     val virkningsdato: LocalDate,
     val opphørsdato: LocalDate?,
@@ -45,6 +48,12 @@ data class NavKjøptForsikring(
             Type.FRILANSER_100_PROSENT_FRA_DAG_1 ->
                 valider(Yrkesaktivitetstype.FRILANS, yrkesaktivitetstype, type)
         }
+    }
+
+    enum class Ekskluderingsårsak {
+        VIRKNINGSDATO_ETTER_SKJÆRINGSTIDSPUNKT,
+        OPPHØRT_PÅ_SKJÆRINGSTIDSPUNKT,
+        ALDRI_BETALT,
     }
 
     class Valideringsfeil(message: String) : Exception(message)

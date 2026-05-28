@@ -14,6 +14,7 @@ import kotlin.uuid.ExperimentalUuidApi
 import kotliquery.sessionOf
 import no.nav.helse.sykepenger.forsikring.SpesiellYrkesgruppe.Fisker.Blad
 import no.nav.helse.sykepenger.forsikring.SykepengeforsikringBehovRiver.Løsning.MedForsikring.Dekning
+import no.nav.helse.sykepenger.forsikring.oppslag.OppslagDao
 import no.nav.helse.sykepenger.forsikring.oppslag.OppslagService
 import tools.jackson.databind.JsonNode
 
@@ -73,22 +74,35 @@ class SykepengeforsikringBehovRiver(
                             .gjørNyttOppslag(fødselsnummer, packet.toJson())
 
                         val navKjøpteForsikringer = oppslag.navKjøpteForsikringer.toMutableList()
+                        val ekskluderinger = mutableListOf<Pair<NavKjøptForsikring, NavKjøptForsikring.Ekskluderingsårsak>>()
+                        val oppslagDao = OppslagDao(transaction)
 
                         // Skjæringstidspunkt må være etter eller lik virkningsdato
                         val forsikringerMedVirkningsdatoEtterSkjæringstidspunkt = navKjøpteForsikringer.filter {
                             it.harVirkningPå(skjæringstidspunkt)
                         }
                         navKjøpteForsikringer.removeAll(forsikringerMedVirkningsdatoEtterSkjæringstidspunkt)
+                        forsikringerMedVirkningsdatoEtterSkjæringstidspunkt.forEach {
+                            ekskluderinger.add(it to NavKjøptForsikring.Ekskluderingsårsak.VIRKNINGSDATO_ETTER_SKJÆRINGSTIDSPUNKT)
+                        }
 
                         // Skjæringstidspunkt må være før eller lik opphørsdato (hvis det er en opphørsdato)
                         val opphørteForsikringer = navKjøpteForsikringer.filter { forsikring ->
                             forsikring.erOpphørtPå(skjæringstidspunkt)
                         }
                         navKjøpteForsikringer.removeAll(opphørteForsikringer)
+                        opphørteForsikringer.forEach {
+                            ekskluderinger.add(it to NavKjøptForsikring.Ekskluderingsårsak.OPPHØRT_PÅ_SKJÆRINGSTIDSPUNKT)
+                        }
 
                         // Forsikringen må være betalt noen gang
                         val ubetalteForsikringer = navKjøpteForsikringer.filterNot(NavKjøptForsikring::erBetaltNoenGang)
                         navKjøpteForsikringer.removeAll(ubetalteForsikringer)
+                        ubetalteForsikringer.forEach {
+                            ekskluderinger.add(it to NavKjøptForsikring.Ekskluderingsårsak.ALDRI_BETALT)
+                        }
+
+                        oppslagDao.lagreEkskluderinger(oppslag.id, ekskluderinger)
 
                         // Kontroller mismatch mellom yrkesaktivitetstype og type forsikring i Infotrygd
                         navKjøpteForsikringer.forEach {

@@ -163,6 +163,9 @@ class OppslagDao(private val transaction: TransactionalSession) {
         @Language("PostgreSQL")
         val statement = """
             SELECT
+                v.IF01_KODE,
+                v.IF01_AGNR_FNR,
+                v.IF10_FORSFOM_SEQ,
                 v.IF10_TYPE,
                 v.IF10_VIRKDATO,
                 v.IF10_FORSTOM,
@@ -183,6 +186,9 @@ class OppslagDao(private val transaction: TransactionalSession) {
             queryOf(statement, mapOf("oppslag_id" to oppslagId))
                 .map { row ->
                     NavKjøptForsikring(
+                        IF01_KODE = row.string("IF01_KODE").single(),
+                        IF01_AGNR_FNR = row.long("IF01_AGNR_FNR"),
+                        IF10_FORSFOM_SEQ = row.int("IF10_FORSFOM_SEQ"),
                         type = when (val type = row.string("IF10_TYPE")) {
                             "1" -> NavKjøptForsikring.Type.SELVSTENDIG_80_PROSENT_FRA_DAG_1
                             "2" -> NavKjøptForsikring.Type.SELVSTENDIG_100_PROSENT_FRA_DAG_17
@@ -199,6 +205,34 @@ class OppslagDao(private val transaction: TransactionalSession) {
                 .asList
         )
         return Oppslag(id = oppslagId, navKjøpteForsikringer = navKjøpteForsikringer)
+    }
+
+    fun lagreEkskluderinger(oppslagId: UUID, ekskluderinger: List<Pair<NavKjøptForsikring, NavKjøptForsikring.Ekskluderingsårsak>>) {
+        ekskluderinger.forEach { (forsikring, årsak) ->
+            lagreEkskludering(oppslagId, forsikring, årsak)
+        }
+    }
+
+    private fun lagreEkskludering(oppslagId: UUID, forsikring: NavKjøptForsikring, årsak: NavKjøptForsikring.Ekskluderingsårsak) {
+        @Language("PostgreSQL")
+        val statement = """
+            INSERT INTO oppslag_nav_kjopt_forsikring_ekskludering
+                (oppslag_id, IF01_KODE, IF01_AGNR_FNR, IF10_FORSFOM_SEQ, ekskluderingsaarsak)
+            VALUES
+                (:oppslag_id, :IF01_KODE, :IF01_AGNR_FNR, :IF10_FORSFOM_SEQ, :ekskluderingsaarsak)
+        """
+        transaction.run(
+            queryOf(
+                statement,
+                mapOf(
+                    "oppslag_id" to oppslagId,
+                    "IF01_KODE" to forsikring.IF01_KODE.toString(),
+                    "IF01_AGNR_FNR" to forsikring.IF01_AGNR_FNR,
+                    "IF10_FORSFOM_SEQ" to forsikring.IF10_FORSFOM_SEQ,
+                    "ekskluderingsaarsak" to årsak.name,
+                )
+            ).asUpdate
+        )
     }
 
     private fun Row.intToLocalDate(label: String) = int(label).toLocalDate()

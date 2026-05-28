@@ -545,6 +545,40 @@ internal class SykepengeforsikringBehovRiverTest {
         assertEquals(4, TestcontainersSpForsikringDatabase.countOppslagIF_FKONTO_12(oppslagId))
     }
 
+    @Test
+    fun `ekskluderingsårsaker lagres for forsikringer som ikke er kandidater`() {
+        // seq=1: virkningsdato etter skjæringstidspunkt
+        TestcontainersReplikadatabase.insertVedfrivt(IF01_AGNR_FNR = 3020112345L, IF10_FORSFOM_SEQ = 1, IF10_TYPE = '2', IF10_VIRKDATO = 20260102)
+        TestcontainersReplikadatabase.insertFkonto12(IF01_AGNR_FNR = 3020112345L, IF10_FORSFOM_SEQ = 1, IF12_BETDATO = 20260101)
+        // seq=2: opphørt på skjæringstidspunkt
+        TestcontainersReplikadatabase.insertVedfrivt(IF01_AGNR_FNR = 3020112345L, IF10_FORSFOM_SEQ = 2, IF10_TYPE = '2', IF10_FORSTOM = 20251231)
+        TestcontainersReplikadatabase.insertFkonto12(IF01_AGNR_FNR = 3020112345L, IF10_FORSFOM_SEQ = 2, IF12_BETDATO = 20260101)
+        // seq=3: aldri betalt
+        TestcontainersReplikadatabase.insertVedfrivt(IF01_AGNR_FNR = 3020112345L, IF10_FORSFOM_SEQ = 3, IF10_TYPE = '2')
+
+        rapid.sendTestMessage(
+            """
+                {
+                    "@behov": [ "Sykepengeforsikring" ],
+                    "fødselsnummer": "01020312345",
+                    "yrkesaktivitetstype": "SELVSTENDIG",
+                    "Sykepengeforsikring" : {
+                        "spesielleYrkesgrupper": [],
+                        "skjæringstidspunkt": "2026-01-01"
+                    }
+                }
+            """.trimIndent()
+        )
+
+        assertEquals(1, rapid.inspektør.size)
+        val oppslagId = rapid.inspektør.message(0)["@løsning"]["Sykepengeforsikring"]["oppslagId"].asText()
+        val ekskluderinger = TestcontainersSpForsikringDatabase.hentEkskluderinger(oppslagId)
+        assertEquals(3, ekskluderinger.size)
+        assertEquals("VIRKNINGSDATO_ETTER_SKJÆRINGSTIDSPUNKT", ekskluderinger[1])
+        assertEquals("OPPHØRT_PÅ_SKJÆRINGSTIDSPUNKT", ekskluderinger[2])
+        assertEquals("ALDRI_BETALT", ekskluderinger[3])
+    }
+
     private fun insertBetaltVedfrivt(
         IF01_AGNR_FNR: Long,
         IF10_FORSFOM_SEQ: Int = 0,

@@ -63,4 +63,14 @@ object TestcontainersSpForsikringDatabase {
                 ).map { it.int(1) }.asSingle
             )!!
         }
+
+    fun hentEkskluderinger(oppslagId: String): Map<Int, String> =
+        sessionOf(dataSource).use { session ->
+            session.run(
+                queryOf(
+                    """SELECT IF10_FORSFOM_SEQ, ekskluderingsaarsak FROM oppslag_nav_kjopt_forsikring_ekskludering WHERE oppslag_id = :oppslag_id::uuid""",
+                    mapOf("oppslag_id" to oppslagId)
+                ).map { it.int("IF10_FORSFOM_SEQ") to it.string("ekskluderingsaarsak") }.asList
+            ).toMap()
+        }
 }
