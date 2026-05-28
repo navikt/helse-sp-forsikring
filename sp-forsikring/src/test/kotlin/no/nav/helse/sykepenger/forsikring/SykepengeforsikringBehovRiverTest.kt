@@ -116,7 +116,7 @@ internal class SykepengeforsikringBehovRiverTest {
         "SELVSTENDIG, FISKER_BLAD_B, , 100, 1",
     )
     fun `gir løsning med forsikring`(yrkesaktivitetstype: String, særskiltGruppe: String?, IF10_TYPE: Char?, grad: Int, fraDag: Int) {
-        IF10_TYPE?.let { TestcontainersReplikadatabase.insertVedfrivt(IF01_AGNR_FNR = 3020112345L, IF10_TYPE = it) }
+        IF10_TYPE?.let { insertBetaltVedfrivt(IF01_AGNR_FNR = 3020112345L, IF10_TYPE = it) }
 
         rapid.sendTestMessage(
             """
@@ -142,7 +142,7 @@ internal class SykepengeforsikringBehovRiverTest {
         "FRILANS, , ",
     )
     fun `gir løsning uten forsikring`(yrkesaktivitetstype: String, særskiltGruppe: String?, IF10_TYPE: Char?) {
-        IF10_TYPE?.let { TestcontainersReplikadatabase.insertVedfrivt(IF01_AGNR_FNR = 3020112345L, IF10_TYPE = it) }
+        IF10_TYPE?.let { insertBetaltVedfrivt(IF01_AGNR_FNR = 3020112345L, IF10_TYPE = it) }
 
         rapid.sendTestMessage(
             """
@@ -175,7 +175,7 @@ internal class SykepengeforsikringBehovRiverTest {
         "FRILANS, , 4"
     )
     fun `feiler ved ugyldig kombinasjon`(yrkesaktivitetstype: String, særskiltGruppe: String?, IF10_TYPE: Char?) {
-        IF10_TYPE?.let { TestcontainersReplikadatabase.insertVedfrivt(IF01_AGNR_FNR = 3020112345L, IF10_TYPE = it) }
+        IF10_TYPE?.let { insertBetaltVedfrivt(IF01_AGNR_FNR = 3020112345L, IF10_TYPE = it) }
 
         assertThrows<NavKjøptForsikring.Valideringsfeil> {
             rapid.sendTestMessage(
@@ -196,8 +196,8 @@ internal class SykepengeforsikringBehovRiverTest {
 
     @Test
     fun `velger dekning med lavest fraDag når det finnes flere dekninger med samme grad`() {
-        TestcontainersReplikadatabase.insertVedfrivt(IF01_AGNR_FNR = 3020112345L, IF10_FORSFOM_SEQ = 1, IF10_TYPE = '2') // grad=100, fraDag=17
-        TestcontainersReplikadatabase.insertVedfrivt(IF01_AGNR_FNR = 3020112345L, IF10_FORSFOM_SEQ = 2, IF10_TYPE = '3') // grad=100, fraDag=1
+        insertBetaltVedfrivt(IF01_AGNR_FNR = 3020112345L, IF10_FORSFOM_SEQ = 1, IF10_TYPE = '2') // grad=100, fraDag=17
+        insertBetaltVedfrivt(IF01_AGNR_FNR = 3020112345L, IF10_FORSFOM_SEQ = 2, IF10_TYPE = '3') // grad=100, fraDag=1
 
         rapid.sendTestMessage(
             """
@@ -218,7 +218,7 @@ internal class SykepengeforsikringBehovRiverTest {
 
     @Test
     fun `eliminerer forsikring hvor skjæringstidspunkt er etter tom`() {
-        TestcontainersReplikadatabase.insertVedfrivt(
+        insertBetaltVedfrivt(
             IF01_AGNR_FNR = 3020112345L,
             IF10_TYPE = '2',
             IF10_FORSTOM = 20251231
@@ -243,7 +243,7 @@ internal class SykepengeforsikringBehovRiverTest {
 
     @Test
     fun `beholder forsikring hvor skjæringstidspunkt er lik tom`() {
-        TestcontainersReplikadatabase.insertVedfrivt(
+        insertBetaltVedfrivt(
             IF01_AGNR_FNR = 3020112345L,
             IF10_TYPE = '2',
             IF10_FORSTOM = 20260101
@@ -268,7 +268,7 @@ internal class SykepengeforsikringBehovRiverTest {
 
     @Test
     fun `beholder forsikring hvor skjæringstidspunkt er før tom`() {
-        TestcontainersReplikadatabase.insertVedfrivt(
+        insertBetaltVedfrivt(
             IF01_AGNR_FNR = 3020112345L,
             IF10_TYPE = '2',
             IF10_FORSTOM = 20260102
@@ -293,7 +293,7 @@ internal class SykepengeforsikringBehovRiverTest {
 
     @Test
     fun `beholder forsikring uten tom`() {
-        TestcontainersReplikadatabase.insertVedfrivt(
+        insertBetaltVedfrivt(
             IF01_AGNR_FNR = 3020112345L,
             IF10_TYPE = '2',
             IF10_FORSTOM = 0
@@ -318,7 +318,7 @@ internal class SykepengeforsikringBehovRiverTest {
 
     @Test
     fun `eliminerer forsikring hvor virkningsdato er etter skjæringstidspunkt`() {
-        TestcontainersReplikadatabase.insertVedfrivt(
+        insertBetaltVedfrivt(
             IF01_AGNR_FNR = 3020112345L,
             IF10_TYPE = '2',
             IF10_VIRKDATO = 20260102
@@ -343,7 +343,7 @@ internal class SykepengeforsikringBehovRiverTest {
 
     @Test
     fun `beholder forsikring hvor virkningsdato er lik skjæringstidspunkt`() {
-        TestcontainersReplikadatabase.insertVedfrivt(
+        insertBetaltVedfrivt(
             IF01_AGNR_FNR = 3020112345L,
             IF10_TYPE = '2',
             IF10_VIRKDATO = 20260101
@@ -368,7 +368,7 @@ internal class SykepengeforsikringBehovRiverTest {
 
     @Test
     fun `beholder forsikring hvor virkningsdato er før skjæringstidspunkt`() {
-        TestcontainersReplikadatabase.insertVedfrivt(
+        insertBetaltVedfrivt(
             IF01_AGNR_FNR = 3020112345L,
             IF10_TYPE = '2',
             IF10_VIRKDATO = 20251231
@@ -393,8 +393,8 @@ internal class SykepengeforsikringBehovRiverTest {
 
     @Test
     fun `feiler når dekninger har ulike grader`() {
-        TestcontainersReplikadatabase.insertVedfrivt(IF01_AGNR_FNR = 3020112345L, IF10_FORSFOM_SEQ = 1, IF10_TYPE = '1') // grad=80, fraDag=1
-        TestcontainersReplikadatabase.insertVedfrivt(IF01_AGNR_FNR = 3020112345L, IF10_FORSFOM_SEQ = 2, IF10_TYPE = '2') // grad=100, fraDag=17
+        insertBetaltVedfrivt(IF01_AGNR_FNR = 3020112345L, IF10_FORSFOM_SEQ = 1, IF10_TYPE = '1') // grad=80, fraDag=1
+        insertBetaltVedfrivt(IF01_AGNR_FNR = 3020112345L, IF10_FORSFOM_SEQ = 2, IF10_TYPE = '2') // grad=100, fraDag=17
 
         assertThrows<IllegalStateException> {
             rapid.sendTestMessage(
@@ -413,6 +413,71 @@ internal class SykepengeforsikringBehovRiverTest {
         }
 
         assertEquals(0, rapid.inspektør.size)
+    }
+
+    @Test
+    fun `eliminerer forsikring som aldri er betalt`() {
+        TestcontainersReplikadatabase.insertVedfrivt(IF01_AGNR_FNR = 3020112345L, IF10_TYPE = '2')
+
+        rapid.sendTestMessage(
+            """
+                {
+                    "@behov": [ "Sykepengeforsikring" ],
+                    "fødselsnummer": "01020312345",
+                    "yrkesaktivitetstype": "SELVSTENDIG",
+                    "Sykepengeforsikring" : {
+                        "spesielleYrkesgrupper": [],
+                        "skjæringstidspunkt": "2026-01-01"
+                    }
+                }
+            """.trimIndent()
+        )
+
+        forventLøsning("""{ "harForsikring": false }""")
+    }
+
+    @Test
+    fun `eliminerer forsikring med betdato null`() {
+        TestcontainersReplikadatabase.insertVedfrivt(IF01_AGNR_FNR = 3020112345L, IF10_FORSFOM_SEQ = 0, IF10_TYPE = '2')
+        TestcontainersReplikadatabase.insertFkonto12(IF01_AGNR_FNR = 3020112345L, IF10_FORSFOM_SEQ = 0, IF12_BETDATO = null)
+
+        rapid.sendTestMessage(
+            """
+                {
+                    "@behov": [ "Sykepengeforsikring" ],
+                    "fødselsnummer": "01020312345",
+                    "yrkesaktivitetstype": "SELVSTENDIG",
+                    "Sykepengeforsikring" : {
+                        "spesielleYrkesgrupper": [],
+                        "skjæringstidspunkt": "2026-01-01"
+                    }
+                }
+            """.trimIndent()
+        )
+
+        forventLøsning("""{ "harForsikring": false }""")
+    }
+
+    @Test
+    fun `eliminerer forsikring med betdato 0`() {
+        TestcontainersReplikadatabase.insertVedfrivt(IF01_AGNR_FNR = 3020112345L, IF10_FORSFOM_SEQ = 0, IF10_TYPE = '2')
+        TestcontainersReplikadatabase.insertFkonto12(IF01_AGNR_FNR = 3020112345L, IF10_FORSFOM_SEQ = 0, IF12_BETDATO = 0)
+
+        rapid.sendTestMessage(
+            """
+                {
+                    "@behov": [ "Sykepengeforsikring" ],
+                    "fødselsnummer": "01020312345",
+                    "yrkesaktivitetstype": "SELVSTENDIG",
+                    "Sykepengeforsikring" : {
+                        "spesielleYrkesgrupper": [],
+                        "skjæringstidspunkt": "2026-01-01"
+                    }
+                }
+            """.trimIndent()
+        )
+
+        forventLøsning("""{ "harForsikring": false }""")
     }
 
     private fun forventLøsning(forventetLøsningUtenOppslagId: String) {
@@ -479,6 +544,27 @@ internal class SykepengeforsikringBehovRiverTest {
         assertEquals(1, TestcontainersSpForsikringDatabase.countOppslag(oppslagId))
         assertEquals(2, TestcontainersSpForsikringDatabase.countOppslagIF_VEDFRIVT_10(oppslagId))
         assertEquals(4, TestcontainersSpForsikringDatabase.countOppslagIF_FKONTO_12(oppslagId))
+    }
+
+    private fun insertBetaltVedfrivt(
+        IF01_AGNR_FNR: Long,
+        IF10_FORSFOM_SEQ: Int = 0,
+        IF10_TYPE: Char = '1',
+        IF10_VIRKDATO: Int = 20260101,
+        IF10_FORSTOM: Int = 0,
+    ) {
+        TestcontainersReplikadatabase.insertVedfrivt(
+            IF01_AGNR_FNR = IF01_AGNR_FNR,
+            IF10_FORSFOM_SEQ = IF10_FORSFOM_SEQ,
+            IF10_TYPE = IF10_TYPE,
+            IF10_VIRKDATO = IF10_VIRKDATO,
+            IF10_FORSTOM = IF10_FORSTOM,
+        )
+        TestcontainersReplikadatabase.insertFkonto12(
+            IF01_AGNR_FNR = IF01_AGNR_FNR,
+            IF10_FORSFOM_SEQ = IF10_FORSFOM_SEQ,
+            IF12_BETDATO = 20260101,
+        )
     }
 
     private fun assertJsonEquals(

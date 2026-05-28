@@ -8,6 +8,7 @@ data class NavKjøptForsikring(
     val type: Type,
     val virkningsdato: LocalDate,
     val opphørsdato: LocalDate?,
+    val erBetaltNoenGang: Boolean,
 ) {
     enum class Type {
         SELVSTENDIG_80_PROSENT_FRA_DAG_1,

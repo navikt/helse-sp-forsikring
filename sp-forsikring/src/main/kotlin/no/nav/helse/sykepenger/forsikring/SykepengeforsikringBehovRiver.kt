@@ -14,6 +14,7 @@ import kotlin.uuid.ExperimentalUuidApi
 import kotliquery.sessionOf
 import no.nav.helse.sykepenger.forsikring.SpesiellYrkesgruppe.Fisker.Blad
 import no.nav.helse.sykepenger.forsikring.SykepengeforsikringBehovRiver.Løsning.MedForsikring.Dekning
+import no.nav.helse.sykepenger.forsikring.oppslag.NavKjøptForsikring
 import no.nav.helse.sykepenger.forsikring.oppslag.NavKjøptForsikring.Type
 import no.nav.helse.sykepenger.forsikring.oppslag.OppslagService
 import tools.jackson.databind.JsonNode
@@ -87,7 +88,9 @@ class SykepengeforsikringBehovRiver(
                         }
                         navKjøpteForsikringer.removeAll(opphørteForsikringer)
 
-                        // TODO: Forsikringen er ikke betalt noen gang (ennå) - filtreres ut
+                        // Forsikringen må være betalt noen gang
+                        val ubetalteForsikringer = navKjøpteForsikringer.filterNot(NavKjøptForsikring::erBetaltNoenGang)
+                        navKjøpteForsikringer.removeAll(ubetalteForsikringer)
 
                         // Kontroller mismatch mellom yrkesaktivitetstype og type forsikring i Infotrygd
                         navKjøpteForsikringer.forEach {
@@ -103,6 +106,7 @@ class SykepengeforsikringBehovRiver(
                                 Type.FRILANSER_100_PROSENT_FRA_DAG_1 -> Dekning(grad = 100, fraDag = 1)
                             }
                         }.toMutableList()
+
                         if (SpesiellYrkesgruppe.Fisker(Blad.B) in spesielleYrkesgrupper) {
                             dekninger.add(Dekning(grad = 100, fraDag = 1)) // Kollektiv forsikring
                         }

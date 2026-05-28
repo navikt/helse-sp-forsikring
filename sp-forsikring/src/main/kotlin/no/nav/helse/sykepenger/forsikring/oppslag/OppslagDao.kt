@@ -161,7 +161,22 @@ class OppslagDao(private val transaction: TransactionalSession) {
     fun hentOppslag(oppslagId: UUID): Oppslag {
         @Language("PostgreSQL")
         val statement = """
-            SELECT IF10_TYPE, IF10_VIRKDATO, IF10_FORSTOM FROM oppslag_IF_VEDFRIVT_10 WHERE oppslag_id = :oppslag_id
+            SELECT
+                v.IF10_TYPE,
+                v.IF10_VIRKDATO,
+                v.IF10_FORSTOM,
+                EXISTS (
+                    SELECT 1
+                    FROM oppslag_IF_FKONTO_12 f
+                    WHERE f.oppslag_id = v.oppslag_id
+                      AND f.IF01_KODE = v.IF01_KODE
+                      AND f.IF01_AGNR_FNR = v.IF01_AGNR_FNR
+                      AND f.IF10_FORSFOM_SEQ = v.IF10_FORSFOM_SEQ
+                      AND f.IF12_BETDATO IS NOT NULL
+                      AND f.IF12_BETDATO != 0
+                ) AS er_betalt_noen_gang
+            FROM oppslag_IF_VEDFRIVT_10 v
+            WHERE v.oppslag_id = :oppslag_id
         """
         val navKjøpteForsikringer = transaction.run(
             queryOf(statement, mapOf("oppslag_id" to oppslagId))
@@ -176,7 +191,8 @@ class OppslagDao(private val transaction: TransactionalSession) {
                             else -> error("Ukjent forsikringstype: $type")
                         },
                         virkningsdato = row.intToLocalDate("IF10_VIRKDATO")!!,
-                        opphørsdato = row.intToLocalDate("IF10_FORSTOM")
+                        opphørsdato = row.intToLocalDate("IF10_FORSTOM"),
+                        erBetaltNoenGang = row.boolean("er_betalt_noen_gang"),
                     )
                 }
                 .asList
