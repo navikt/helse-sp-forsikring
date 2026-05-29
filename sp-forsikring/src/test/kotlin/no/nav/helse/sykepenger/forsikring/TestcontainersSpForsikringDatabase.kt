@@ -2,9 +2,11 @@ package no.nav.helse.sykepenger.forsikring
 
 import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
+import java.util.*
 import kotliquery.queryOf
 import kotliquery.sessionOf
 import org.flywaydb.core.Flyway
+import org.intellij.lang.annotations.Language
 import org.testcontainers.postgresql.PostgreSQLContainer
 
 object TestcontainersSpForsikringDatabase {
@@ -34,43 +36,80 @@ object TestcontainersSpForsikringDatabase {
         dataSource.close()
     }
 
-    fun countOppslag(oppslagId: String): Int =
-        sessionOf(dataSource).use { session ->
+    fun countOppslag(forsikringsvurderingId: String): Int {
+        @Language("PostgreSQL")
+        val statement = """
+            SELECT COUNT(*)
+            FROM oppslag
+            WHERE id IN (
+              SELECT oppslag_id FROM forsikringsvurdering WHERE id = :forsikringsvurderingId::uuid
+            )
+        """.trimIndent()
+        return sessionOf(dataSource).use { session ->
             session.run(
                 queryOf(
-                    """SELECT COUNT(*) FROM oppslag WHERE id = :oppslag_id::uuid""",
-                    mapOf("oppslag_id" to oppslagId)
+                    statement,
+                    mapOf("forsikringsvurderingId" to forsikringsvurderingId)
                 ).map { it.int(1) }.asSingle
             )!!
         }
+    }
 
-    fun countOppslagIF_VEDFRIVT_10(oppslagId: String): Int =
-        sessionOf(dataSource).use { session ->
+    fun countOppslagIF_VEDFRIVT_10(forsikringsvurderingId: String): Int {
+        @Language("PostgreSQL")
+        val statement = """
+            SELECT COUNT(*)
+            FROM oppslag_IF_VEDFRIVT_10
+            WHERE oppslag_id IN (
+              SELECT oppslag_id FROM forsikringsvurdering WHERE id = :forsikringsvurderingId::uuid
+            )
+        """.trimIndent()
+        return sessionOf(dataSource).use { session ->
             session.run(
                 queryOf(
-                    """SELECT COUNT(*) FROM oppslag_IF_VEDFRIVT_10 WHERE oppslag_id = :oppslag_id::uuid""",
-                    mapOf("oppslag_id" to oppslagId)
+                    statement,
+                    mapOf("forsikringsvurderingId" to forsikringsvurderingId)
                 ).map { it.int(1) }.asSingle
             )!!
         }
+    }
 
-    fun countOppslagIF_FKONTO_12(oppslagId: String): Int =
-        sessionOf(dataSource).use { session ->
+    fun countOppslagIF_FKONTO_12(forsikringsvurderingId: String): Int {
+        @Language("PostgreSQL")
+        val statement = """
+            SELECT COUNT(*)
+            FROM oppslag_IF_FKONTO_12
+            WHERE oppslag_IF_VEDFRIVT_10_id IN (
+              SELECT id FROM oppslag_IF_VEDFRIVT_10 WHERE oppslag_id IN (
+                SELECT oppslag_id FROM forsikringsvurdering WHERE id = :forsikringsvurderingId::uuid
+              )
+            )
+        """.trimIndent()
+        return sessionOf(dataSource).use { session ->
             session.run(
                 queryOf(
-                    """SELECT COUNT(*) FROM oppslag_IF_FKONTO_12 WHERE oppslag_id = :oppslag_id::uuid""",
-                    mapOf("oppslag_id" to oppslagId)
+                    statement,
+                    mapOf("forsikringsvurderingId" to forsikringsvurderingId)
                 ).map { it.int(1) }.asSingle
             )!!
         }
+    }
 
-    fun hentEkskluderinger(oppslagId: String): Map<Int, String> =
-        sessionOf(dataSource).use { session ->
+    fun hentEkskluderinger(forsikringsvurderingId: UUID): Map<Int, String> {
+        @Language("PostgreSQL")
+        val statement = """
+            SELECT oppslag_IF_VEDFRIVT_10.IF10_FORSFOM_SEQ, forsikringsvurdering_ekskludering_navkjopt_forsikring.ekskluderingsaarsak
+            FROM oppslag_IF_VEDFRIVT_10, forsikringsvurdering_ekskludering_navkjopt_forsikring
+            WHERE oppslag_IF_VEDFRIVT_10.id = forsikringsvurdering_ekskludering_navkjopt_forsikring.oppslag_IF_VEDFRIVT_10_id
+            AND forsikringsvurdering_ekskludering_navkjopt_forsikring.forsikringsvurdering_id = :forsikringsvurdering_id::uuid
+        """.trimIndent()
+        return sessionOf(dataSource).use { session ->
             session.run(
                 queryOf(
-                    """SELECT IF10_FORSFOM_SEQ, ekskluderingsaarsak FROM oppslag_nav_kjopt_forsikring_ekskludering WHERE oppslag_id = :oppslag_id::uuid""",
-                    mapOf("oppslag_id" to oppslagId)
+                    statement,
+                    mapOf("forsikringsvurdering_id" to forsikringsvurderingId)
                 ).map { it.int("IF10_FORSFOM_SEQ") to it.string("ekskluderingsaarsak") }.asList
             ).toMap()
         }
+    }
 }

@@ -8,14 +8,11 @@ import com.github.navikt.tbd_libs.rapids_and_rivers_api.MessageMetadata
 import com.github.navikt.tbd_libs.rapids_and_rivers_api.MessageProblems
 import com.github.navikt.tbd_libs.rapids_and_rivers_api.RapidsConnection
 import io.micrometer.core.instrument.MeterRegistry
-import java.util.*
 import javax.sql.DataSource
 import kotlin.uuid.ExperimentalUuidApi
 import kotliquery.sessionOf
 import no.nav.helse.sykepenger.forsikring.SpesiellYrkesgruppe.Fisker.Blad
-import no.nav.helse.sykepenger.forsikring.SykepengeforsikringBehovRiver.Løsning.MedForsikring.Dekning
-import no.nav.helse.sykepenger.forsikring.oppslag.OppslagDao
-import no.nav.helse.sykepenger.forsikring.oppslag.OppslagService
+import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.ForsikringsvurderingService
 import tools.jackson.databind.JsonNode
 
 class SykepengeforsikringBehovRiver(
@@ -70,76 +67,18 @@ class SykepengeforsikringBehovRiver(
             try {
                 sessionOf(spForsikringDataSource).use { session ->
                     session.transaction { transaction ->
-                        val oppslag = OppslagService(transaction, replikabaseDataSource)
-                            .gjørNyttOppslag(fødselsnummer, packet.toJson())
+                        val forsikringsvurdering = ForsikringsvurderingService(
+                            spForsikringTransaction = transaction,
+                            replikabaseDataSource = replikabaseDataSource
+                        ).gjørVurdering(
+                            behovJson = packet.toJson(),
+                            skjæringstidspunkt = skjæringstidspunkt,
+                            fødselsnummer = fødselsnummer,
+                            spesielleYrkesgrupper = spesielleYrkesgrupper,
+                            yrkesaktivitetstype = yrkesaktivitetstype
+                        )
 
-                        val navKjøpteForsikringer = oppslag.navKjøpteForsikringer.toMutableList()
-                        val ekskluderinger = mutableListOf<Pair<NavKjøptForsikring, NavKjøptForsikring.Ekskluderingsårsak>>()
-                        val oppslagDao = OppslagDao(transaction)
-
-                        // Skjæringstidspunkt må ikke være i opptjeningstid [IF10_FORSFOM, IF10_VIRKDATO)
-                        val forsikringerIOpptjeningstid = navKjøpteForsikringer.filter {
-                            it.erIOpptjeningstid(skjæringstidspunkt)
-                        }
-                        navKjøpteForsikringer.removeAll(forsikringerIOpptjeningstid)
-                        forsikringerIOpptjeningstid.forEach {
-                            ekskluderinger.add(it to NavKjøptForsikring.Ekskluderingsårsak.SKJÆRINGSTIDSPUNKT_I_OPPTJENINGSTID)
-                        }
-
-                        // Skjæringstidspunkt må være etter eller lik virkningsdato
-                        val forsikringerMedVirkningsdatoEtterSkjæringstidspunkt = navKjøpteForsikringer.filterNot {
-                            it.harVirkningPå(skjæringstidspunkt)
-                        }
-                        navKjøpteForsikringer.removeAll(forsikringerMedVirkningsdatoEtterSkjæringstidspunkt)
-                        forsikringerMedVirkningsdatoEtterSkjæringstidspunkt.forEach {
-                            ekskluderinger.add(it to NavKjøptForsikring.Ekskluderingsårsak.VIRKNINGSDATO_ETTER_SKJÆRINGSTIDSPUNKT)
-                        }
-
-                        // Skjæringstidspunkt må være før eller lik opphørsdato (hvis det er en opphørsdato)
-                        val opphørteForsikringer = navKjøpteForsikringer.filter { forsikring ->
-                            forsikring.erOpphørtPå(skjæringstidspunkt)
-                        }
-                        navKjøpteForsikringer.removeAll(opphørteForsikringer)
-                        opphørteForsikringer.forEach {
-                            ekskluderinger.add(it to NavKjøptForsikring.Ekskluderingsårsak.OPPHØRT_PÅ_SKJÆRINGSTIDSPUNKT)
-                        }
-
-                        // Forsikringen må være betalt noen gang
-                        val ubetalteForsikringer = navKjøpteForsikringer.filterNot(NavKjøptForsikring::erBetaltNoenGang)
-                        navKjøpteForsikringer.removeAll(ubetalteForsikringer)
-                        ubetalteForsikringer.forEach {
-                            ekskluderinger.add(it to NavKjøptForsikring.Ekskluderingsårsak.ALDRI_BETALT)
-                        }
-
-                        oppslagDao.lagreEkskluderinger(oppslag.id, ekskluderinger)
-
-                        // Kontroller mismatch mellom yrkesaktivitetstype og type forsikring i Infotrygd
-                        navKjøpteForsikringer.forEach {
-                            it.validerType(yrkesaktivitetstype, spesielleYrkesgrupper)
-                        }
-
-                        val alleForsikringer = navKjøpteForsikringer + kollektiveForsikringerFor(spesielleYrkesgrupper)
-
-                        val dekninger = alleForsikringer.map {
-                            Dekning(grad = it.dekningGrad(), fraDag = it.dekningFraDag())
-                        }
-
-                        if (alleForsikringer.distinctBy { it.dekningGrad() }.size > 1) {
-                            val message = "Bruker har flere gyldige forsikringer med ulike dekningsgrader"
-                            loggError(message, "forsikringer" to alleForsikringer.map {
-                                when (it) {
-                                    is KollektivForsikring -> "Kollektiv forsikring for ${it.spesiellYrkesgruppe}"
-                                    is NavKjøptForsikring -> "Nav-kjøpt forsikring av type ${it.type}"
-                                }
-                            })
-                            error(message)
-                        }
-
-                        val dekning = dekninger.minByOrNull { it.fraDag }
-                        val løsning = dekning?.let { Løsning.MedForsikring(oppslagId = oppslag.id, dekning = it) }
-                            ?: Løsning.UtenForsikring(oppslagId = oppslag.id)
-
-                        packet["@løsning"] = mapOf("Sykepengeforsikring" to løsning)
+                        packet["@løsning"] = mapOf("Sykepengeforsikring" to forsikringsvurdering.løsning)
                         context.publish(packet.toJson())
                     }
                 }
@@ -147,19 +86,6 @@ class SykepengeforsikringBehovRiver(
                 loggError("Feil ved håndtering av Sykepengeforsikring-behov", err, "melding" to packet.toJson())
                 throw err
             }
-        }
-    }
-
-    sealed class Løsning(val oppslagId: UUID, val harForsikring: Boolean) {
-        class UtenForsikring(
-            oppslagId: UUID
-        ) : Løsning(oppslagId = oppslagId, harForsikring = false)
-
-        class MedForsikring(
-            oppslagId: UUID,
-            val dekning: Dekning
-        ) : Løsning(oppslagId = oppslagId, harForsikring = true) {
-            data class Dekning(val grad: Int, val fraDag: Int)
         }
     }
 

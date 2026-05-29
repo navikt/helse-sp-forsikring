@@ -1,11 +1,12 @@
 CREATE TABLE oppslag_IF_VEDFRIVT_10
 (
+    id                 UUID PRIMARY KEY,
+
     oppslag_id         UUID         NOT NULL REFERENCES oppslag (id),
+
     IF01_KODE          CHAR(1)      NOT NULL,
     IF01_AGNR_FNR      NUMERIC(11)  NOT NULL,
     IF10_FORSFOM_SEQ   NUMERIC(8)   NOT NULL,
-    PRIMARY KEY (oppslag_id, IF01_KODE, IF01_AGNR_FNR, IF10_FORSFOM_SEQ),
-
     IF10_GODKJ         CHAR(1)      NOT NULL,
     IF10_FORSFOM       NUMERIC(8)   NOT NULL,
     IF10_VIRKDATO      NUMERIC(8)   NOT NULL,

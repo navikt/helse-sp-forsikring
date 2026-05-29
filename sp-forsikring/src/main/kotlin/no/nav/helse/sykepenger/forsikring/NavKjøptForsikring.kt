@@ -1,11 +1,10 @@
 package no.nav.helse.sykepenger.forsikring
 
 import java.time.LocalDate
+import no.nav.helse.sykepenger.forsikring.oppslag.OppslagIfVedrift10Id
 
 data class NavKjøptForsikring(
-    val IF01_KODE: Char,
-    val IF01_AGNR_FNR: Long,
-    val IF10_FORSFOM_SEQ: Int,
+    val id: OppslagIfVedrift10Id,
     val type: Type,
     val forsikringFom: LocalDate?,
     val virkningsdato: LocalDate,

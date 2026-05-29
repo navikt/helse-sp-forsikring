@@ -50,8 +50,10 @@ fun launchApplication(env: Map<String, String>) {
                     logg.info("Migrerer database")
                     Flyway.configure()
                         .dataSource(spForsikringDataSource)
+                        .cleanDisabled(false)
                         .lockRetryCount(-1)
                         .load()
+                        .also { it.clean() }
                         .migrate()
                     logg.info("Migrering ferdig!")
                 }

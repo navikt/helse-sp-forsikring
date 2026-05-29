@@ -93,10 +93,10 @@ internal class SykepengeforsikringBehovRiverTest {
 
         assertEquals(1, rapid.inspektør.size)
         val løsningMelding = rapid.inspektør.message(0)
-        val oppslagId = løsningMelding["@løsning"]["Sykepengeforsikring"]["oppslagId"]?.asText()
-        assertNotNull(oppslagId) { "Manglet oppslagId" }
-        assertDoesNotThrow("oppslagId \"${oppslagId}\" kunne ikke tolkes som en UUID") {
-            UUID.fromString(oppslagId)
+        val forsikringsvurderingId = løsningMelding["@løsning"]["Sykepengeforsikring"]["forsikringsvurderingId"]?.asText()
+        assertNotNull(forsikringsvurderingId) { "Manglet forsikringsvurderingId" }
+        assertDoesNotThrow("forsikringsvurderingId \"${forsikringsvurderingId}\" kunne ikke tolkes som en UUID") {
+            UUID.fromString(forsikringsvurderingId)
         }
     }
 
@@ -589,12 +589,12 @@ internal class SykepengeforsikringBehovRiverTest {
         assertJsonEquals(
             expectedJson = forventetLøsningUtenOppslagId,
             actualJsonNode = løsningMelding["@løsning"]["Sykepengeforsikring"],
-            bortsettFraProperties = setOf("oppslagId")
+            bortsettFraProperties = setOf("forsikringsvurderingId")
         )
     }
 
     @Test
-    fun `oppslag og grunnlagsdata lagres ned i databasen`() {
+    fun `forsikringsvurdering og oppslag lagres ned i databasen`() {
         TestcontainersReplikadatabase.insertVedfrivt(
             IF01_AGNR_FNR = 3020112345L,
             IF10_FORSFOM_SEQ = 123,
@@ -642,11 +642,11 @@ internal class SykepengeforsikringBehovRiverTest {
 
         assertEquals(1, rapid.inspektør.size)
         val løsningMelding = rapid.inspektør.message(0)
-        val oppslagId = løsningMelding["@løsning"]["Sykepengeforsikring"]["oppslagId"]?.asText()
-        assertNotNull(oppslagId) { "Manglet oppslagId" }
-        assertEquals(1, TestcontainersSpForsikringDatabase.countOppslag(oppslagId))
-        assertEquals(2, TestcontainersSpForsikringDatabase.countOppslagIF_VEDFRIVT_10(oppslagId))
-        assertEquals(4, TestcontainersSpForsikringDatabase.countOppslagIF_FKONTO_12(oppslagId))
+        val forsikringsvurderingId = løsningMelding["@løsning"]["Sykepengeforsikring"]["forsikringsvurderingId"]?.asText()
+        assertNotNull(forsikringsvurderingId) { "Manglet forsikringsvurderingId" }
+        assertEquals(1, TestcontainersSpForsikringDatabase.countOppslag(forsikringsvurderingId))
+        assertEquals(2, TestcontainersSpForsikringDatabase.countOppslagIF_VEDFRIVT_10(forsikringsvurderingId))
+        assertEquals(4, TestcontainersSpForsikringDatabase.countOppslagIF_FKONTO_12(forsikringsvurderingId))
     }
 
     @Test
@@ -675,8 +675,8 @@ internal class SykepengeforsikringBehovRiverTest {
         )
 
         assertEquals(1, rapid.inspektør.size)
-        val oppslagId = rapid.inspektør.message(0)["@løsning"]["Sykepengeforsikring"]["oppslagId"].asText()
-        val ekskluderinger = TestcontainersSpForsikringDatabase.hentEkskluderinger(oppslagId)
+        val forsikringsvurderingId = rapid.inspektør.message(0)["@løsning"]["Sykepengeforsikring"]["forsikringsvurderingId"].asText()
+        val ekskluderinger = TestcontainersSpForsikringDatabase.hentEkskluderinger(UUID.fromString(forsikringsvurderingId))
         assertEquals(3, ekskluderinger.size)
         assertEquals("VIRKNINGSDATO_ETTER_SKJÆRINGSTIDSPUNKT", ekskluderinger[1])
         assertEquals("OPPHØRT_PÅ_SKJÆRINGSTIDSPUNKT", ekskluderinger[2])

@@ -1,23 +1,22 @@
 CREATE TABLE oppslag_IF_FKONTO_12
 (
-    oppslag_id       UUID          NOT NULL REFERENCES oppslag (id),
-    IF01_KODE        CHAR(1)       NULL,
-    IF01_AGNR_FNR    NUMERIC(11)   NULL,
-    IF10_FORSFOM_SEQ NUMERIC(8)    NULL,
-    IF12_BETDATO_SEQ NUMERIC(8)    NULL,
-    PRIMARY KEY (oppslag_id, IF01_KODE, IF01_AGNR_FNR, IF10_FORSFOM_SEQ, IF12_BETDATO_SEQ),
-    FOREIGN KEY (oppslag_id, IF01_KODE, IF01_AGNR_FNR, IF10_FORSFOM_SEQ)
-        REFERENCES oppslag_IF_VEDFRIVT_10 (oppslag_id, IF01_KODE, IF01_AGNR_FNR, IF10_FORSFOM_SEQ),
+    id                        UUID PRIMARY KEY,
 
-    IF12_FOM         NUMERIC(8)    NULL,
-    IF12_TOM         NUMERIC(8)    NULL,
-    IF12_BET_KODE    CHAR(1)       NULL,
-    IF12_FRIUKER     CHAR(2)       NULL,
-    IF12_BELOEP      DECIMAL(7, 2) NULL,
-    IF12_BETDATO     NUMERIC(8)    NULL,
-    OPPRETTET        TIMESTAMP(6)  NOT NULL,
-    ENDRET_I_KILDE   TIMESTAMP(6)  NOT NULL,
-    KILDE_IF         VARCHAR(12)   NOT NULL,
-    ID_KONT          NUMERIC       NOT NULL,
-    OPPDATERT        TIMESTAMP(6)  NULL
+    oppslag_IF_VEDFRIVT_10_id UUID          NOT NULL REFERENCES oppslag_IF_VEDFRIVT_10 (id),
+
+    IF01_KODE                 CHAR(1)       NULL,
+    IF01_AGNR_FNR             NUMERIC(11)   NULL,
+    IF10_FORSFOM_SEQ          NUMERIC(8)    NULL,
+    IF12_BETDATO_SEQ          NUMERIC(8)    NULL,
+    IF12_FOM                  NUMERIC(8)    NULL,
+    IF12_TOM                  NUMERIC(8)    NULL,
+    IF12_BET_KODE             CHAR(1)       NULL,
+    IF12_FRIUKER              CHAR(2)       NULL,
+    IF12_BELOEP               DECIMAL(7, 2) NULL,
+    IF12_BETDATO              NUMERIC(8)    NULL,
+    OPPRETTET                 TIMESTAMP(6)  NOT NULL,
+    ENDRET_I_KILDE            TIMESTAMP(6)  NOT NULL,
+    KILDE_IF                  VARCHAR(12)   NOT NULL,
+    ID_KONT                   NUMERIC       NOT NULL,
+    OPPDATERT                 TIMESTAMP(6)  NULL
 )

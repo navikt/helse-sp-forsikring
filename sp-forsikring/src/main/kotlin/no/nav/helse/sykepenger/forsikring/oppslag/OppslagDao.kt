@@ -4,7 +4,6 @@ import java.sql.Timestamp
 import java.time.Instant
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
-import java.util.*
 import kotliquery.Row
 import kotliquery.TransactionalSession
 import kotliquery.queryOf
@@ -14,18 +13,17 @@ import no.nav.helse.sykepenger.forsikring.replikabase.IF_VEDFRIVT_10_Rad
 import org.intellij.lang.annotations.Language
 
 class OppslagDao(private val transaction: TransactionalSession) {
-    fun lagreOppslag(oppslagId: UUID, opprinneligBehov: String, oppslagTidspunkt: Instant) {
+    fun lagreOppslag(oppslagId: OppslagId, oppslagTidspunkt: Instant) {
         @Language("PostgreSQL")
         val statement = """
-            INSERT INTO oppslag (id, opprinnelig_behov, oppslag_tidspunkt)
-            VALUES (:id, :opprinnelig_behov::jsonb, :oppslag_tidspunkt)
+            INSERT INTO oppslag (id, oppslag_tidspunkt)
+            VALUES (:id, :oppslag_tidspunkt)
         """
         transaction.run(
             queryOf(
                 statement,
                 mapOf(
-                    "id" to oppslagId,
-                    "opprinnelig_behov" to opprinneligBehov,
+                    "id" to oppslagId.value,
                     "oppslag_tidspunkt" to Timestamp.from(oppslagTidspunkt),
                 )
             ).asUpdate
@@ -33,50 +31,53 @@ class OppslagDao(private val transaction: TransactionalSession) {
     }
 
     fun lagreIfVedfrivt10Rader(
-        oppslagId: UUID,
+        oppslagId: OppslagId,
         rader: List<IF_VEDFRIVT_10_Rad>,
     ) {
         rader.forEach { rad ->
-            lagreIfVedfrivt10Rad(oppslagId, rad)
+            val oppslagIfVedrift10Id = OppslagIfVedrift10Id.ny()
+            lagreIfVedfrivt10Rad(oppslagIfVedrift10Id, oppslagId, rad)
             rad.IF_FKONTO_12_rader.forEach { fkontoRad ->
-                lagreIfFkonto12Rad(oppslagId, rad, fkontoRad)
+                lagreIfFkonto12Rad(oppslagIfVedrift10Id, rad, fkontoRad)
             }
         }
     }
 
     private fun lagreIfVedfrivt10Rad(
-        oppslagId: UUID,
-        rad: IF_VEDFRIVT_10_Rad,
+        id: OppslagIfVedrift10Id,
+        oppslagId: OppslagId,
+        rad: IF_VEDFRIVT_10_Rad
     ) {
         @Language("PostgreSQL")
         val statement = """
-            INSERT INTO oppslag_IF_VEDFRIVT_10 (
-                oppslag_id,
-                IF01_KODE, IF01_AGNR_FNR, IF10_FORSFOM_SEQ,
-                IF10_GODKJ, IF10_FORSFOM, IF10_VIRKDATO, IF10_TYPE, IF10_SELVFOM,
-                IF10_KOMBI, IF10_PREMGRL, IF10_FOM, IF10_PREMIE,
-                IF10_GML_PREMGRL, IF10_GML_FOM, IF10_GML_PREMIE,
-                IF10_FRIFOM, IF10_FORSTOM, IF10_OPPHGR, IF10_VARSEL,
-                IF10_TERM_KV, IF10_TERM_AAR, IF10_VARSEL_BELOEP, IF10_BETALT_BELOEP,
-                IF10_PURR, IF10_TKNR_BOST, IF10_TKNR_BEH,
-                OPPRETTET, ENDRET_I_KILDE, KILDE_IF, ID_VED, OPPDATERT
-            ) VALUES (
-                :oppslag_id,
-                :IF01_KODE, :IF01_AGNR_FNR, :IF10_FORSFOM_SEQ,
-                :IF10_GODKJ, :IF10_FORSFOM, :IF10_VIRKDATO, :IF10_TYPE, :IF10_SELVFOM,
-                :IF10_KOMBI, :IF10_PREMGRL, :IF10_FOM, :IF10_PREMIE,
-                :IF10_GML_PREMGRL, :IF10_GML_FOM, :IF10_GML_PREMIE,
-                :IF10_FRIFOM, :IF10_FORSTOM, :IF10_OPPHGR, :IF10_VARSEL,
-                :IF10_TERM_KV, :IF10_TERM_AAR, :IF10_VARSEL_BELOEP, :IF10_BETALT_BELOEP,
-                :IF10_PURR, :IF10_TKNR_BOST, :IF10_TKNR_BEH,
-                :OPPRETTET, :ENDRET_I_KILDE, :KILDE_IF, :ID_VED, :OPPDATERT
-            )
-        """
+                INSERT INTO oppslag_IF_VEDFRIVT_10 (
+                    id, oppslag_id,
+                    IF01_KODE, IF01_AGNR_FNR, IF10_FORSFOM_SEQ,
+                    IF10_GODKJ, IF10_FORSFOM, IF10_VIRKDATO, IF10_TYPE, IF10_SELVFOM,
+                    IF10_KOMBI, IF10_PREMGRL, IF10_FOM, IF10_PREMIE,
+                    IF10_GML_PREMGRL, IF10_GML_FOM, IF10_GML_PREMIE,
+                    IF10_FRIFOM, IF10_FORSTOM, IF10_OPPHGR, IF10_VARSEL,
+                    IF10_TERM_KV, IF10_TERM_AAR, IF10_VARSEL_BELOEP, IF10_BETALT_BELOEP,
+                    IF10_PURR, IF10_TKNR_BOST, IF10_TKNR_BEH,
+                    OPPRETTET, ENDRET_I_KILDE, KILDE_IF, ID_VED, OPPDATERT
+                ) VALUES (
+                    :id, :oppslag_id,
+                    :IF01_KODE, :IF01_AGNR_FNR, :IF10_FORSFOM_SEQ,
+                    :IF10_GODKJ, :IF10_FORSFOM, :IF10_VIRKDATO, :IF10_TYPE, :IF10_SELVFOM,
+                    :IF10_KOMBI, :IF10_PREMGRL, :IF10_FOM, :IF10_PREMIE,
+                    :IF10_GML_PREMGRL, :IF10_GML_FOM, :IF10_GML_PREMIE,
+                    :IF10_FRIFOM, :IF10_FORSTOM, :IF10_OPPHGR, :IF10_VARSEL,
+                    :IF10_TERM_KV, :IF10_TERM_AAR, :IF10_VARSEL_BELOEP, :IF10_BETALT_BELOEP,
+                    :IF10_PURR, :IF10_TKNR_BOST, :IF10_TKNR_BEH,
+                    :OPPRETTET, :ENDRET_I_KILDE, :KILDE_IF, :ID_VED, :OPPDATERT
+                )
+            """
         transaction.run(
             queryOf(
                 statement,
                 mapOf(
-                    "oppslag_id" to oppslagId,
+                    "id" to id.value,
+                    "oppslag_id" to oppslagId.value,
                     "IF01_KODE" to rad.IF01_KODE.toString(),
                     "IF01_AGNR_FNR" to rad.IF01_AGNR_FNR,
                     "IF10_FORSFOM_SEQ" to rad.IF10_FORSFOM_SEQ,
@@ -114,20 +115,20 @@ class OppslagDao(private val transaction: TransactionalSession) {
     }
 
     private fun lagreIfFkonto12Rad(
-        oppslagId: UUID,
+        oppslagIfVedrift10Id: OppslagIfVedrift10Id,
         vedfrivtRad: IF_VEDFRIVT_10_Rad,
         rad: IF_FKONTO_12_Rad,
     ) {
         @Language("PostgreSQL")
         val statement = """
             INSERT INTO oppslag_IF_FKONTO_12 (
-                oppslag_id,
+                id, oppslag_IF_VEDFRIVT_10_id,
                 IF01_KODE, IF01_AGNR_FNR, IF10_FORSFOM_SEQ,
                 IF12_BETDATO_SEQ, IF12_FOM, IF12_TOM, IF12_BET_KODE, IF12_FRIUKER,
                 IF12_BELOEP, IF12_BETDATO,
                 OPPRETTET, ENDRET_I_KILDE, KILDE_IF, ID_KONT, OPPDATERT
             ) VALUES (
-                :oppslag_id,
+                :id, :oppslag_IF_VEDFRIVT_10_id,
                 :IF01_KODE, :IF01_AGNR_FNR, :IF10_FORSFOM_SEQ,
                 :IF12_BETDATO_SEQ, :IF12_FOM, :IF12_TOM, :IF12_BET_KODE, :IF12_FRIUKER,
                 :IF12_BELOEP, :IF12_BETDATO,
@@ -138,7 +139,8 @@ class OppslagDao(private val transaction: TransactionalSession) {
             queryOf(
                 statement,
                 mapOf(
-                    "oppslag_id" to oppslagId,
+                    "id" to OppslagIfFkonto12Id.ny().value,
+                    "oppslag_IF_VEDFRIVT_10_id" to oppslagIfVedrift10Id.value,
                     "IF01_KODE" to vedfrivtRad.IF01_KODE.toString(),
                     "IF01_AGNR_FNR" to vedfrivtRad.IF01_AGNR_FNR,
                     "IF10_FORSFOM_SEQ" to vedfrivtRad.IF10_FORSFOM_SEQ,
@@ -159,13 +161,11 @@ class OppslagDao(private val transaction: TransactionalSession) {
         )
     }
 
-    fun hentOppslag(oppslagId: UUID): Oppslag {
+    fun hentOppslag(oppslagId: OppslagId): Oppslag {
         @Language("PostgreSQL")
         val statement = """
             SELECT
-                v.IF01_KODE,
-                v.IF01_AGNR_FNR,
-                v.IF10_FORSFOM_SEQ,
+                v.id,
                 v.IF10_TYPE,
                 v.IF10_FORSFOM,
                 v.IF10_VIRKDATO,
@@ -173,10 +173,7 @@ class OppslagDao(private val transaction: TransactionalSession) {
                 EXISTS (
                     SELECT 1
                     FROM oppslag_IF_FKONTO_12 f
-                    WHERE f.oppslag_id = v.oppslag_id
-                      AND f.IF01_KODE = v.IF01_KODE
-                      AND f.IF01_AGNR_FNR = v.IF01_AGNR_FNR
-                      AND f.IF10_FORSFOM_SEQ = v.IF10_FORSFOM_SEQ
+                    WHERE f.oppslag_IF_VEDFRIVT_10_id = v.id
                       AND f.IF12_BETDATO IS NOT NULL
                       AND f.IF12_BETDATO != 0
                 ) AS er_betalt_noen_gang
@@ -184,12 +181,10 @@ class OppslagDao(private val transaction: TransactionalSession) {
             WHERE v.oppslag_id = :oppslag_id
         """
         val navKjøpteForsikringer = transaction.run(
-            queryOf(statement, mapOf("oppslag_id" to oppslagId))
+            queryOf(statement, mapOf("oppslag_id" to oppslagId.value))
                 .map { row ->
                     NavKjøptForsikring(
-                        IF01_KODE = row.string("IF01_KODE").single(),
-                        IF01_AGNR_FNR = row.long("IF01_AGNR_FNR"),
-                        IF10_FORSFOM_SEQ = row.int("IF10_FORSFOM_SEQ"),
+                        id = OppslagIfVedrift10Id(row.uuid("id")),
                         type = when (val type = row.string("IF10_TYPE")) {
                             "1" -> NavKjøptForsikring.Type.SELVSTENDIG_80_PROSENT_FRA_DAG_1
                             "2" -> NavKjøptForsikring.Type.SELVSTENDIG_100_PROSENT_FRA_DAG_17
@@ -207,34 +202,6 @@ class OppslagDao(private val transaction: TransactionalSession) {
                 .asList
         )
         return Oppslag(id = oppslagId, navKjøpteForsikringer = navKjøpteForsikringer)
-    }
-
-    fun lagreEkskluderinger(oppslagId: UUID, ekskluderinger: List<Pair<NavKjøptForsikring, NavKjøptForsikring.Ekskluderingsårsak>>) {
-        ekskluderinger.forEach { (forsikring, årsak) ->
-            lagreEkskludering(oppslagId, forsikring, årsak)
-        }
-    }
-
-    private fun lagreEkskludering(oppslagId: UUID, forsikring: NavKjøptForsikring, årsak: NavKjøptForsikring.Ekskluderingsårsak) {
-        @Language("PostgreSQL")
-        val statement = """
-            INSERT INTO oppslag_nav_kjopt_forsikring_ekskludering
-                (oppslag_id, IF01_KODE, IF01_AGNR_FNR, IF10_FORSFOM_SEQ, ekskluderingsaarsak)
-            VALUES
-                (:oppslag_id, :IF01_KODE, :IF01_AGNR_FNR, :IF10_FORSFOM_SEQ, :ekskluderingsaarsak)
-        """
-        transaction.run(
-            queryOf(
-                statement,
-                mapOf(
-                    "oppslag_id" to oppslagId,
-                    "IF01_KODE" to forsikring.IF01_KODE.toString(),
-                    "IF01_AGNR_FNR" to forsikring.IF01_AGNR_FNR,
-                    "IF10_FORSFOM_SEQ" to forsikring.IF10_FORSFOM_SEQ,
-                    "ekskluderingsaarsak" to årsak.name,
-                )
-            ).asUpdate
-        )
     }
 
     private fun Row.intToLocalDate(label: String) = int(label).toLocalDate()
