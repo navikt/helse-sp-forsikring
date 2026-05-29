@@ -24,7 +24,7 @@ data class NavKjøptForsikring(
         forsikringFom != null && dato >= forsikringFom && dato < virkningsdato
 
     fun harVirkningPå(dato: LocalDate) =
-        virkningsdato > dato
+        virkningsdato <= dato
 
     fun erOpphørtPå(dato: LocalDate) =
         opphørsdato != null && dato > opphørsdato

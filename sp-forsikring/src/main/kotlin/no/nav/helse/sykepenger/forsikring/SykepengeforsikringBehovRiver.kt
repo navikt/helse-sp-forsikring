@@ -87,7 +87,7 @@ class SykepengeforsikringBehovRiver(
                         }
 
                         // Skjæringstidspunkt må være etter eller lik virkningsdato
-                        val forsikringerMedVirkningsdatoEtterSkjæringstidspunkt = navKjøpteForsikringer.filter {
+                        val forsikringerMedVirkningsdatoEtterSkjæringstidspunkt = navKjøpteForsikringer.filterNot {
                             it.harVirkningPå(skjæringstidspunkt)
                         }
                         navKjøpteForsikringer.removeAll(forsikringerMedVirkningsdatoEtterSkjæringstidspunkt)
