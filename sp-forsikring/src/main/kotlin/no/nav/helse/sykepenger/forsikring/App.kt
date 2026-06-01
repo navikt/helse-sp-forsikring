@@ -34,8 +34,6 @@ fun launchApplication(env: Map<String, String>) {
 
     val sykepengeforsikringService = SykepengeforsikringServiceImpl()
 
-    Unit.loggInfo("Hei fra Unit \uD83D\uDC4B")
-
     RapidApplication
         .create(System.getenv(), builder = {
             withKtorModule {
