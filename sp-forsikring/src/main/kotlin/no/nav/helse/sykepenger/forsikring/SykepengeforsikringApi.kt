@@ -15,8 +15,10 @@ import io.ktor.server.plugins.callid.callId
 import io.ktor.server.plugins.callid.callIdMdc
 import io.ktor.server.plugins.calllogging.CallLogging
 import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
+import io.ktor.server.plugins.statuspages.StatusPages
 import io.ktor.server.request.path
 import io.ktor.server.request.receive
+import io.ktor.server.request.uri
 import io.ktor.server.response.respond
 import io.ktor.server.routing.post
 import io.ktor.server.routing.routing
@@ -31,6 +33,14 @@ data class SykepengeforsikringRequest(
 data class SykepengeforsikringResponse(
     // TODO: Legg til felter etter behov — speil forventer disse
     val forsikret: Boolean
+)
+
+data class ProblemResponse(
+    val type: String = "about:blank",
+    val title: String,
+    val status: Int,
+    val detail: String,
+    val instance: String,
 )
 
 fun Application.sykepengeforsikringApi(
@@ -53,6 +63,31 @@ fun Application.sykepengeforsikringApi(
     install(ContentNegotiation) {
         jackson()
     }
+    install(StatusPages) {
+        exception<IllegalArgumentException> { call, cause ->
+            call.respond(
+                HttpStatusCode.BadRequest,
+                ProblemResponse(
+                    title = "Ugyldig forespørsel",
+                    status = HttpStatusCode.BadRequest.value,
+                    detail = cause.message ?: "Validering feilet",
+                    instance = call.request.uri,
+                ),
+            )
+        }
+        exception<Throwable> { call, cause ->
+            teamLogs.error("Uventet feil ved kall til ${call.request.uri}", cause)
+            call.respond(
+                HttpStatusCode.InternalServerError,
+                ProblemResponse(
+                    title = "Intern serverfeil",
+                    status = HttpStatusCode.InternalServerError.value,
+                    detail = "En uventet feil oppstod",
+                    instance = call.request.uri,
+                ),
+            )
+        }
+    }
     authentication {
         jwt("oidc") {
             verifier(
@@ -68,6 +103,9 @@ fun Application.sykepengeforsikringApi(
         authenticate("oidc") {
             post("/api/sykepengeforsikring") {
                 val request = call.receive<SykepengeforsikringRequest>()
+                require(request.identitetsnummer.matches(Regex("\\d{11}"))) {
+                    "identitetsnummer må bestå av nøyaktig 11 siffer"
+                }
                 val callId = call.callId ?: UUID.randomUUID().toString()
                 val resultat =
                     sykepengeforsikringService.hentSykepengeforsikring(
@@ -75,7 +113,15 @@ fun Application.sykepengeforsikringApi(
                         callId = callId
                     )
                 if (resultat == null) {
-                    call.respond(HttpStatusCode.NotFound)
+                    call.respond(
+                        HttpStatusCode.NotFound,
+                        ProblemResponse(
+                            title = "Forsikring ikke funnet",
+                            status = HttpStatusCode.NotFound.value,
+                            detail = "Ingen sykepengeforsikring funnet for oppgitt identitetsnummer",
+                            instance = call.request.uri,
+                        ),
+                    )
                 } else {
                     call.respond(SykepengeforsikringResponse(forsikret = resultat.forsikret))
                 }

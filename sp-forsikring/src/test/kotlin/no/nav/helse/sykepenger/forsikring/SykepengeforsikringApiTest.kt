@@ -59,9 +59,18 @@ class SykepengeforsikringApiTest {
 
     @Test
     fun `returnerer 404 når forsikring ikke finnes`() {
-        val (statusCode, _) = postSykepengeforsikring(bearerToken())
+        val (statusCode, body) = postSykepengeforsikring(bearerToken())
 
         assertEquals(404, statusCode)
+        assert(body.contains("\"status\":404")) { "Forventet ProblemDetail-body med status 404, fikk: $body" }
+    }
+
+    @Test
+    fun `returnerer 400 når identitetsnummer ikke er 11 siffer`() {
+        val (statusCode, body) = postSykepengeforsikring(bearerToken(), identitetsnummer = "1234")
+
+        assertEquals(400, statusCode)
+        assert(body.contains("\"status\":400")) { "Forventet ProblemDetail-body med status 400, fikk: $body" }
     }
 
     @Test
@@ -90,10 +99,10 @@ class SykepengeforsikringApiTest {
         audience: String = CLIENT_ID
     ): String = mockOAuth2Server.issueToken(issuerId = issuerId, audience = audience).serialize()
 
-    private fun postSykepengeforsikring(token: String?): Pair<Int, String> =
+    private fun postSykepengeforsikring(token: String?, identitetsnummer: String = "12345678901"): Pair<Int, String> =
         Request
             .post("$serverUrl/api/sykepengeforsikring")
-            .bodyString("""{ "identitetsnummer": "12345678901" }""", ContentType.APPLICATION_JSON)
+            .bodyString("""{ "identitetsnummer": "$identitetsnummer" }""", ContentType.APPLICATION_JSON)
             .apply { token?.let { addHeader("Authorization", "Bearer $it") } }
             .execute()
             .handleResponse { response -> response.code to (EntityUtils.toString(response.entity) ?: "") }

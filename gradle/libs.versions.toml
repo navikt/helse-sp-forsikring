@@ -21,6 +21,7 @@ ktor-server-cio = { module = "io.ktor:ktor-server-cio", version.ref = "ktor" }
 ktor-server-content-negotiation = { module = "io.ktor:ktor-server-content-negotiation", version.ref = "ktor" }
 ktor-server-core = { module = "io.ktor:ktor-server-core", version.ref = "ktor" }
 ktor-server-metrics-micrometer = { module = "io.ktor:ktor-server-metrics-micrometer", version.ref = "ktor" }
+ktor-server-status-pages = { module = "io.ktor:ktor-server-status-pages", version.ref = "ktor" }
 ktor-server-test-host = { module = "io.ktor:ktor-server-test-host", version.ref = "ktor" }
 logback-classic = "ch.qos.logback:logback-classic:1.5.32"
 logback-logstash-encoder = "net.logstash.logback:logstash-logback-encoder:9.0"
@@ -47,7 +48,8 @@ ktor-server = [
     "ktor-server-content-negotiation",
     "ktor-server-core",
     "ktor-serialization-jackson",
-    "ktor-server-metrics-micrometer"
+    "ktor-server-metrics-micrometer",
+    "ktor-server-status-pages"
 ]
 logback = [
     "logback-classic",
