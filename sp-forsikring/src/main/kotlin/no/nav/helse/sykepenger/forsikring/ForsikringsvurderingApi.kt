@@ -26,11 +26,11 @@ import java.net.URI
 import java.util.UUID
 import org.slf4j.event.Level
 
-data class SykepengeforsikringRequest(
+data class ForsikringsvurderingRequest(
     val identitetsnummer: String
 )
 
-data class SykepengeforsikringResponse(
+data class ForsikringsvurderingResponse(
     // TODO: Legg til felter etter behov — speil forventer disse
     val forsikret: Boolean
 )
@@ -43,8 +43,8 @@ data class ProblemResponse(
     val instance: String,
 )
 
-fun Application.sykepengeforsikringApi(
-    sykepengeforsikringService: SykepengeforsikringService,
+fun Application.forsikringsvurderingApi(
+    forsikringsvurderingService: ForsikringsvurderingService,
     clientId: String,
     issuerUrl: String,
     jwkProviderUri: String
@@ -101,14 +101,14 @@ fun Application.sykepengeforsikringApi(
     }
     routing {
         authenticate("oidc") {
-            post("/api/sykepengeforsikring") {
-                val request = call.receive<SykepengeforsikringRequest>()
+            post("/api/forsikringsvurdering") {
+                val request = call.receive<ForsikringsvurderingRequest>()
                 require(request.identitetsnummer.matches(Regex("\\d{11}"))) {
                     "identitetsnummer må bestå av nøyaktig 11 siffer"
                 }
                 val callId = call.callId ?: UUID.randomUUID().toString()
                 val resultat =
-                    sykepengeforsikringService.hentSykepengeforsikring(
+                    forsikringsvurderingService.hentForsikringsvurdering(
                         fødselsnummer = request.identitetsnummer,
                         callId = callId
                     )
@@ -118,12 +118,12 @@ fun Application.sykepengeforsikringApi(
                         ProblemResponse(
                             title = "Forsikring ikke funnet",
                             status = HttpStatusCode.NotFound.value,
-                            detail = "Ingen sykepengeforsikring funnet for oppgitt identitetsnummer",
+                            detail = "Ingen forsikringsvurdering funnet for oppgitt identitetsnummer",
                             instance = call.request.uri,
                         ),
                     )
                 } else {
-                    call.respond(SykepengeforsikringResponse(forsikret = resultat.forsikret))
+                    call.respond(ForsikringsvurderingResponse(forsikret = resultat.forsikret))
                 }
             }
         }

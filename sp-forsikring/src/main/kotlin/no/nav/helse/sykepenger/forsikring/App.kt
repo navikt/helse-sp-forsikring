@@ -32,13 +32,13 @@ fun launchApplication(env: Map<String, String>) {
         }
     )
 
-    val sykepengeforsikringService = SykepengeforsikringServiceImpl()
+    val forsikringsvurderingService = ForsikringsvurderingServiceImpl()
 
     RapidApplication
         .create(System.getenv(), builder = {
             withKtorModule {
-                sykepengeforsikringApi(
-                    sykepengeforsikringService = sykepengeforsikringService,
+                forsikringsvurderingApi(
+                    forsikringsvurderingService = forsikringsvurderingService,
                     clientId = env.getValue("AZURE_APP_CLIENT_ID"),
                     issuerUrl = env.getValue("AZURE_OPENID_CONFIG_ISSUER"),
                     jwkProviderUri = env.getValue("AZURE_OPENID_CONFIG_JWKS_URI")
@@ -64,7 +64,7 @@ fun launchApplication(env: Map<String, String>) {
             }
         })
         .apply {
-            SykepengeforsikringBehovRiver(
+            ForsikringsvurderingBehovRiver(
                 rapidsConnection = this,
                 replikabaseDataSource = replikabaseDataSource,
                 spForsikringDataSource = spForsikringDataSource

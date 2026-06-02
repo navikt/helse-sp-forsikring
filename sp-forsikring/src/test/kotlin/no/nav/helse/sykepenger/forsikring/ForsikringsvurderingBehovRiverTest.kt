@@ -17,11 +17,11 @@ import org.junit.jupiter.api.assertThrows
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.CsvSource
 
-internal class SykepengeforsikringBehovRiverTest {
+internal class ForsikringsvurderingBehovRiverTest {
     private val objectMapper = jacksonObjectMapper().registerModule(JavaTimeModule())
 
     private val rapid = TestRapid().apply {
-        SykepengeforsikringBehovRiver(
+        ForsikringsvurderingBehovRiver(
             rapidsConnection = this,
             replikabaseDataSource = TestcontainersReplikadatabase.dataSource,
             spForsikringDataSource = TestcontainersSpForsikringDatabase.dataSource
@@ -48,10 +48,10 @@ internal class SykepengeforsikringBehovRiverTest {
     fun `løsningmelding er lik behovsmeldingen, sett bort fra løsning-feltet og rapids and rivers-genererte felter`() {
         val testmelding = """
             {
-                "@behov": [ "Sykepengeforsikring" ],
+                "@behov": [ "Forsikringsvurdering" ],
                 "fødselsnummer": "01020312345",
                 "yrkesaktivitetstype": "SELVSTENDIG",
-                "Sykepengeforsikring" : {
+                "Forsikringsvurdering" : {
                     "spesielleYrkesgrupper": [],
                     "skjæringstidspunkt": "2026-01-01"
                 }
@@ -80,10 +80,10 @@ internal class SykepengeforsikringBehovRiverTest {
         rapid.sendTestMessage(
             """
                 {
-                    "@behov": [ "Sykepengeforsikring" ],
+                    "@behov": [ "Forsikringsvurdering" ],
                     "fødselsnummer": "01020312345",
                     "yrkesaktivitetstype": "SELVSTENDIG",
-                    "Sykepengeforsikring" : {
+                    "Forsikringsvurdering" : {
                         "spesielleYrkesgrupper": [],
                         "skjæringstidspunkt": "2026-01-01"
                     }
@@ -93,7 +93,7 @@ internal class SykepengeforsikringBehovRiverTest {
 
         assertEquals(1, rapid.inspektør.size)
         val løsningMelding = rapid.inspektør.message(0)
-        val forsikringsvurderingId = løsningMelding["@løsning"]["Sykepengeforsikring"]["forsikringsvurderingId"]?.asText()
+        val forsikringsvurderingId = løsningMelding["@løsning"]["Forsikringsvurdering"]["forsikringsvurderingId"]?.asText()
         assertNotNull(forsikringsvurderingId) { "Manglet forsikringsvurderingId" }
         assertDoesNotThrow("forsikringsvurderingId \"${forsikringsvurderingId}\" kunne ikke tolkes som en UUID") {
             UUID.fromString(forsikringsvurderingId)
@@ -120,10 +120,10 @@ internal class SykepengeforsikringBehovRiverTest {
         rapid.sendTestMessage(
             """
                 {
-                    "@behov": [ "Sykepengeforsikring" ],
+                    "@behov": [ "Forsikringsvurdering" ],
                     "fødselsnummer": "01020312345",
                     "yrkesaktivitetstype": "$yrkesaktivitetstype",
-                    "Sykepengeforsikring" : {
+                    "Forsikringsvurdering" : {
                         "spesielleYrkesgrupper": [ ${særskiltGruppe?.let { "\"$it\"" }.orEmpty()} ],
                         "skjæringstidspunkt": "2026-01-01"
                     }
@@ -146,10 +146,10 @@ internal class SykepengeforsikringBehovRiverTest {
         rapid.sendTestMessage(
             """
                 {
-                    "@behov": [ "Sykepengeforsikring" ],
+                    "@behov": [ "Forsikringsvurdering" ],
                     "fødselsnummer": "01020312345",
                     "yrkesaktivitetstype": "$yrkesaktivitetstype",
-                    "Sykepengeforsikring" : {
+                    "Forsikringsvurdering" : {
                         "spesielleYrkesgrupper": [ ${særskiltGruppe?.let { "\"$it\"" }.orEmpty()} ],
                         "skjæringstidspunkt": "2026-01-01"
                     }
@@ -180,10 +180,10 @@ internal class SykepengeforsikringBehovRiverTest {
             rapid.sendTestMessage(
                 """
                 {
-                    "@behov": [ "Sykepengeforsikring" ],
+                    "@behov": [ "Forsikringsvurdering" ],
                     "fødselsnummer": "01020312345",
                     "yrkesaktivitetstype": "$yrkesaktivitetstype",
-                    "Sykepengeforsikring" : {
+                    "Forsikringsvurdering" : {
                         "spesielleYrkesgrupper": [ ${særskiltGruppe?.let { "\"$it\"" }.orEmpty()} ],
                         "skjæringstidspunkt": "2026-01-01"
                     }
@@ -201,10 +201,10 @@ internal class SykepengeforsikringBehovRiverTest {
         rapid.sendTestMessage(
             """
                 {
-                    "@behov": [ "Sykepengeforsikring" ],
+                    "@behov": [ "Forsikringsvurdering" ],
                     "fødselsnummer": "01020312345",
                     "yrkesaktivitetstype": "SELVSTENDIG",
-                    "Sykepengeforsikring" : {
+                    "Forsikringsvurdering" : {
                         "spesielleYrkesgrupper": [],
                         "skjæringstidspunkt": "2026-01-01"
                     }
@@ -226,10 +226,10 @@ internal class SykepengeforsikringBehovRiverTest {
         rapid.sendTestMessage(
             """
                 {
-                    "@behov": [ "Sykepengeforsikring" ],
+                    "@behov": [ "Forsikringsvurdering" ],
                     "fødselsnummer": "01020312345",
                     "yrkesaktivitetstype": "SELVSTENDIG",
-                    "Sykepengeforsikring" : {
+                    "Forsikringsvurdering" : {
                         "spesielleYrkesgrupper": [],
                         "skjæringstidspunkt": "2026-01-01"
                     }
@@ -251,10 +251,10 @@ internal class SykepengeforsikringBehovRiverTest {
         rapid.sendTestMessage(
             """
                 {
-                    "@behov": [ "Sykepengeforsikring" ],
+                    "@behov": [ "Forsikringsvurdering" ],
                     "fødselsnummer": "01020312345",
                     "yrkesaktivitetstype": "SELVSTENDIG",
-                    "Sykepengeforsikring" : {
+                    "Forsikringsvurdering" : {
                         "spesielleYrkesgrupper": [],
                         "skjæringstidspunkt": "2026-01-01"
                     }
@@ -276,10 +276,10 @@ internal class SykepengeforsikringBehovRiverTest {
         rapid.sendTestMessage(
             """
                 {
-                    "@behov": [ "Sykepengeforsikring" ],
+                    "@behov": [ "Forsikringsvurdering" ],
                     "fødselsnummer": "01020312345",
                     "yrkesaktivitetstype": "SELVSTENDIG",
-                    "Sykepengeforsikring" : {
+                    "Forsikringsvurdering" : {
                         "spesielleYrkesgrupper": [],
                         "skjæringstidspunkt": "2026-01-01"
                     }
@@ -301,10 +301,10 @@ internal class SykepengeforsikringBehovRiverTest {
         rapid.sendTestMessage(
             """
                 {
-                    "@behov": [ "Sykepengeforsikring" ],
+                    "@behov": [ "Forsikringsvurdering" ],
                     "fødselsnummer": "01020312345",
                     "yrkesaktivitetstype": "SELVSTENDIG",
-                    "Sykepengeforsikring" : {
+                    "Forsikringsvurdering" : {
                         "spesielleYrkesgrupper": [],
                         "skjæringstidspunkt": "2026-01-01"
                     }
@@ -326,10 +326,10 @@ internal class SykepengeforsikringBehovRiverTest {
         rapid.sendTestMessage(
             """
                 {
-                    "@behov": [ "Sykepengeforsikring" ],
+                    "@behov": [ "Forsikringsvurdering" ],
                     "fødselsnummer": "01020312345",
                     "yrkesaktivitetstype": "SELVSTENDIG",
-                    "Sykepengeforsikring" : {
+                    "Forsikringsvurdering" : {
                         "spesielleYrkesgrupper": [],
                         "skjæringstidspunkt": "2026-01-01"
                     }
@@ -351,10 +351,10 @@ internal class SykepengeforsikringBehovRiverTest {
         rapid.sendTestMessage(
             """
                 {
-                    "@behov": [ "Sykepengeforsikring" ],
+                    "@behov": [ "Forsikringsvurdering" ],
                     "fødselsnummer": "01020312345",
                     "yrkesaktivitetstype": "SELVSTENDIG",
-                    "Sykepengeforsikring" : {
+                    "Forsikringsvurdering" : {
                         "spesielleYrkesgrupper": [],
                         "skjæringstidspunkt": "2026-01-01"
                     }
@@ -376,10 +376,10 @@ internal class SykepengeforsikringBehovRiverTest {
         rapid.sendTestMessage(
             """
                 {
-                    "@behov": [ "Sykepengeforsikring" ],
+                    "@behov": [ "Forsikringsvurdering" ],
                     "fødselsnummer": "01020312345",
                     "yrkesaktivitetstype": "SELVSTENDIG",
-                    "Sykepengeforsikring" : {
+                    "Forsikringsvurdering" : {
                         "spesielleYrkesgrupper": [],
                         "skjæringstidspunkt": "2026-01-01"
                     }
@@ -399,10 +399,10 @@ internal class SykepengeforsikringBehovRiverTest {
             rapid.sendTestMessage(
                 """
                 {
-                    "@behov": [ "Sykepengeforsikring" ],
+                    "@behov": [ "Forsikringsvurdering" ],
                     "fødselsnummer": "01020312345",
                     "yrkesaktivitetstype": "SELVSTENDIG",
-                    "Sykepengeforsikring" : {
+                    "Forsikringsvurdering" : {
                         "spesielleYrkesgrupper": [],
                         "skjæringstidspunkt": "2026-01-01"
                     }
@@ -421,10 +421,10 @@ internal class SykepengeforsikringBehovRiverTest {
         rapid.sendTestMessage(
             """
                 {
-                    "@behov": [ "Sykepengeforsikring" ],
+                    "@behov": [ "Forsikringsvurdering" ],
                     "fødselsnummer": "01020312345",
                     "yrkesaktivitetstype": "SELVSTENDIG",
-                    "Sykepengeforsikring" : {
+                    "Forsikringsvurdering" : {
                         "spesielleYrkesgrupper": [],
                         "skjæringstidspunkt": "2026-01-01"
                     }
@@ -443,10 +443,10 @@ internal class SykepengeforsikringBehovRiverTest {
         rapid.sendTestMessage(
             """
                 {
-                    "@behov": [ "Sykepengeforsikring" ],
+                    "@behov": [ "Forsikringsvurdering" ],
                     "fødselsnummer": "01020312345",
                     "yrkesaktivitetstype": "SELVSTENDIG",
-                    "Sykepengeforsikring" : {
+                    "Forsikringsvurdering" : {
                         "spesielleYrkesgrupper": [],
                         "skjæringstidspunkt": "2026-01-01"
                     }
@@ -465,10 +465,10 @@ internal class SykepengeforsikringBehovRiverTest {
         rapid.sendTestMessage(
             """
                 {
-                    "@behov": [ "Sykepengeforsikring" ],
+                    "@behov": [ "Forsikringsvurdering" ],
                     "fødselsnummer": "01020312345",
                     "yrkesaktivitetstype": "SELVSTENDIG",
-                    "Sykepengeforsikring" : {
+                    "Forsikringsvurdering" : {
                         "spesielleYrkesgrupper": [],
                         "skjæringstidspunkt": "2026-01-01"
                     }
@@ -491,10 +491,10 @@ internal class SykepengeforsikringBehovRiverTest {
         rapid.sendTestMessage(
             """
                 {
-                    "@behov": [ "Sykepengeforsikring" ],
+                    "@behov": [ "Forsikringsvurdering" ],
                     "fødselsnummer": "01020312345",
                     "yrkesaktivitetstype": "SELVSTENDIG",
-                    "Sykepengeforsikring" : {
+                    "Forsikringsvurdering" : {
                         "spesielleYrkesgrupper": [],
                         "skjæringstidspunkt": "2026-01-01"
                     }
@@ -517,10 +517,10 @@ internal class SykepengeforsikringBehovRiverTest {
         rapid.sendTestMessage(
             """
                 {
-                    "@behov": [ "Sykepengeforsikring" ],
+                    "@behov": [ "Forsikringsvurdering" ],
                     "fødselsnummer": "01020312345",
                     "yrkesaktivitetstype": "SELVSTENDIG",
-                    "Sykepengeforsikring" : {
+                    "Forsikringsvurdering" : {
                         "spesielleYrkesgrupper": [],
                         "skjæringstidspunkt": "2026-01-01"
                     }
@@ -543,10 +543,10 @@ internal class SykepengeforsikringBehovRiverTest {
         rapid.sendTestMessage(
             """
                 {
-                    "@behov": [ "Sykepengeforsikring" ],
+                    "@behov": [ "Forsikringsvurdering" ],
                     "fødselsnummer": "01020312345",
                     "yrkesaktivitetstype": "SELVSTENDIG",
-                    "Sykepengeforsikring" : {
+                    "Forsikringsvurdering" : {
                         "spesielleYrkesgrupper": [],
                         "skjæringstidspunkt": "2026-01-01"
                     }
@@ -569,10 +569,10 @@ internal class SykepengeforsikringBehovRiverTest {
         rapid.sendTestMessage(
             """
                 {
-                    "@behov": [ "Sykepengeforsikring" ],
+                    "@behov": [ "Forsikringsvurdering" ],
                     "fødselsnummer": "01020312345",
                     "yrkesaktivitetstype": "SELVSTENDIG",
-                    "Sykepengeforsikring" : {
+                    "Forsikringsvurdering" : {
                         "spesielleYrkesgrupper": [],
                         "skjæringstidspunkt": "2026-01-01"
                     }
@@ -588,7 +588,7 @@ internal class SykepengeforsikringBehovRiverTest {
         val løsningMelding = rapid.inspektør.message(0)
         assertJsonEquals(
             expectedJson = forventetLøsningUtenOppslagId,
-            actualJsonNode = løsningMelding["@løsning"]["Sykepengeforsikring"],
+            actualJsonNode = løsningMelding["@løsning"]["Forsikringsvurdering"],
             bortsettFraProperties = setOf("forsikringsvurderingId")
         )
     }
@@ -629,10 +629,10 @@ internal class SykepengeforsikringBehovRiverTest {
         rapid.sendTestMessage(
             """
                 {
-                    "@behov": [ "Sykepengeforsikring" ],
+                    "@behov": [ "Forsikringsvurdering" ],
                     "fødselsnummer": "01020312345",
                     "yrkesaktivitetstype": "SELVSTENDIG",
-                    "Sykepengeforsikring" : {
+                    "Forsikringsvurdering" : {
                         "spesielleYrkesgrupper": [],
                         "skjæringstidspunkt": "2026-01-01"
                     }
@@ -642,7 +642,7 @@ internal class SykepengeforsikringBehovRiverTest {
 
         assertEquals(1, rapid.inspektør.size)
         val løsningMelding = rapid.inspektør.message(0)
-        val forsikringsvurderingId = løsningMelding["@løsning"]["Sykepengeforsikring"]["forsikringsvurderingId"]?.asText()
+        val forsikringsvurderingId = løsningMelding["@løsning"]["Forsikringsvurdering"]["forsikringsvurderingId"]?.asText()
         assertNotNull(forsikringsvurderingId) { "Manglet forsikringsvurderingId" }
         assertEquals(1, TestcontainersSpForsikringDatabase.countOppslag(forsikringsvurderingId))
         assertEquals(2, TestcontainersSpForsikringDatabase.countOppslagIF_VEDFRIVT_10(forsikringsvurderingId))
@@ -663,10 +663,10 @@ internal class SykepengeforsikringBehovRiverTest {
         rapid.sendTestMessage(
             """
                 {
-                    "@behov": [ "Sykepengeforsikring" ],
+                    "@behov": [ "Forsikringsvurdering" ],
                     "fødselsnummer": "01020312345",
                     "yrkesaktivitetstype": "SELVSTENDIG",
-                    "Sykepengeforsikring" : {
+                    "Forsikringsvurdering" : {
                         "spesielleYrkesgrupper": [],
                         "skjæringstidspunkt": "2026-01-01"
                     }
@@ -675,7 +675,7 @@ internal class SykepengeforsikringBehovRiverTest {
         )
 
         assertEquals(1, rapid.inspektør.size)
-        val forsikringsvurderingId = rapid.inspektør.message(0)["@løsning"]["Sykepengeforsikring"]["forsikringsvurderingId"].asText()
+        val forsikringsvurderingId = rapid.inspektør.message(0)["@løsning"]["Forsikringsvurdering"]["forsikringsvurderingId"].asText()
         val ekskluderinger = TestcontainersSpForsikringDatabase.hentEkskluderinger(UUID.fromString(forsikringsvurderingId))
         assertEquals(3, ekskluderinger.size)
         assertEquals("VIRKNINGSDATO_ETTER_SKJÆRINGSTIDSPUNKT", ekskluderinger[1])

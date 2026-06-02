@@ -15,7 +15,7 @@ import no.nav.helse.sykepenger.forsikring.SpesiellYrkesgruppe.Fisker.Blad
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.ForsikringsvurderingService
 import tools.jackson.databind.JsonNode
 
-class SykepengeforsikringBehovRiver(
+class ForsikringsvurderingBehovRiver(
     rapidsConnection: RapidsConnection,
     private val replikabaseDataSource: DataSource,
     private val spForsikringDataSource: DataSource,
@@ -24,7 +24,7 @@ class SykepengeforsikringBehovRiver(
         River(rapidsConnection)
             .apply {
                 precondition {
-                    it.requireAll("@behov", listOf("Sykepengeforsikring"))
+                    it.requireAll("@behov", listOf("Forsikringsvurdering"))
                     it.forbid("@løsning")
                 }
                 validate {
@@ -32,10 +32,10 @@ class SykepengeforsikringBehovRiver(
                         "@id",
                         "fødselsnummer",
                         "yrkesaktivitetstype",
-                        "Sykepengeforsikring.spesielleYrkesgrupper",
-                        "Sykepengeforsikring.skjæringstidspunkt"
+                        "Forsikringsvurdering.spesielleYrkesgrupper",
+                        "Forsikringsvurdering.skjæringstidspunkt"
                     )
-                    it.requireArray("Sykepengeforsikring.spesielleYrkesgrupper")
+                    it.requireArray("Forsikringsvurdering.spesielleYrkesgrupper")
                 }
             }.register(this)
     }
@@ -52,7 +52,7 @@ class SykepengeforsikringBehovRiver(
         val meldingId = packet["@id"].asString()
         val fødselsnummer = packet["fødselsnummer"].asString()
         val yrkesaktivitetstype = packet["yrkesaktivitetstype"].asEnum<Yrkesaktivitetstype>()
-        val spesielleYrkesgrupper = packet["Sykepengeforsikring.spesielleYrkesgrupper"].map<JsonNode, SpesiellYrkesgruppe> {
+        val spesielleYrkesgrupper = packet["Forsikringsvurdering.spesielleYrkesgrupper"].map<JsonNode, SpesiellYrkesgruppe> {
             when (val spesiellYrkesgruppe = it.asString()) {
                 "FISKER_BLAD_B" -> SpesiellYrkesgruppe.Fisker(Blad.B)
                 "JORDBRUKER" -> SpesiellYrkesgruppe.Jordbruker
@@ -60,10 +60,10 @@ class SykepengeforsikringBehovRiver(
                 else -> SpesiellYrkesgruppe.Ukjent(spesiellYrkesgruppe)
             }
         }.toSet()
-        val skjæringstidspunkt = packet["Sykepengeforsikring.skjæringstidspunkt"].asLocalDate()
+        val skjæringstidspunkt = packet["Forsikringsvurdering.skjæringstidspunkt"].asLocalDate()
 
         medMdc(MdcKey.MELDING_ID to meldingId) {
-            loggInfo("Henter sykepengeforsikring")
+            loggInfo("Henter forsikringsvurdering")
             try {
                 sessionOf(spForsikringDataSource).use { session ->
                     session.transaction { transaction ->
@@ -78,12 +78,12 @@ class SykepengeforsikringBehovRiver(
                             yrkesaktivitetstype = yrkesaktivitetstype
                         )
 
-                        packet["@løsning"] = mapOf("Sykepengeforsikring" to forsikringsvurdering.løsning)
+                        packet["@løsning"] = mapOf("Forsikringsvurdering" to forsikringsvurdering.løsning)
                         context.publish(packet.toJson())
                     }
                 }
             } catch (err: Exception) {
-                loggError("Feil ved håndtering av Sykepengeforsikring-behov", err, "melding" to packet.toJson())
+                loggError("Feil ved håndtering av Forsikringsvurdering-behov", err, "melding" to packet.toJson())
                 throw err
             }
         }
@@ -94,6 +94,6 @@ class SykepengeforsikringBehovRiver(
         context: MessageContext,
         metadata: MessageMetadata
     ) {
-        loggError("Forstod ikke Sykepengeforsikring-behov", "extendedReport" to problems.toExtendedReport())
+        loggError("Forstod ikke Forsikringsvurdering-behov", "extendedReport" to problems.toExtendedReport())
     }
 }
