@@ -35,5 +35,4 @@ data class IF_VEDFRIVT_10_Rad(
     val KILDE_IF: String,
     val ID_VED: BigDecimal,
     val OPPDATERT: Instant?,
-    val IF_FKONTO_12_rader: List<IF_FKONTO_12_Rad>,
 )

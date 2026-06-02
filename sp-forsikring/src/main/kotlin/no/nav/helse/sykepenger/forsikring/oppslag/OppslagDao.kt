@@ -10,6 +10,7 @@ import kotliquery.queryOf
 import no.nav.helse.sykepenger.forsikring.NavKjøptForsikring
 import no.nav.helse.sykepenger.forsikring.replikabase.IF_FKONTO_12_Rad
 import no.nav.helse.sykepenger.forsikring.replikabase.IF_VEDFRIVT_10_Rad
+import no.nav.helse.sykepenger.forsikring.replikabase.TiOgTolv
 import org.intellij.lang.annotations.Language
 
 class OppslagDao(private val transaction: TransactionalSession) {
@@ -32,7 +33,7 @@ class OppslagDao(private val transaction: TransactionalSession) {
 
     fun lagreIfVedfrivt10Rader(
         oppslagId: OppslagId,
-        rader: List<IF_VEDFRIVT_10_Rad>,
+        rader: List<TiOgTolv>,
     ) {
         rader.forEach { rad ->
             val oppslagIfVedrift10Id = OppslagIfVedrift10Id.ny()
