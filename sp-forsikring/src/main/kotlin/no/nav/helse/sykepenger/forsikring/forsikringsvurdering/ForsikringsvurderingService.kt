@@ -4,20 +4,26 @@ import java.time.LocalDate
 import javax.sql.DataSource
 import kotliquery.TransactionalSession
 import no.nav.helse.sykepenger.forsikring.KollektivForsikring
-import no.nav.helse.sykepenger.forsikring.NavKjøptForsikring
+import no.nav.helse.sykepenger.forsikring.RåForsikring
 import no.nav.helse.sykepenger.forsikring.SpesiellYrkesgruppe
 import no.nav.helse.sykepenger.forsikring.Yrkesaktivitetstype
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.Forsikringsvurdering.EkskluderingNavKjøptForsikring
+import no.nav.helse.sykepenger.forsikring.kalkulator.Dekning
+import no.nav.helse.sykepenger.forsikring.kalkulator.ForsikringsvurderingKalkulator
 import no.nav.helse.sykepenger.forsikring.kollektiveForsikringerFor
 import no.nav.helse.sykepenger.forsikring.loggError
 import no.nav.helse.sykepenger.forsikring.oppslag.OppslagService
+import no.nav.helse.sykepenger.forsikring.replikabase.ReplikabaseDao
+import no.nav.helse.sykepenger.forsikring.replikabase.tilRåForsikringer
 
 class ForsikringsvurderingService(
     spForsikringTransaction: TransactionalSession,
     replikabaseDataSource: DataSource
 ) {
-    private val oppslagService = OppslagService(spForsikringTransaction, replikabaseDataSource)
+    private val replikabaseDao = ReplikabaseDao(replikabaseDataSource)
+    private val oppslagService = OppslagService(spForsikringTransaction)
     private val forsikringsvurderingRepository = ForsikringsvurderingRepository(spForsikringTransaction)
+    private val kalkulator = ForsikringsvurderingKalkulator()
 
     fun gjørVurdering(
         behovJson: String,
@@ -26,72 +32,48 @@ class ForsikringsvurderingService(
         spesielleYrkesgrupper: Set<SpesiellYrkesgruppe>,
         yrkesaktivitetstype: Yrkesaktivitetstype
     ): Forsikringsvurdering {
-        val oppslag = oppslagService.gjørNyttOppslag(fødselsnummer)
+        val rawRader = replikabaseDao.hentIfVedfrivt10Rader(fødselsnummer)
+        val råForsikringer = rawRader.tilRåForsikringer()
 
-        val navKjøpteForsikringer = oppslag.navKjøpteForsikringer.toMutableList()
-        val ekskluderinger = mutableListOf<EkskluderingNavKjøptForsikring>()
-
-        // Skjæringstidspunkt må ikke være i opptjeningstid [IF10_FORSFOM, IF10_VIRKDATO)
-        val forsikringerIOpptjeningstid = navKjøpteForsikringer.filter {
-            it.erIOpptjeningstid(skjæringstidspunkt)
-        }
-        navKjøpteForsikringer.removeAll(forsikringerIOpptjeningstid)
-        forsikringerIOpptjeningstid.forEach {
-            ekskluderinger.add(EkskluderingNavKjøptForsikring(it.id, NavKjøptForsikring.Ekskluderingsårsak.SKJÆRINGSTIDSPUNKT_I_OPPTJENINGSTID))
-        }
-
-        // Skjæringstidspunkt må være etter eller lik virkningsdato
-        val forsikringerMedVirkningsdatoEtterSkjæringstidspunkt = navKjøpteForsikringer.filterNot {
-            it.harVirkningPå(skjæringstidspunkt)
-        }
-        navKjøpteForsikringer.removeAll(forsikringerMedVirkningsdatoEtterSkjæringstidspunkt)
-        forsikringerMedVirkningsdatoEtterSkjæringstidspunkt.forEach {
-            ekskluderinger.add(EkskluderingNavKjøptForsikring(it.id, NavKjøptForsikring.Ekskluderingsårsak.VIRKNINGSDATO_ETTER_SKJÆRINGSTIDSPUNKT))
-        }
-
-        // Skjæringstidspunkt må være før eller lik opphørsdato (hvis det er en opphørsdato)
-        val opphørteForsikringer = navKjøpteForsikringer.filter { forsikring ->
-            forsikring.erOpphørtPå(skjæringstidspunkt)
-        }
-        navKjøpteForsikringer.removeAll(opphørteForsikringer)
-        opphørteForsikringer.forEach {
-            ekskluderinger.add(EkskluderingNavKjøptForsikring(it.id, NavKjøptForsikring.Ekskluderingsårsak.OPPHØRT_PÅ_SKJÆRINGSTIDSPUNKT))
-        }
-
-        // Forsikringen må være betalt noen gang
-        val ubetalteForsikringer = navKjøpteForsikringer.filterNot(NavKjøptForsikring::erBetaltNoenGang)
-        navKjøpteForsikringer.removeAll(ubetalteForsikringer)
-        ubetalteForsikringer.forEach {
-            ekskluderinger.add(EkskluderingNavKjøptForsikring(it.id, NavKjøptForsikring.Ekskluderingsårsak.ALDRI_BETALT))
-        }
+        val kalkulatorResultat = kalkulator.kalkuler(råForsikringer, skjæringstidspunkt)
 
         // Kontroller mismatch mellom yrkesaktivitetstype og type forsikring i Infotrygd
-        navKjøpteForsikringer.forEach {
+        kalkulatorResultat.inkluderteRåForsikringer.forEach {
             it.validerType(yrkesaktivitetstype, spesielleYrkesgrupper)
         }
 
-        val alleForsikringer = navKjøpteForsikringer + kollektiveForsikringerFor(spesielleYrkesgrupper)
-
-        val dekninger = alleForsikringer.map {
-            Løsning.MedForsikring.Dekning(grad = it.dekningGrad(), fraDag = it.dekningFraDag())
-        }
+        val alleForsikringer = kalkulatorResultat.inkluderteRåForsikringer + kollektiveForsikringerFor(spesielleYrkesgrupper)
 
         if (alleForsikringer.distinctBy { it.dekningGrad() }.size > 1) {
             val message = "Bruker har flere gyldige forsikringer med ulike dekningsgrader"
             loggError(message, "forsikringer" to alleForsikringer.map {
                 when (it) {
                     is KollektivForsikring -> "Kollektiv forsikring for ${it.spesiellYrkesgruppe}"
-                    is NavKjøptForsikring -> "Nav-kjøpt forsikring av type ${it.type}"
+                    is RåForsikring -> "Nav-kjøpt forsikring av type ${it.type}"
+                    else -> it.toString()
                 }
             })
             error(message)
         }
 
+        val dekning = alleForsikringer.minByOrNull { it.dekningFraDag() }?.let {
+            Dekning(grad = it.dekningGrad(), fraDag = it.dekningFraDag())
+        }
+
+        // Lagre oppslag og map kalkulator-ekskluderinger til DB-ekskluderinger via posisjon
+        val oppslag = oppslagService.gjørNyttOppslag(rawRader)
+
+        val ekskluderinger = kalkulatorResultat.ekskluderinger.map { (råForsikring, årsak) ->
+            val indeks = råForsikringer.indexOfFirst { it === råForsikring }
+            val navKjøptForsikring = oppslag.navKjøpteForsikringer[indeks]
+            EkskluderingNavKjøptForsikring(navKjøptForsikring.id, årsak)
+        }
+
         val forsikringsvurderingId = ForsikringsvurderingId.ny()
 
-        val dekning = dekninger.minByOrNull { it.fraDag }
-        val løsning = dekning?.let { Løsning.MedForsikring(forsikringsvurderingId = forsikringsvurderingId, dekning = it) }
-            ?: Løsning.UtenForsikring(forsikringsvurderingId = forsikringsvurderingId)
+        val løsning = dekning?.let {
+            Løsning.MedForsikring(forsikringsvurderingId, Løsning.MedForsikring.Dekning(it.grad, it.fraDag))
+        } ?: Løsning.UtenForsikring(forsikringsvurderingId)
 
         val forsikringsvurdering = Forsikringsvurdering.ny(
             id = forsikringsvurderingId,
@@ -106,3 +88,4 @@ class ForsikringsvurderingService(
         return forsikringsvurdering
     }
 }
+

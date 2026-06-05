@@ -12,7 +12,7 @@ import org.flywaydb.core.Flyway
 import org.intellij.lang.annotations.Language
 import org.testcontainers.oracle.OracleContainer
 
-object TestcontainersReplikadatabase {
+class TestcontainersReplikadatabase {
     private val oracleContainer: OracleContainer =
         OracleContainer("gvenzl/oracle-free:slim-faststart")
             .also { it.start() }

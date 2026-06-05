@@ -2,8 +2,7 @@ package no.nav.helse.sykepenger.forsikring
 
 import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
-import io.ktor.server.application.ApplicationStarted
-import io.ktor.server.application.ApplicationStopped
+import io.ktor.server.application.*
 import java.time.Duration
 import no.nav.helse.rapids_rivers.RapidApplication
 import org.flywaydb.core.Flyway
@@ -32,13 +31,11 @@ fun launchApplication(env: Map<String, String>) {
         }
     )
 
-    val forsikringsvurderingService = ForsikringsvurderingServiceImpl()
-
     RapidApplication
         .create(System.getenv(), builder = {
             withKtorModule {
                 forsikringsvurderingApi(
-                    forsikringsvurderingService = forsikringsvurderingService,
+                    replikabaseDataSource = replikabaseDataSource,
                     clientId = env.getValue("AZURE_APP_CLIENT_ID"),
                     issuerUrl = env.getValue("AZURE_OPENID_CONFIG_ISSUER"),
                     jwkProviderUri = env.getValue("AZURE_OPENID_CONFIG_JWKS_URI")

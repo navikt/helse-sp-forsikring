@@ -12,36 +12,36 @@ import kotlin.test.assertNotNull
 import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.TestInstance
 import org.junit.jupiter.api.assertDoesNotThrow
 import org.junit.jupiter.api.assertThrows
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.CsvSource
 
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
 internal class ForsikringsvurderingBehovRiverTest {
     private val objectMapper = jacksonObjectMapper().registerModule(JavaTimeModule())
+    private val replikadatabase = TestcontainersReplikadatabase()
 
     private val rapid = TestRapid().apply {
         ForsikringsvurderingBehovRiver(
             rapidsConnection = this,
-            replikabaseDataSource = TestcontainersReplikadatabase.dataSource,
+            replikabaseDataSource = replikadatabase.dataSource,
             spForsikringDataSource = TestcontainersSpForsikringDatabase.dataSource
         )
     }
 
     @BeforeEach
     fun beforeEach() {
-        TestcontainersReplikadatabase.reset()
+        replikadatabase.reset()
         TestcontainersSpForsikringDatabase.reset()
         rapid.reset()
     }
 
-    companion object {
-        @JvmStatic
-        @AfterAll
-        fun shutdown() {
-            TestcontainersReplikadatabase.shutdown()
-            TestcontainersSpForsikringDatabase.shutdown()
-        }
+    @AfterAll
+    fun shutdown() {
+        replikadatabase.shutdown()
+        TestcontainersSpForsikringDatabase.shutdown()
     }
 
     @Test
@@ -416,7 +416,7 @@ internal class ForsikringsvurderingBehovRiverTest {
 
     @Test
     fun `eliminerer forsikring som aldri er betalt`() {
-        TestcontainersReplikadatabase.insertVedfrivt(IF01_AGNR_FNR = 3020112345L, IF10_TYPE = '2')
+        replikadatabase.insertVedfrivt(IF01_AGNR_FNR = 3020112345L, IF10_TYPE = '2')
 
         rapid.sendTestMessage(
             """
@@ -437,8 +437,8 @@ internal class ForsikringsvurderingBehovRiverTest {
 
     @Test
     fun `eliminerer forsikring med betdato null`() {
-        TestcontainersReplikadatabase.insertVedfrivt(IF01_AGNR_FNR = 3020112345L, IF10_FORSFOM_SEQ = 0, IF10_TYPE = '2')
-        TestcontainersReplikadatabase.insertFkonto12(IF01_AGNR_FNR = 3020112345L, IF10_FORSFOM_SEQ = 0, IF12_BETDATO_SEQ = 1, IF12_BETDATO = null)
+        replikadatabase.insertVedfrivt(IF01_AGNR_FNR = 3020112345L, IF10_FORSFOM_SEQ = 0, IF10_TYPE = '2')
+        replikadatabase.insertFkonto12(IF01_AGNR_FNR = 3020112345L, IF10_FORSFOM_SEQ = 0, IF12_BETDATO_SEQ = 1, IF12_BETDATO = null)
 
         rapid.sendTestMessage(
             """
@@ -459,8 +459,8 @@ internal class ForsikringsvurderingBehovRiverTest {
 
     @Test
     fun `eliminerer forsikring med betdato 0`() {
-        TestcontainersReplikadatabase.insertVedfrivt(IF01_AGNR_FNR = 3020112345L, IF10_FORSFOM_SEQ = 0, IF10_TYPE = '2')
-        TestcontainersReplikadatabase.insertFkonto12(IF01_AGNR_FNR = 3020112345L, IF10_FORSFOM_SEQ = 0, IF12_BETDATO_SEQ = 1, IF12_BETDATO = 0)
+        replikadatabase.insertVedfrivt(IF01_AGNR_FNR = 3020112345L, IF10_FORSFOM_SEQ = 0, IF10_TYPE = '2')
+        replikadatabase.insertFkonto12(IF01_AGNR_FNR = 3020112345L, IF10_FORSFOM_SEQ = 0, IF12_BETDATO_SEQ = 1, IF12_BETDATO = 0)
 
         rapid.sendTestMessage(
             """
@@ -595,32 +595,32 @@ internal class ForsikringsvurderingBehovRiverTest {
 
     @Test
     fun `forsikringsvurdering og oppslag lagres ned i databasen`() {
-        TestcontainersReplikadatabase.insertVedfrivt(
+        replikadatabase.insertVedfrivt(
             IF01_AGNR_FNR = 3020112345L,
             IF10_FORSFOM_SEQ = 123,
             IF10_TYPE = '2'
         )
-        TestcontainersReplikadatabase.insertVedfrivt(
+        replikadatabase.insertVedfrivt(
             IF01_AGNR_FNR = 3020112345L,
             IF10_FORSFOM_SEQ = 456,
             IF10_TYPE = '3'
         )
-        TestcontainersReplikadatabase.insertFkonto12(
+        replikadatabase.insertFkonto12(
             IF01_AGNR_FNR = 3020112345L,
             IF10_FORSFOM_SEQ = 123,
             IF12_BETDATO_SEQ = 111
         )
-        TestcontainersReplikadatabase.insertFkonto12(
+        replikadatabase.insertFkonto12(
             IF01_AGNR_FNR = 3020112345L,
             IF10_FORSFOM_SEQ = 123,
             IF12_BETDATO_SEQ = 222
         )
-        TestcontainersReplikadatabase.insertFkonto12(
+        replikadatabase.insertFkonto12(
             IF01_AGNR_FNR = 3020112345L,
             IF10_FORSFOM_SEQ = 456,
             IF12_BETDATO_SEQ = 333
         )
-        TestcontainersReplikadatabase.insertFkonto12(
+        replikadatabase.insertFkonto12(
             IF01_AGNR_FNR = 3020112345L,
             IF10_FORSFOM_SEQ = 456,
             IF12_BETDATO_SEQ = 444
@@ -652,13 +652,13 @@ internal class ForsikringsvurderingBehovRiverTest {
     @Test
     fun `ekskluderingsårsaker lagres for forsikringer som ikke er kandidater`() {
         // seq=1: virkningsdato etter skjæringstidspunkt
-        TestcontainersReplikadatabase.insertVedfrivt(IF01_AGNR_FNR = 3020112345L, IF10_FORSFOM_SEQ = 1, IF10_TYPE = '2', IF10_VIRKDATO = 20260102)
-        TestcontainersReplikadatabase.insertFkonto12(IF01_AGNR_FNR = 3020112345L, IF10_FORSFOM_SEQ = 1, IF12_BETDATO_SEQ = 1, IF12_BETDATO = 20260101)
+        replikadatabase.insertVedfrivt(IF01_AGNR_FNR = 3020112345L, IF10_FORSFOM_SEQ = 1, IF10_TYPE = '2', IF10_VIRKDATO = 20260102)
+        replikadatabase.insertFkonto12(IF01_AGNR_FNR = 3020112345L, IF10_FORSFOM_SEQ = 1, IF12_BETDATO_SEQ = 1, IF12_BETDATO = 20260101)
         // seq=2: opphørt på skjæringstidspunkt
-        TestcontainersReplikadatabase.insertVedfrivt(IF01_AGNR_FNR = 3020112345L, IF10_FORSFOM_SEQ = 2, IF10_TYPE = '2', IF10_FORSTOM = 20251231)
-        TestcontainersReplikadatabase.insertFkonto12(IF01_AGNR_FNR = 3020112345L, IF10_FORSFOM_SEQ = 2, IF12_BETDATO_SEQ = 1, IF12_BETDATO = 20260101)
+        replikadatabase.insertVedfrivt(IF01_AGNR_FNR = 3020112345L, IF10_FORSFOM_SEQ = 2, IF10_TYPE = '2', IF10_FORSTOM = 20251231)
+        replikadatabase.insertFkonto12(IF01_AGNR_FNR = 3020112345L, IF10_FORSFOM_SEQ = 2, IF12_BETDATO_SEQ = 1, IF12_BETDATO = 20260101)
         // seq=3: aldri betalt
-        TestcontainersReplikadatabase.insertVedfrivt(IF01_AGNR_FNR = 3020112345L, IF10_FORSFOM_SEQ = 3, IF10_TYPE = '2')
+        replikadatabase.insertVedfrivt(IF01_AGNR_FNR = 3020112345L, IF10_FORSFOM_SEQ = 3, IF10_TYPE = '2')
 
         rapid.sendTestMessage(
             """
@@ -691,7 +691,7 @@ internal class ForsikringsvurderingBehovRiverTest {
         IF10_VIRKDATO: Int = 20260101,
         IF10_FORSTOM: Int = 0,
     ) {
-        TestcontainersReplikadatabase.insertVedfrivt(
+        replikadatabase.insertVedfrivt(
             IF01_AGNR_FNR = IF01_AGNR_FNR,
             IF10_FORSFOM_SEQ = IF10_FORSFOM_SEQ,
             IF10_TYPE = IF10_TYPE,
@@ -699,7 +699,7 @@ internal class ForsikringsvurderingBehovRiverTest {
             IF10_VIRKDATO = IF10_VIRKDATO,
             IF10_FORSTOM = IF10_FORSTOM,
         )
-        TestcontainersReplikadatabase.insertFkonto12(
+        replikadatabase.insertFkonto12(
             IF01_AGNR_FNR = IF01_AGNR_FNR,
             IF10_FORSFOM_SEQ = IF10_FORSFOM_SEQ,
             IF12_BETDATO_SEQ = 1,
