@@ -659,6 +659,9 @@ internal class ForsikringsvurderingBehovRiverTest {
         TestcontainersReplikadatabase.insertFkonto12(IF01_AGNR_FNR = 3020112345L, IF10_FORSFOM_SEQ = 2, IF12_BETDATO_SEQ = 1, IF12_BETDATO = 20260101)
         // seq=3: aldri betalt
         TestcontainersReplikadatabase.insertVedfrivt(IF01_AGNR_FNR = 3020112345L, IF10_FORSFOM_SEQ = 3, IF10_TYPE = '2')
+        // seq=4: virkningsdato lenge etter skjæringstidspunkt
+        TestcontainersReplikadatabase.insertVedfrivt(IF01_AGNR_FNR = 3020112345L, IF10_FORSFOM_SEQ = 4, IF10_TYPE = '2', IF10_VIRKDATO = 20260601)
+        TestcontainersReplikadatabase.insertFkonto12(IF01_AGNR_FNR = 3020112345L, IF10_FORSFOM_SEQ = 4, IF12_BETDATO_SEQ = 1, IF12_BETDATO = 20260101)
 
         rapid.sendTestMessage(
             """
@@ -677,10 +680,11 @@ internal class ForsikringsvurderingBehovRiverTest {
         assertEquals(1, rapid.inspektør.size)
         val forsikringsvurderingId = rapid.inspektør.message(0)["@løsning"]["Forsikringsvurdering"]["forsikringsvurderingId"].asText()
         val ekskluderinger = TestcontainersSpForsikringDatabase.hentEkskluderinger(UUID.fromString(forsikringsvurderingId))
-        assertEquals(3, ekskluderinger.size)
+        assertEquals(4, ekskluderinger.size)
         assertEquals("SKJÆRINGSTIDSPUNKT_INNEN_28_DAGER_FØR_VIRKNINGSDATO", ekskluderinger[1])
         assertEquals("OPPHØRT_PÅ_SKJÆRINGSTIDSPUNKT", ekskluderinger[2])
         assertEquals("ALDRI_BETALT", ekskluderinger[3])
+        assertEquals("SKJÆRINGSTIDSPUNKT_MER_ENN_28_DAGER_FØR_VIRKNINGSDATO", ekskluderinger[4])
     }
 
     private fun insertBetaltVedfrivt(
