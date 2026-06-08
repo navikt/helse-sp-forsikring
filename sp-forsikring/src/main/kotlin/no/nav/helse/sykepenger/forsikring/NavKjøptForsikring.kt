@@ -6,9 +6,9 @@ import no.nav.helse.sykepenger.forsikring.oppslag.OppslagIfVedrift10Id
 data class NavKjøptForsikring(
     val id: OppslagIfVedrift10Id,
     val type: Type,
-    val forsikringFom: LocalDate?,
     val virkningsdato: LocalDate,
     val opphørsdato: LocalDate?,
+    val opphørsgrunn: String?,
     val erBetaltNoenGang: Boolean,
 ): Forsikring {
     enum class Type(val dekningGrad: Int, val dekningFraDag: Int) {
@@ -19,14 +19,14 @@ data class NavKjøptForsikring(
         FRILANSER_100_PROSENT_FRA_DAG_1(100, 1),
     }
 
-    fun erIOpptjeningstid(dato: LocalDate) =
-        forsikringFom != null && dato >= forsikringFom && dato < virkningsdato
+    fun erInnen28DagerFørVirkningsdato(dato: LocalDate) =
+        dato in virkningsdato.minusDays(28)..<virkningsdato
 
     fun harVirkningPå(dato: LocalDate) =
         virkningsdato <= dato
 
     fun erOpphørtPå(dato: LocalDate) =
-        opphørsdato != null && dato > opphørsdato
+        (opphørsdato != null && dato > opphørsdato) || (opphørsgrunn != null && opphørsdato == null)
 
     override fun dekningGrad(): Int = type.dekningGrad
 
@@ -54,8 +54,8 @@ data class NavKjøptForsikring(
     }
 
     enum class Ekskluderingsårsak {
-        SKJÆRINGSTIDSPUNKT_I_OPPTJENINGSTID,
-        VIRKNINGSDATO_ETTER_SKJÆRINGSTIDSPUNKT,
+        SKJÆRINGSTIDSPUNKT_INNEN_28_DAGER_FØR_VIRKNINGSDATO,
+        SKJÆRINGSTIDSPUNKT_MER_ENN_28_DAGER_FØR_VIRKNINGSDATO,
         OPPHØRT_PÅ_SKJÆRINGSTIDSPUNKT,
         ALDRI_BETALT,
     }

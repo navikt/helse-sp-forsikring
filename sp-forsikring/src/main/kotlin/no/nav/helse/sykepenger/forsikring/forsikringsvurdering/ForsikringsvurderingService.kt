@@ -32,38 +32,36 @@ class ForsikringsvurderingService(
         val ekskluderinger = mutableListOf<EkskluderingNavKjøptForsikring>()
 
         // Skjæringstidspunkt må ikke være i opptjeningstid [IF10_FORSFOM, IF10_VIRKDATO)
-        val forsikringerIOpptjeningstid = navKjøpteForsikringer.filter {
-            it.erIOpptjeningstid(skjæringstidspunkt)
-        }
-        navKjøpteForsikringer.removeAll(forsikringerIOpptjeningstid)
-        forsikringerIOpptjeningstid.forEach {
-            ekskluderinger.add(EkskluderingNavKjøptForsikring(it.id, NavKjøptForsikring.Ekskluderingsårsak.SKJÆRINGSTIDSPUNKT_I_OPPTJENINGSTID))
-        }
+       navKjøpteForsikringer.filter {
+            it.erInnen28DagerFørVirkningsdato(skjæringstidspunkt)
+       }.forEach {
+           ekskluderinger.add(EkskluderingNavKjøptForsikring(it.id, NavKjøptForsikring.Ekskluderingsårsak.SKJÆRINGSTIDSPUNKT_INNEN_28_DAGER_FØR_VIRKNINGSDATO))
+           navKjøpteForsikringer.remove(it)
+       }
 
         // Skjæringstidspunkt må være etter eller lik virkningsdato
-        val forsikringerMedVirkningsdatoEtterSkjæringstidspunkt = navKjøpteForsikringer.filterNot {
+        navKjøpteForsikringer.filterNot {
             it.harVirkningPå(skjæringstidspunkt)
-        }
-        navKjøpteForsikringer.removeAll(forsikringerMedVirkningsdatoEtterSkjæringstidspunkt)
-        forsikringerMedVirkningsdatoEtterSkjæringstidspunkt.forEach {
-            ekskluderinger.add(EkskluderingNavKjøptForsikring(it.id, NavKjøptForsikring.Ekskluderingsårsak.VIRKNINGSDATO_ETTER_SKJÆRINGSTIDSPUNKT))
+        }.forEach {
+            ekskluderinger.add(EkskluderingNavKjøptForsikring(it.id, NavKjøptForsikring.Ekskluderingsårsak.SKJÆRINGSTIDSPUNKT_MER_ENN_28_DAGER_FØR_VIRKNINGSDATO))
+            navKjøpteForsikringer.remove(it)
         }
 
+
         // Skjæringstidspunkt må være før eller lik opphørsdato (hvis det er en opphørsdato)
-        val opphørteForsikringer = navKjøpteForsikringer.filter { forsikring ->
+        navKjøpteForsikringer.filter { forsikring ->
             forsikring.erOpphørtPå(skjæringstidspunkt)
-        }
-        navKjøpteForsikringer.removeAll(opphørteForsikringer)
-        opphørteForsikringer.forEach {
+        }.forEach {
             ekskluderinger.add(EkskluderingNavKjøptForsikring(it.id, NavKjøptForsikring.Ekskluderingsårsak.OPPHØRT_PÅ_SKJÆRINGSTIDSPUNKT))
+            navKjøpteForsikringer.remove(it)
         }
 
         // Forsikringen må være betalt noen gang
-        val ubetalteForsikringer = navKjøpteForsikringer.filterNot(NavKjøptForsikring::erBetaltNoenGang)
-        navKjøpteForsikringer.removeAll(ubetalteForsikringer)
-        ubetalteForsikringer.forEach {
-            ekskluderinger.add(EkskluderingNavKjøptForsikring(it.id, NavKjøptForsikring.Ekskluderingsårsak.ALDRI_BETALT))
-        }
+        navKjøpteForsikringer.filterNot(NavKjøptForsikring::erBetaltNoenGang)
+            .forEach {
+                ekskluderinger.add(EkskluderingNavKjøptForsikring(it.id, NavKjøptForsikring.Ekskluderingsårsak.ALDRI_BETALT))
+                navKjøpteForsikringer.remove(it)
+            }
 
         // Kontroller mismatch mellom yrkesaktivitetstype og type forsikring i Infotrygd
         navKjøpteForsikringer.forEach {

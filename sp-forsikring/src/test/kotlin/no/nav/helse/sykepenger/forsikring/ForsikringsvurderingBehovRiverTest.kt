@@ -678,7 +678,7 @@ internal class ForsikringsvurderingBehovRiverTest {
         val forsikringsvurderingId = rapid.inspektør.message(0)["@løsning"]["Forsikringsvurdering"]["forsikringsvurderingId"].asText()
         val ekskluderinger = TestcontainersSpForsikringDatabase.hentEkskluderinger(UUID.fromString(forsikringsvurderingId))
         assertEquals(3, ekskluderinger.size)
-        assertEquals("VIRKNINGSDATO_ETTER_SKJÆRINGSTIDSPUNKT", ekskluderinger[1])
+        assertEquals("SKJÆRINGSTIDSPUNKT_INNEN_28_DAGER_FØR_VIRKNINGSDATO", ekskluderinger[1])
         assertEquals("OPPHØRT_PÅ_SKJÆRINGSTIDSPUNKT", ekskluderinger[2])
         assertEquals("ALDRI_BETALT", ekskluderinger[3])
     }

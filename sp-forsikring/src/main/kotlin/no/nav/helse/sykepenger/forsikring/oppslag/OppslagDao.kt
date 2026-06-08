@@ -167,9 +167,9 @@ class OppslagDao(private val transaction: TransactionalSession) {
             SELECT
                 v.id,
                 v.IF10_TYPE,
-                v.IF10_FORSFOM,
                 v.IF10_VIRKDATO,
                 v.IF10_FORSTOM,
+                v.IF10_OPPHGR,
                 EXISTS (
                     SELECT 1
                     FROM oppslag_IF_FKONTO_12 f
@@ -193,9 +193,9 @@ class OppslagDao(private val transaction: TransactionalSession) {
                             "5" -> NavKjøptForsikring.Type.FRILANSER_100_PROSENT_FRA_DAG_1
                             else -> error("Ukjent forsikringstype: $type")
                         },
-                        forsikringFom = row.intToLocalDate("IF10_FORSFOM"),
                         virkningsdato = row.intToLocalDate("IF10_VIRKDATO")!!,
                         opphørsdato = row.intToLocalDate("IF10_FORSTOM"),
+                        opphørsgrunn = row.string("IF10_OPPHGR").takeIf { it.isNotBlank() },
                         erBetaltNoenGang = row.boolean("er_betalt_noen_gang"),
                     )
                 }
