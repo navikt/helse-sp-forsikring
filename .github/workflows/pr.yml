@@ -12,8 +12,16 @@ permissions:
   packages: read
 
 jobs:
-  build:
+  build-sp-forsikring:
     uses: ./.github/workflows/build.yml
     secrets: inherit
     with:
       push_image: false
+  build-opprydding-dev:
+    uses: ./.github/workflows/build.yml
+    secrets: inherit
+    with:
+      push_image: false
+      gradle_project: ':opprydding-dev'
+      docker_target: 'opprydding-dev'
+      image_suffix: 'opprydding-dev'
