@@ -12,6 +12,7 @@ dependencies {
     implementation(libs.hikaricp)
     implementation(libs.kotliquery)
     implementation(libs.postgresql)
+    implementation(libs.cloud.sql.postgres.socket.factory)
     implementation(libs.rapids.and.rivers)
 
     testImplementation(project(":migreringer"))
