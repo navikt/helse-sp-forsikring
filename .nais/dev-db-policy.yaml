@@ -1,0 +1,15 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: sp-forsikring-db-policy
+  namespace: tbd
+spec:
+  egress:
+    - to:
+        - ipBlock:
+            cidr: 34.88.20.179/32
+  podSelector:
+    matchLabels:
+      dbPolicyUser: sp-forsikring-opprydding-dev
+  policyTypes:
+    - Egress

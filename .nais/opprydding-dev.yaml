@@ -5,6 +5,7 @@ metadata:
   namespace: tbd
   labels:
     team: tbd
+    dbPolicyUser: sp-forsikring-opprydding-dev
 spec:
   port: 8080
   startup:
@@ -51,7 +52,7 @@ spec:
     enabled: true
     path: /metrics
   envFrom:
-    - secret: google-sql-spesialist-spesialist-spesialist-opprydding-b203ea44
+    - secret: google-sql-sp-forsikring-sp-forsikring-sp-forsikring-o-d64af343
   env:
     - name: KAFKA_RAPID_TOPIC
       value: tbd.rapid.v1
