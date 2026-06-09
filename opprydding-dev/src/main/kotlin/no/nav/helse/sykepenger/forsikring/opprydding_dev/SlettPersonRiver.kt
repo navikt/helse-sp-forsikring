@@ -35,7 +35,8 @@ internal class SlettPersonRiver(
     }
 
     private fun slettPerson(tx: TransactionalSession, fødselsnummer: String) {
-        val fnrLong = fødselsnummer.toLong()
+        // Konverter fra ddMMyy til yyMMdd-format før toLong()
+        val fnrLong = (fødselsnummer.substring(4, 6) + fødselsnummer.substring(2, 4) + fødselsnummer.substring(0, 2) + fødselsnummer.substring(6)).toLong()
 
         // Samle oppslag-IDer for personen fra begge mulige veier (med og uten forsikringsdata)
         val oppslagIds: List<UUID> = tx.run(

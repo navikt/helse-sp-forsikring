@@ -32,7 +32,7 @@ internal class SlettPersonRiverTest {
     @Test
     fun `sletter all data for en person`() {
         val fødselsnummer = "01020312345"
-        val fnrLong = fødselsnummer.toLong()
+        val fnrLong = (fødselsnummer.substring(4, 6) + fødselsnummer.substring(2, 4) + fødselsnummer.substring(0, 2) + fødselsnummer.substring(6)).toLong()
 
         val oppslagId = UUID.randomUUID()
         val vedfrivt10Id = UUID.randomUUID()
@@ -63,7 +63,7 @@ internal class SlettPersonRiverTest {
     @Test
     fun `publiserer person_slettet etter sletting`() {
         val fødselsnummer = "01020312345"
-        val fnrLong = fødselsnummer.toLong()
+        val fnrLong = (fødselsnummer.substring(4, 6) + fødselsnummer.substring(2, 4) + fødselsnummer.substring(0, 2) + fødselsnummer.substring(6)).toLong()
 
         val oppslagId = UUID.randomUUID()
         val vedfrivt10Id = UUID.randomUUID()
@@ -87,17 +87,21 @@ internal class SlettPersonRiverTest {
     fun `sletter ikke data for annen person`() {
         val fødselsnummer1 = "01020312345"
         val fødselsnummer2 = "02020312345"
+        val fnrLong1 = (fødselsnummer1.substring(4, 6) + fødselsnummer1.substring(2, 4) + fødselsnummer1.substring(0, 2) + fødselsnummer1.substring(6)).toLong()
+        val fnrLong2 = (fødselsnummer2.substring(4, 6) + fødselsnummer2.substring(2, 4) + fødselsnummer2.substring(0, 2) + fødselsnummer2.substring(6)).toLong()
+
+
 
         val oppslagId1 = UUID.randomUUID()
         val vedfrivt10Id1 = UUID.randomUUID()
         insertOppslag(oppslagId1)
-        insertVedfrivt10(vedfrivt10Id1, oppslagId1, fødselsnummer1.toLong())
+        insertVedfrivt10(vedfrivt10Id1, oppslagId1, fnrLong1)
         insertForsikringsvurdering(UUID.randomUUID(), oppslagId1, fødselsnummer1)
 
         val oppslagId2 = UUID.randomUUID()
         val vedfrivt10Id2 = UUID.randomUUID()
         insertOppslag(oppslagId2)
-        insertVedfrivt10(vedfrivt10Id2, oppslagId2, fødselsnummer2.toLong())
+        insertVedfrivt10(vedfrivt10Id2, oppslagId2, fnrLong2)
         insertForsikringsvurdering(UUID.randomUUID(), oppslagId2, fødselsnummer2)
 
         assertEquals(2, Database.countOppslag())
