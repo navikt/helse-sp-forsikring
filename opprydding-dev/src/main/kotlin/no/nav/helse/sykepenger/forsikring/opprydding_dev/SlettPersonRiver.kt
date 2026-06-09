@@ -28,6 +28,7 @@ internal class SlettPersonRiver(
 
     override fun onPacket(packet: JsonMessage, context: MessageContext, metadata: MessageMetadata, meterRegistry: MeterRegistry) {
         val fødselsnummer = packet["fødselsnummer"].asString()
+
         sessionOf(dataSource).use { session ->
             session.transaction { tx -> slettPerson(tx, fødselsnummer) }
         }
