@@ -2,25 +2,23 @@ package no.nav.helse.sykepenger.forsikring.forsikringsvurdering
 
 import java.time.LocalDate
 import javax.sql.DataSource
-import kotlin.collections.any
-import kotlin.collections.filter
 import kotliquery.TransactionalSession
-import no.nav.helse.sykepenger.forsikring.KollektivForsikring
 import no.nav.helse.sykepenger.forsikring.AbstractNavKjøptForsikring
 import no.nav.helse.sykepenger.forsikring.AbstractNavKjøptForsikring.Ekskluderingsårsak.ALDRI_BETALT
 import no.nav.helse.sykepenger.forsikring.AbstractNavKjøptForsikring.Ekskluderingsårsak.OPPHØRT_PÅ_SKJÆRINGSTIDSPUNKT
 import no.nav.helse.sykepenger.forsikring.AbstractNavKjøptForsikring.Ekskluderingsårsak.SKJÆRINGSTIDSPUNKT_INNEN_28_DAGER_FØR_VIRKNINGSDATO
 import no.nav.helse.sykepenger.forsikring.AbstractNavKjøptForsikring.Ekskluderingsårsak.SKJÆRINGSTIDSPUNKT_MER_ENN_28_DAGER_FØR_VIRKNINGSDATO
+import no.nav.helse.sykepenger.forsikring.KollektivForsikring
 import no.nav.helse.sykepenger.forsikring.NavKjøptForsikring
 import no.nav.helse.sykepenger.forsikring.SpesiellYrkesgruppe
 import no.nav.helse.sykepenger.forsikring.Yrkesaktivitetstype
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.Forsikringsvurdering.EkskluderingNavKjøptForsikring
 import no.nav.helse.sykepenger.forsikring.kollektiveForsikringerFor
 import no.nav.helse.sykepenger.forsikring.loggError
+import no.nav.helse.sykepenger.forsikring.loggInfo
 import no.nav.helse.sykepenger.forsikring.oppslag.OppslagService
 import no.nav.helse.sykepenger.forsikring.replikabase.ReplikabaseDao
 import no.nav.helse.sykepenger.forsikring.replikabase.mapTilRåNavKjøptForsikring
-import no.nav.helse.sykepenger.forsikring.toLocalDate
 
 class ForsikringsvurderingService(
     spForsikringTransaction: TransactionalSession,
@@ -61,6 +59,8 @@ class ForsikringsvurderingService(
 
         val navKjøpteForsikringer = oppslag.navKjøpteForsikringer.toMutableList()
         val ekskluderinger = mutableListOf<EkskluderingNavKjøptForsikring>()
+
+        loggInfo("Fant ${navKjøpteForsikringer.size} NAV-kjøpte forsikringer for bruker", teamLogsDetaljer = arrayOf("navKjøpteForsikringer" to navKjøpteForsikringer.map { "Nav-kjøpt forsikring av type ${it.type} med virkningsdato ${it.virkningsdato} og opphørsdato ${it.opphørsdato}" }))
 
         // Skjæringstidspunkt må ikke være i opptjeningstid [IF10_FORSFOM, IF10_VIRKDATO)
        navKjøpteForsikringer.filter {
