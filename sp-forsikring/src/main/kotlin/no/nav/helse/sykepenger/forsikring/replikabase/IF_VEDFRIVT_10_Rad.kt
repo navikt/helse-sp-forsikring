@@ -53,7 +53,7 @@ fun IF_VEDFRIVT_10_Rad.mapTilRåNavKjøptForsikring(skjæringstidspunkt: LocalDa
     },
     virkningsdato = IF10_VIRKDATO.toLocalDate()!!,
     opphørsdato = IF10_FORSTOM.toLocalDate(),
-    opphørsgrunn = IF10_OPPHGR,
+    opphørsgrunn = IF10_OPPHGR.takeIf { it.isNotBlank() },
     erBetalt = this.IF_FKONTO_12_rader.any { konto ->
         konto.IF12_FOM?.toLocalDate()?.isBefore(skjæringstidspunkt) ?: false
             && konto.IF12_TOM?.toLocalDate()?.isAfter(skjæringstidspunkt) ?: false

@@ -9,7 +9,6 @@ import com.github.navikt.tbd_libs.rapids_and_rivers.test_support.TestRapid
 import java.util.*
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
-import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertDoesNotThrow
@@ -33,15 +32,6 @@ internal class ForsikringsvurderingBehovRiverTest {
         TestcontainersReplikadatabase.reset()
         TestcontainersSpForsikringDatabase.reset()
         rapid.reset()
-    }
-
-    companion object {
-        @JvmStatic
-        @AfterAll
-        fun shutdown() {
-            TestcontainersReplikadatabase.shutdown()
-            TestcontainersSpForsikringDatabase.shutdown()
-        }
     }
 
     @Test
