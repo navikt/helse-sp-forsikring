@@ -7,9 +7,11 @@ import java.time.format.DateTimeFormatter
 import kotliquery.Row
 import kotliquery.TransactionalSession
 import kotliquery.queryOf
+import no.nav.helse.sykepenger.forsikring.AbstractNavKjøptForsikring
 import no.nav.helse.sykepenger.forsikring.NavKjøptForsikring
 import no.nav.helse.sykepenger.forsikring.replikabase.IF_FKONTO_12_Rad
 import no.nav.helse.sykepenger.forsikring.replikabase.IF_VEDFRIVT_10_Rad
+import no.nav.helse.sykepenger.forsikring.toLocalDate
 import org.intellij.lang.annotations.Language
 
 class OppslagDao(private val transaction: TransactionalSession) {
@@ -186,11 +188,11 @@ class OppslagDao(private val transaction: TransactionalSession) {
                     NavKjøptForsikring(
                         id = OppslagIfVedrift10Id(row.uuid("id")),
                         type = when (val type = row.string("IF10_TYPE")) {
-                            "1" -> NavKjøptForsikring.Type.SELVSTENDIG_80_PROSENT_FRA_DAG_1
-                            "2" -> NavKjøptForsikring.Type.SELVSTENDIG_100_PROSENT_FRA_DAG_17
-                            "3" -> NavKjøptForsikring.Type.SELVSTENDIG_100_PROSENT_FRA_DAG_1
-                            "4" -> NavKjøptForsikring.Type.SELVSTENDIG_JORDBRUKER_100_PROSENT_FRA_DAG_1
-                            "5" -> NavKjøptForsikring.Type.FRILANSER_100_PROSENT_FRA_DAG_1
+                            "1" -> AbstractNavKjøptForsikring.Type.SELVSTENDIG_80_PROSENT_FRA_DAG_1
+                            "2" -> AbstractNavKjøptForsikring.Type.SELVSTENDIG_100_PROSENT_FRA_DAG_17
+                            "3" -> AbstractNavKjøptForsikring.Type.SELVSTENDIG_100_PROSENT_FRA_DAG_1
+                            "4" -> AbstractNavKjøptForsikring.Type.SELVSTENDIG_JORDBRUKER_100_PROSENT_FRA_DAG_1
+                            "5" -> AbstractNavKjøptForsikring.Type.FRILANSER_100_PROSENT_FRA_DAG_1
                             else -> error("Ukjent forsikringstype: $type")
                         },
                         virkningsdato = row.intToLocalDate("IF10_VIRKDATO")!!,
@@ -206,6 +208,4 @@ class OppslagDao(private val transaction: TransactionalSession) {
 
     private fun Row.intToLocalDate(label: String) = int(label).toLocalDate()
 
-    private fun Int.toLocalDate() =
-        if (this == 0) null else LocalDate.parse(this.toString().padStart(8, '0'), DateTimeFormatter.ofPattern("yyyyMMdd"))
 }

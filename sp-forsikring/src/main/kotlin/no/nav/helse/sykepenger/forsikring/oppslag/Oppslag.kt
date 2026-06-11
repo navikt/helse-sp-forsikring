@@ -2,7 +2,6 @@ package no.nav.helse.sykepenger.forsikring.oppslag
 
 import java.util.*
 import no.nav.helse.sykepenger.forsikring.NavKjøptForsikring
-import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.ForsikringsvurderingId
 import no.nav.helse.sykepenger.forsikring.generateUuidV7
 
 @JvmInline

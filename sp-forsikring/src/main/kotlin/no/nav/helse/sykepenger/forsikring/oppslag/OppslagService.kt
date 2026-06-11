@@ -7,9 +7,8 @@ import no.nav.helse.sykepenger.forsikring.replikabase.ReplikabaseDao
 
 class OppslagService(
     spForsikringTransaction: TransactionalSession,
-    replikabaseDataSource: DataSource
+    private val replikabaseDao: ReplikabaseDao,
 ) {
-    private val replikabaseDao = ReplikabaseDao(dataSource = replikabaseDataSource)
     private val oppslagDao = OppslagDao(spForsikringTransaction)
 
     fun gjørNyttOppslag(fødselsnummer: String): Oppslag {

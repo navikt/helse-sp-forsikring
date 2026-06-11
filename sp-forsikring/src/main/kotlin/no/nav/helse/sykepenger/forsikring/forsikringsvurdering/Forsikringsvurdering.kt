@@ -1,7 +1,7 @@
 package no.nav.helse.sykepenger.forsikring.forsikringsvurdering
 
 import java.util.*
-import no.nav.helse.sykepenger.forsikring.NavKjøptForsikring
+import no.nav.helse.sykepenger.forsikring.AbstractNavKjøptForsikring
 import no.nav.helse.sykepenger.forsikring.generateUuidV7
 import no.nav.helse.sykepenger.forsikring.oppslag.OppslagId
 import no.nav.helse.sykepenger.forsikring.oppslag.OppslagIfVedrift10Id
@@ -13,6 +13,11 @@ value class ForsikringsvurderingId(val value: UUID) {
     }
 }
 
+data class ApiForsikringsvurdering(
+    val harDekningIVentetid: Boolean,
+    val erBetalt: Boolean,
+)
+
 class Forsikringsvurdering private constructor(
     val id: ForsikringsvurderingId,
     val oppslagId: OppslagId,
@@ -22,7 +27,7 @@ class Forsikringsvurdering private constructor(
 ) {
     data class EkskluderingNavKjøptForsikring(
         val oppslagIfVedfrivt10Id: OppslagIfVedrift10Id,
-        val ekskluderingsårsak: NavKjøptForsikring.Ekskluderingsårsak,
+        val ekskluderingsårsak: AbstractNavKjøptForsikring.Ekskluderingsårsak,
     )
 
     companion object {

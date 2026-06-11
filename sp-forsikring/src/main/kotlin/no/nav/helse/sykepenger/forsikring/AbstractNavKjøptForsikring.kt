@@ -3,13 +3,39 @@ package no.nav.helse.sykepenger.forsikring
 import java.time.LocalDate
 import no.nav.helse.sykepenger.forsikring.oppslag.OppslagIfVedrift10Id
 
-data class NavKjøptForsikring(
+
+class RåNavKjøptForsikring(
+    type: Type,
+    virkningsdato: LocalDate,
+    opphørsdato: LocalDate?,
+    opphørsgrunn: String?,
+    val erBetalt: Boolean
+): AbstractNavKjøptForsikring (
+    type = type,
+    virkningsdato = virkningsdato,
+    opphørsdato = opphørsdato,
+    opphørsgrunn = opphørsgrunn,
+)
+
+class NavKjøptForsikring(
     val id: OppslagIfVedrift10Id,
+    type: Type,
+    virkningsdato: LocalDate,
+    opphørsdato: LocalDate?,
+    opphørsgrunn: String?,
+    val erBetaltNoenGang: Boolean
+): AbstractNavKjøptForsikring (
+    type = type,
+    virkningsdato = virkningsdato,
+    opphørsdato = opphørsdato,
+    opphørsgrunn = opphørsgrunn,
+)
+
+sealed class AbstractNavKjøptForsikring(
     val type: Type,
     val virkningsdato: LocalDate,
     val opphørsdato: LocalDate?,
     val opphørsgrunn: String?,
-    val erBetaltNoenGang: Boolean,
 ): Forsikring {
     enum class Type(val dekningGrad: Int, val dekningFraDag: Int) {
         SELVSTENDIG_80_PROSENT_FRA_DAG_1(80, 1),

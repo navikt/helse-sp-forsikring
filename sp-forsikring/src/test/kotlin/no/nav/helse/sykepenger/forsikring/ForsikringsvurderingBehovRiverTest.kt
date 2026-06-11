@@ -176,7 +176,7 @@ internal class ForsikringsvurderingBehovRiverTest {
     fun `feiler ved ugyldig kombinasjon`(yrkesaktivitetstype: String, særskiltGruppe: String?, IF10_TYPE: Char?) {
         IF10_TYPE?.let { insertBetaltVedfrivt(IF01_AGNR_FNR = 3020112345L, IF10_TYPE = it) }
 
-        assertThrows<NavKjøptForsikring.Valideringsfeil> {
+        assertThrows<AbstractNavKjøptForsikring.Valideringsfeil> {
             rapid.sendTestMessage(
                 """
                 {
