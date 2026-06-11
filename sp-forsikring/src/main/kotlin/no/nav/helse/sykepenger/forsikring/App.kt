@@ -2,8 +2,7 @@ package no.nav.helse.sykepenger.forsikring
 
 import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
-import io.ktor.server.application.ApplicationStarted
-import io.ktor.server.application.ApplicationStopped
+import io.ktor.server.application.*
 import java.time.Duration
 import no.nav.helse.rapids_rivers.RapidApplication
 import org.flywaydb.core.Flyway
@@ -45,15 +44,14 @@ fun launchApplication(env: Map<String, String>) {
                 )
 
                 monitor.subscribe(ApplicationStarted) {
-                    logg.info("Migrerer database")
+                    loggInfo("Migrerer database")
                     Flyway.configure()
                         .dataSource(spForsikringDataSource)
-                        .cleanDisabled(false)
+                        .cleanDisabled(true)
                         .lockRetryCount(-1)
                         .load()
-                        .also { it.clean() }
                         .migrate()
-                    logg.info("Migrering ferdig!")
+                    loggInfo("Migrering ferdig!")
                 }
                 monitor.subscribe(ApplicationStopped) {
                     loggInfo("Forsøker å lukke datasourcer...")
