@@ -84,7 +84,6 @@ class ForsikringsvurderingBehovRiver(
                 }
             } catch (err: Exception) {
                 loggError("Feil ved håndtering av Forsikringsvurdering-behov", err, "melding" to packet.toJson())
-                throw err
             }
         }
     }
