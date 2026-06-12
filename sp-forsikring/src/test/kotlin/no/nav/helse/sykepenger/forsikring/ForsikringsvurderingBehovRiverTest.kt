@@ -13,7 +13,6 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertDoesNotThrow
-import org.junit.jupiter.api.assertThrows
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.CsvSource
 
@@ -164,10 +163,10 @@ internal class ForsikringsvurderingBehovRiverTest {
         "FRILANS, , 3",
         "FRILANS, , 4"
     )
-    fun `feiler ved ugyldig kombinasjon`(yrkesaktivitetstype: String, særskiltGruppe: String?, IF10_TYPE: Char?) {
+    fun `Når vurderingen feiler så sendes det ikke ut noe svar`(yrkesaktivitetstype: String, særskiltGruppe: String?, IF10_TYPE: Char?) {
         IF10_TYPE?.let { insertBetaltVedfrivt(IF01_AGNR_FNR = 3020112345L, IF10_TYPE = it) }
 
-        assertThrows<AbstractNavKjøptForsikring.Valideringsfeil> {
+        assertDoesNotThrow {
             rapid.sendTestMessage(
                 """
                 {
@@ -182,6 +181,8 @@ internal class ForsikringsvurderingBehovRiverTest {
             """.trimIndent()
             )
         }
+
+        assertEquals(0, rapid.inspektør.size)
     }
 
     @Test
@@ -386,7 +387,7 @@ internal class ForsikringsvurderingBehovRiverTest {
         insertBetaltVedfrivt(IF01_AGNR_FNR = 3020112345L, IF10_FORSFOM_SEQ = 1, IF10_TYPE = '1') // grad=80, fraDag=1
         insertBetaltVedfrivt(IF01_AGNR_FNR = 3020112345L, IF10_FORSFOM_SEQ = 2, IF10_TYPE = '2') // grad=100, fraDag=17
 
-        assertThrows<IllegalStateException> {
+        assertDoesNotThrow {
             rapid.sendTestMessage(
                 """
                 {

@@ -10,6 +10,9 @@ import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.Løsning
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertThrows
+import org.junit.jupiter.params.ParameterizedTest
+import org.junit.jupiter.params.provider.CsvSource
 
 internal class ForsikringsvurderingTest {
     @BeforeEach
@@ -118,6 +121,62 @@ internal class ForsikringsvurderingTest {
         assertEquals(100, løsning.dekning.grad)
         assertEquals(17, løsning.dekning.fraDag)
         assertEquals(1, TestcontainersSpForsikringDatabase.countOppslag(vurdering.id.value.toString()))
+    }
+
+    @ParameterizedTest(name = "{0} særskilt {1} infotrygd-type {2}", quoteTextArguments = false)
+    @CsvSource(
+        "ARBEIDSTAKER, , 1",
+        "ARBEIDSTAKER, , 2",
+        "ARBEIDSTAKER, , 3",
+        "ARBEIDSTAKER, , 4",
+        "ARBEIDSTAKER, , 5",
+        "SELVSTENDIG, , 4",
+        "FRILANS, , 1",
+        "FRILANS, , 2",
+        "FRILANS, , 3",
+        "FRILANS, , 4"
+    )
+    fun `gjørVurdering feiler ved ugyldig kombinasjon`(yrkesaktivitetstype: String, særskiltGruppe: String?, IF10_TYPE: Char?) {
+        IF10_TYPE?.let { insertBetaltVedfrivt(IF10_TYPE = it) }
+
+        assertThrows<AbstractNavKjøptForsikring.Valideringsfeil> {
+            medService {
+                gjørVurdering(
+                    behovJson = """{"@behov":["Forsikringsvurdering"]}""",
+                    skjæringstidspunkt = SKJÆRINGSTIDSPUNKT,
+                    fødselsnummer = FØDSELSNUMMER,
+                    spesielleYrkesgrupper = særskiltGruppe?.let {
+                        setOf(
+                            when (it) {
+                                "JORDBRUKER" -> SpesiellYrkesgruppe.Jordbruker
+                                "REINDRIFTER" -> SpesiellYrkesgruppe.Reindrifter
+                                "FISKER_BLAD_B" -> SpesiellYrkesgruppe.Fisker(SpesiellYrkesgruppe.Fisker.Blad.B)
+                                else -> SpesiellYrkesgruppe.Ukjent(it)
+                            }
+                        )
+                    } ?: emptySet(),
+                    yrkesaktivitetstype = enumValueOf(yrkesaktivitetstype)
+                )
+            }
+        }
+    }
+
+    @Test
+    fun `gjørVurdering feiler når dekninger har ulike grader`() {
+        insertBetaltVedfrivt(IF10_FORSFOM_SEQ = 1, IF10_TYPE = '1')
+        insertBetaltVedfrivt(IF10_FORSFOM_SEQ = 2, IF10_TYPE = '2')
+
+        assertThrows<IllegalStateException> {
+            medService {
+                gjørVurdering(
+                    behovJson = """{"@behov":["Forsikringsvurdering"]}""",
+                    skjæringstidspunkt = SKJÆRINGSTIDSPUNKT,
+                    fødselsnummer = FØDSELSNUMMER,
+                    spesielleYrkesgrupper = emptySet(),
+                    yrkesaktivitetstype = Yrkesaktivitetstype.SELVSTENDIG
+                )
+            }
+        }
     }
 
     @Disabled
