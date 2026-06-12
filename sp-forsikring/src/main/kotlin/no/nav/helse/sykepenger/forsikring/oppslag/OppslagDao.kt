@@ -196,7 +196,7 @@ class OppslagDao(private val transaction: TransactionalSession) {
                         virkningsdato = row.intToLocalDate("IF10_VIRKDATO")!!,
                         opphørsdato = row.intToLocalDate("IF10_FORSTOM"),
                         opphørsgrunn = row.string("IF10_OPPHGR").takeIf { it.isNotBlank() },
-                        erBetaltNoenGang = true //row.boolean("er_betalt_noen_gang"),
+                        erBetaltNoenGang = row.boolean("er_betalt_noen_gang"),
                     )
                 }
                 .asList

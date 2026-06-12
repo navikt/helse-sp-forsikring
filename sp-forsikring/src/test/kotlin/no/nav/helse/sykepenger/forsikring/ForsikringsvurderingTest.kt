@@ -8,7 +8,6 @@ import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.ApiForsikringsvur
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.ForsikringsvurderingService as VurderingService
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.Løsning
 import org.junit.jupiter.api.BeforeEach
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.junit.jupiter.params.ParameterizedTest
@@ -179,7 +178,6 @@ internal class ForsikringsvurderingTest {
         }
     }
 
-    @Disabled
     @Test
     fun `gjørVurdering lagrer ekskluderinger for forsikringer som ikke er kandidater`() {
         TestcontainersReplikadatabase.insertVedfrivt(
