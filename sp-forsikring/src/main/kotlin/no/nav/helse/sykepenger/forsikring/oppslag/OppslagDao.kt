@@ -2,8 +2,6 @@ package no.nav.helse.sykepenger.forsikring.oppslag
 
 import java.sql.Timestamp
 import java.time.Instant
-import java.time.LocalDate
-import java.time.format.DateTimeFormatter
 import kotliquery.Row
 import kotliquery.TransactionalSession
 import kotliquery.queryOf
@@ -198,7 +196,7 @@ class OppslagDao(private val transaction: TransactionalSession) {
                         virkningsdato = row.intToLocalDate("IF10_VIRKDATO")!!,
                         opphørsdato = row.intToLocalDate("IF10_FORSTOM"),
                         opphørsgrunn = row.string("IF10_OPPHGR").takeIf { it.isNotBlank() },
-                        erBetaltNoenGang = row.boolean("er_betalt_noen_gang"),
+                        erBetaltNoenGang = true //row.boolean("er_betalt_noen_gang"),
                     )
                 }
                 .asList
