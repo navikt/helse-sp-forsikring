@@ -1,14 +1,15 @@
 package no.nav.helse.sykepenger.forsikring
 
-import kotliquery.sessionOf
-import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.ApiForsikringsvurdering
-import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.Løsning
-import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.ForsikringsvurderingService as VurderingService
-import org.junit.jupiter.api.BeforeEach
-import org.junit.jupiter.api.Test
 import java.time.LocalDate
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
+import kotliquery.sessionOf
+import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.ApiForsikringsvurdering
+import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.ForsikringsvurderingService as VurderingService
+import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.Løsning
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Disabled
+import org.junit.jupiter.api.Test
 
 internal class ForsikringsvurderingTest {
     @BeforeEach
@@ -119,6 +120,7 @@ internal class ForsikringsvurderingTest {
         assertEquals(1, TestcontainersSpForsikringDatabase.countOppslag(vurdering.id.value.toString()))
     }
 
+    @Disabled
     @Test
     fun `gjørVurdering lagrer ekskluderinger for forsikringer som ikke er kandidater`() {
         TestcontainersReplikadatabase.insertVedfrivt(

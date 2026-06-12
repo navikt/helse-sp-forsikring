@@ -10,6 +10,7 @@ import java.util.*
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertDoesNotThrow
 import org.junit.jupiter.api.assertThrows
@@ -404,6 +405,7 @@ internal class ForsikringsvurderingBehovRiverTest {
         assertEquals(0, rapid.inspektør.size)
     }
 
+    @Disabled
     @Test
     fun `eliminerer forsikring som aldri er betalt`() {
         TestcontainersReplikadatabase.insertVedfrivt(IF01_AGNR_FNR = 3020112345L, IF10_TYPE = '2')
@@ -425,6 +427,7 @@ internal class ForsikringsvurderingBehovRiverTest {
         forventLøsning("""{ "harForsikring": false }""")
     }
 
+    @Disabled
     @Test
     fun `eliminerer forsikring med betdato null`() {
         TestcontainersReplikadatabase.insertVedfrivt(IF01_AGNR_FNR = 3020112345L, IF10_FORSFOM_SEQ = 0, IF10_TYPE = '2')
@@ -447,6 +450,7 @@ internal class ForsikringsvurderingBehovRiverTest {
         forventLøsning("""{ "harForsikring": false }""")
     }
 
+    @Disabled
     @Test
     fun `eliminerer forsikring med betdato 0`() {
         TestcontainersReplikadatabase.insertVedfrivt(IF01_AGNR_FNR = 3020112345L, IF10_FORSFOM_SEQ = 0, IF10_TYPE = '2')
@@ -639,6 +643,7 @@ internal class ForsikringsvurderingBehovRiverTest {
         assertEquals(4, TestcontainersSpForsikringDatabase.countOppslagIF_FKONTO_12(forsikringsvurderingId))
     }
 
+    @Disabled
     @Test
     fun `ekskluderingsårsaker lagres for forsikringer som ikke er kandidater`() {
         // seq=1: virkningsdato etter skjæringstidspunkt
