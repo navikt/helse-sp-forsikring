@@ -35,7 +35,7 @@ internal class ForsikringsvurderingTest {
     }
 
     @Test
-    fun `gjørApiVurdering inkluderer forsikring når skjæringstidspunkt er mindre enn 28 dager før virkningsdato og ikke er opphørt`() {
+    fun `gjørApiVurdering inkluderer ikke forsikring når skjæringstidspunkt er mindre enn 28 dager før virkningsdato og ikke er opphørt`() {
         insertBetaltVedfrivt(
             IF10_TYPE = '1',
             IF10_VIRKDATO = 20260110
@@ -48,7 +48,7 @@ internal class ForsikringsvurderingTest {
             )
         }
 
-        assertEquals(ApiForsikringsvurdering(harDekningIVentetid = true, erBetalt = true), vurdering)
+        assertEquals(ApiForsikringsvurdering(harDekningIVentetid = false, erBetalt = false), vurdering)
     }
 
     @Test

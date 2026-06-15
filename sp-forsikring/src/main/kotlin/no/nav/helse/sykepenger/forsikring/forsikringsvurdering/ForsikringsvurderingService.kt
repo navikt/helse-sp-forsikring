@@ -35,8 +35,7 @@ class ForsikringsvurderingService(
         val forsikringer = replikabaseDao.hentIfVedfrivt10Rader(fødselsnummer).map { it.mapTilRåNavKjøptForsikring(skjæringstidspunkt) }
 
         val aktuelleForsikringer = forsikringer.filter {
-            (it.harVirkningPå(skjæringstidspunkt) || it.erInnen28DagerFørVirkningsdato(skjæringstidspunkt))
-                && !it.erOpphørtPå(skjæringstidspunkt)
+            it.harVirkningPå(skjæringstidspunkt) && !it.erOpphørtPå(skjæringstidspunkt)
         }
 
         val harDekningIVentetid = aktuelleForsikringer.any { it.dekningFraDag() == 1 }
