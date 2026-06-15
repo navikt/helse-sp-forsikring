@@ -49,15 +49,15 @@ jobs:
           VARS: .nais/sp-forsikring-vars-dev.yaml
           WORKLOAD_IMAGE: ${{ needs.build.outputs.image }}
 
-#  deployProd:
-#    name: Deploy to prod
-#    needs: [ build, deployDev ]
-#    runs-on: ubuntu-latest
-#    steps:
-#      - uses: actions/checkout@v6.0.3
-#      - uses: nais/deploy/actions/deploy@v2
-#        env:
-#          CLUSTER: prod-gcp
-#          RESOURCE: .nais/sp-forsikring.yaml
-#          VARS: .nais/sp-forsikring-vars-prod.yaml
-#          WORKLOAD_IMAGE: ${{ needs.build.outputs.image }}
+  deployProd:
+    name: Deploy to prod
+    needs: [ build, deployDev ]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6.0.3
+      - uses: nais/deploy/actions/deploy@v2
+        env:
+          CLUSTER: prod-gcp
+          RESOURCE: .nais/sp-forsikring.yaml
+          VARS: .nais/sp-forsikring-vars-prod.yaml
+          WORKLOAD_IMAGE: ${{ needs.build.outputs.image }}
