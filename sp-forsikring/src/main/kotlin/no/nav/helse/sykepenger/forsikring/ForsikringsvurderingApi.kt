@@ -14,8 +14,8 @@ import io.ktor.server.plugins.statuspages.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
-import kotliquery.sessionOf
-import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.ForsikringsvurderingService
+import no.nav.helse.sykepenger.forsikring.replikabase.ReplikabaseDao
+import no.nav.helse.sykepenger.forsikring.replikabase.mapTilRåNavKjøptForsikring
 import org.slf4j.event.Level
 import java.net.URI
 import java.time.LocalDate
@@ -40,7 +40,6 @@ data class ProblemResponse(
 )
 
 fun Application.forsikringsvurderingApi(
-    spForsikringDataSource: DataSource,
     replikabaseDataSource: DataSource,
     clientId: String,
     issuerUrl: String,
@@ -105,20 +104,19 @@ fun Application.forsikringsvurderingApi(
                 require(request.identitetsnummer.matches(Regex("\\d{11}"))) {
                     "identitetsnummer må bestå av nøyaktig 11 siffer"
                 }
+                val replikabaseDao = ReplikabaseDao(dataSource = replikabaseDataSource)
 
-                val resultat = sessionOf(spForsikringDataSource).use { session ->
-                    session.transaction { transaction ->
-                        ForsikringsvurderingService(
-                            spForsikringTransaction = transaction,
-                            replikabaseDataSource = replikabaseDataSource
-                        ).gjørApiVurdering(
-                            skjæringstidspunkt = request.skjæringstidspunkt,
-                            fødselsnummer = request.identitetsnummer
-                        )
-                    }
+                val forsikringer = replikabaseDao.hentIfVedfrivt10Rader(
+                    fødselsnummer = request.identitetsnummer
+                ).map { it.mapTilRåNavKjøptForsikring(skjæringstidspunkt = request.skjæringstidspunkt) }
+
+                val aktuelleForsikringer = forsikringer.filter {
+                    it.harVirkningPå(dato = request.skjæringstidspunkt) && !it.erOpphørtPå(dato = request.skjæringstidspunkt)
                 }
 
-                call.respond(ForsikringsvurderingResponse(harForsikringMedDekningIVentetid = resultat.harForsikringMedDekningIVentetid))
+                val harDekningIVentetid = aktuelleForsikringer.any { it.dekningFraDag() == 1 }
+
+                call.respond(ForsikringsvurderingResponse(harForsikringMedDekningIVentetid = harDekningIVentetid))
             }
         }
     }

@@ -28,7 +28,6 @@ class ForsikringsvurderingApiTest {
     private val embeddedServer =
         embeddedServer(CIO, port = port) {
             forsikringsvurderingApi(
-                spForsikringDataSource = TestcontainersSpForsikringDatabase.dataSource,
                 replikabaseDataSource = TestcontainersReplikadatabase.dataSource,
                 clientId = CLIENT_ID,
                 issuerUrl = mockOAuth2Server.issuerUrl("default").toString(),

@@ -1,7 +1,6 @@
 package no.nav.helse.sykepenger.forsikring
 
 import kotliquery.sessionOf
-import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.ApiForsikringsvurdering
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.Løsning
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -18,88 +17,6 @@ internal class ForsikringsvurderingTest {
     fun beforeEach() {
         TestcontainersReplikadatabase.reset()
         TestcontainersSpForsikringDatabase.reset()
-    }
-
-    @Test
-    fun `gjørApiVurdering finner dekning i ventetid og at forsikringen er betalt`() {
-        insertBetaltVedfrivt(IF10_TYPE = '1')
-
-        val vurdering = medService {
-            gjørApiVurdering(
-                skjæringstidspunkt = SKJÆRINGSTIDSPUNKT,
-                fødselsnummer = FØDSELSNUMMER
-            )
-        }
-
-        assertEquals(ApiForsikringsvurdering(harForsikringMedDekningIVentetid = true), vurdering)
-    }
-
-    @Test
-    fun `gjørApiVurdering inkluderer ikke forsikring når skjæringstidspunkt er mindre enn 28 dager før virkningsdato og ikke er opphørt`() {
-        insertBetaltVedfrivt(
-            IF10_TYPE = '1',
-            IF10_VIRKDATO = 20260110
-        )
-
-        val vurdering = medService {
-            gjørApiVurdering(
-                skjæringstidspunkt = SKJÆRINGSTIDSPUNKT,
-                fødselsnummer = FØDSELSNUMMER
-            )
-        }
-
-        assertEquals(ApiForsikringsvurdering(harForsikringMedDekningIVentetid = false), vurdering)
-    }
-
-    @Test
-    fun `gjørApiVurdering inkluderer ikke forsikring når skjæringstidspunkt er mer enn 28 dager før virkningsdato`() {
-        insertBetaltVedfrivt(
-            IF10_TYPE = '1',
-            IF10_VIRKDATO = 20260131
-        )
-
-        val vurdering = medService {
-            gjørApiVurdering(
-                skjæringstidspunkt = SKJÆRINGSTIDSPUNKT,
-                fødselsnummer = FØDSELSNUMMER
-            )
-        }
-
-        assertEquals(ApiForsikringsvurdering(harForsikringMedDekningIVentetid = false), vurdering)
-    }
-
-    @Test
-    fun `gjørApiVurdering returnerer ikke betalt når aktuell forsikring ikke er betalt`() {
-        insertVedfrivtMedBetaling(
-            IF10_TYPE = '1',
-            IF12_BETDATO = 0
-        )
-
-        val vurdering = medService {
-            gjørApiVurdering(
-                skjæringstidspunkt = SKJÆRINGSTIDSPUNKT,
-                fødselsnummer = FØDSELSNUMMER
-            )
-        }
-
-        assertEquals(ApiForsikringsvurdering(harForsikringMedDekningIVentetid = true), vurdering)
-    }
-
-    @Test
-    fun `gjørApiVurdering inkluderer ikke forsikring om den er opphørt`() {
-        insertBetaltVedfrivt(
-            IF10_TYPE = '1',
-            IF10_FORSTOM = 20251231
-        )
-
-        val vurdering = medService {
-            gjørApiVurdering(
-                skjæringstidspunkt = SKJÆRINGSTIDSPUNKT,
-                fødselsnummer = FØDSELSNUMMER
-            )
-        }
-
-        assertEquals(ApiForsikringsvurdering(harForsikringMedDekningIVentetid = false), vurdering)
     }
 
     @Test

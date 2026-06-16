@@ -6,7 +6,6 @@ import no.nav.helse.sykepenger.forsikring.AbstractNavKjøptForsikring.Ekskluderi
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.Forsikringsvurdering.EkskluderingNavKjøptForsikring
 import no.nav.helse.sykepenger.forsikring.oppslag.OppslagService
 import no.nav.helse.sykepenger.forsikring.replikabase.ReplikabaseDao
-import no.nav.helse.sykepenger.forsikring.replikabase.mapTilRåNavKjøptForsikring
 import java.time.LocalDate
 import javax.sql.DataSource
 
@@ -17,23 +16,6 @@ class ForsikringsvurderingService(
     private val replikabaseDao = ReplikabaseDao(dataSource = replikabaseDataSource)
     private val oppslagService = OppslagService(spForsikringTransaction, replikabaseDao)
     private val forsikringsvurderingRepository = ForsikringsvurderingRepository(spForsikringTransaction)
-
-    fun gjørApiVurdering(
-        skjæringstidspunkt: LocalDate,
-        fødselsnummer: String,
-    ) : ApiForsikringsvurdering {
-        val forsikringer = replikabaseDao.hentIfVedfrivt10Rader(fødselsnummer).map { it.mapTilRåNavKjøptForsikring(skjæringstidspunkt) }
-
-        val aktuelleForsikringer = forsikringer.filter {
-            it.harVirkningPå(skjæringstidspunkt) && !it.erOpphørtPå(skjæringstidspunkt)
-        }
-
-        val harDekningIVentetid = aktuelleForsikringer.any { it.dekningFraDag() == 1 }
-
-        return ApiForsikringsvurdering(
-            harForsikringMedDekningIVentetid = harDekningIVentetid,
-        )
-    }
 
     fun gjørVurdering(
         behovJson: String,
