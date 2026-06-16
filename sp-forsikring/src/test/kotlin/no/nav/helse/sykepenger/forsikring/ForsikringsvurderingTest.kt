@@ -1,17 +1,17 @@
 package no.nav.helse.sykepenger.forsikring
 
-import java.time.LocalDate
-import kotlin.test.assertEquals
-import kotlin.test.assertIs
 import kotliquery.sessionOf
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.ApiForsikringsvurdering
-import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.ForsikringsvurderingService as VurderingService
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.Løsning
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.CsvSource
+import java.time.LocalDate
+import kotlin.test.assertEquals
+import kotlin.test.assertIs
+import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.ForsikringsvurderingService as VurderingService
 
 internal class ForsikringsvurderingTest {
     @BeforeEach
@@ -31,7 +31,7 @@ internal class ForsikringsvurderingTest {
             )
         }
 
-        assertEquals(ApiForsikringsvurdering(harDekningIVentetid = true), vurdering)
+        assertEquals(ApiForsikringsvurdering(harForsikringMedDekningIVentetid = true), vurdering)
     }
 
     @Test
@@ -48,7 +48,7 @@ internal class ForsikringsvurderingTest {
             )
         }
 
-        assertEquals(ApiForsikringsvurdering(harDekningIVentetid = false), vurdering)
+        assertEquals(ApiForsikringsvurdering(harForsikringMedDekningIVentetid = false), vurdering)
     }
 
     @Test
@@ -65,7 +65,7 @@ internal class ForsikringsvurderingTest {
             )
         }
 
-        assertEquals(ApiForsikringsvurdering(harDekningIVentetid = false), vurdering)
+        assertEquals(ApiForsikringsvurdering(harForsikringMedDekningIVentetid = false), vurdering)
     }
 
     @Test
@@ -82,7 +82,7 @@ internal class ForsikringsvurderingTest {
             )
         }
 
-        assertEquals(ApiForsikringsvurdering(harDekningIVentetid = true), vurdering)
+        assertEquals(ApiForsikringsvurdering(harForsikringMedDekningIVentetid = true), vurdering)
     }
 
     @Test
@@ -99,7 +99,7 @@ internal class ForsikringsvurderingTest {
             )
         }
 
-        assertEquals(ApiForsikringsvurdering(harDekningIVentetid = false), vurdering)
+        assertEquals(ApiForsikringsvurdering(harForsikringMedDekningIVentetid = false), vurdering)
     }
 
     @Test

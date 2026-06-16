@@ -17,6 +17,7 @@ dependencies {
     implementation(libs.bundles.logback)
     implementation(libs.kotliquery)
     implementation(libs.flyway.database.postgresql)
+    implementation("com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.21.3")
     implementation(project(":migreringer"))
 
     testImplementation(libs.flyway.database.oracle)

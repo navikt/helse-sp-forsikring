@@ -1,24 +1,14 @@
 package no.nav.helse.sykepenger.forsikring.forsikringsvurdering
 
-import java.time.LocalDate
-import javax.sql.DataSource
 import kotliquery.TransactionalSession
-import no.nav.helse.sykepenger.forsikring.AbstractNavKjøptForsikring
-import no.nav.helse.sykepenger.forsikring.AbstractNavKjøptForsikring.Ekskluderingsårsak.ALDRI_BETALT
-import no.nav.helse.sykepenger.forsikring.AbstractNavKjøptForsikring.Ekskluderingsårsak.OPPHØRT_PÅ_SKJÆRINGSTIDSPUNKT
-import no.nav.helse.sykepenger.forsikring.AbstractNavKjøptForsikring.Ekskluderingsårsak.SKJÆRINGSTIDSPUNKT_INNEN_28_DAGER_FØR_VIRKNINGSDATO
-import no.nav.helse.sykepenger.forsikring.AbstractNavKjøptForsikring.Ekskluderingsårsak.SKJÆRINGSTIDSPUNKT_MER_ENN_28_DAGER_FØR_VIRKNINGSDATO
-import no.nav.helse.sykepenger.forsikring.KollektivForsikring
-import no.nav.helse.sykepenger.forsikring.NavKjøptForsikring
-import no.nav.helse.sykepenger.forsikring.SpesiellYrkesgruppe
-import no.nav.helse.sykepenger.forsikring.Yrkesaktivitetstype
+import no.nav.helse.sykepenger.forsikring.*
+import no.nav.helse.sykepenger.forsikring.AbstractNavKjøptForsikring.Ekskluderingsårsak.*
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.Forsikringsvurdering.EkskluderingNavKjøptForsikring
-import no.nav.helse.sykepenger.forsikring.kollektiveForsikringerFor
-import no.nav.helse.sykepenger.forsikring.loggError
-import no.nav.helse.sykepenger.forsikring.loggInfo
 import no.nav.helse.sykepenger.forsikring.oppslag.OppslagService
 import no.nav.helse.sykepenger.forsikring.replikabase.ReplikabaseDao
 import no.nav.helse.sykepenger.forsikring.replikabase.mapTilRåNavKjøptForsikring
+import java.time.LocalDate
+import javax.sql.DataSource
 
 class ForsikringsvurderingService(
     spForsikringTransaction: TransactionalSession,
@@ -41,7 +31,7 @@ class ForsikringsvurderingService(
         val harDekningIVentetid = aktuelleForsikringer.any { it.dekningFraDag() == 1 }
 
         return ApiForsikringsvurdering(
-            harDekningIVentetid = harDekningIVentetid,
+            harForsikringMedDekningIVentetid = harDekningIVentetid,
         )
     }
 

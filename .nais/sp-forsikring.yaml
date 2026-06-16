@@ -72,6 +72,8 @@ spec:
       rules:
         - application: speil
           namespace: tbd
+        - application: flex-sykmeldinger-backend
+          namespace: flex
     outbound:
       rules:
         - application: logging

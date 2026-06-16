@@ -1,10 +1,10 @@
 package no.nav.helse.sykepenger.forsikring.forsikringsvurdering
 
-import java.util.*
 import no.nav.helse.sykepenger.forsikring.AbstractNavKjøptForsikring
 import no.nav.helse.sykepenger.forsikring.generateUuidV7
 import no.nav.helse.sykepenger.forsikring.oppslag.OppslagId
 import no.nav.helse.sykepenger.forsikring.oppslag.OppslagIfVedrift10Id
+import java.util.*
 
 @JvmInline
 value class ForsikringsvurderingId(val value: UUID) {
@@ -14,7 +14,7 @@ value class ForsikringsvurderingId(val value: UUID) {
 }
 
 data class ApiForsikringsvurdering(
-    val harDekningIVentetid: Boolean,
+    val harForsikringMedDekningIVentetid: Boolean,
 )
 
 class Forsikringsvurdering private constructor(
