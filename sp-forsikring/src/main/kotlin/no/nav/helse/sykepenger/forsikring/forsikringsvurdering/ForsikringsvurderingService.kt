@@ -39,11 +39,9 @@ class ForsikringsvurderingService(
         }
 
         val harDekningIVentetid = aktuelleForsikringer.any { it.dekningFraDag() == 1 }
-        val erBetalt = aktuelleForsikringer.any { it.erBetalt }
 
         return ApiForsikringsvurdering(
             harDekningIVentetid = harDekningIVentetid,
-            erBetalt = erBetalt
         )
     }
 

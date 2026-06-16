@@ -31,7 +31,7 @@ internal class ForsikringsvurderingTest {
             )
         }
 
-        assertEquals(ApiForsikringsvurdering(harDekningIVentetid = true, erBetalt = true), vurdering)
+        assertEquals(ApiForsikringsvurdering(harDekningIVentetid = true), vurdering)
     }
 
     @Test
@@ -48,7 +48,7 @@ internal class ForsikringsvurderingTest {
             )
         }
 
-        assertEquals(ApiForsikringsvurdering(harDekningIVentetid = false, erBetalt = false), vurdering)
+        assertEquals(ApiForsikringsvurdering(harDekningIVentetid = false), vurdering)
     }
 
     @Test
@@ -65,7 +65,7 @@ internal class ForsikringsvurderingTest {
             )
         }
 
-        assertEquals(ApiForsikringsvurdering(harDekningIVentetid = false, erBetalt = false), vurdering)
+        assertEquals(ApiForsikringsvurdering(harDekningIVentetid = false), vurdering)
     }
 
     @Test
@@ -82,7 +82,7 @@ internal class ForsikringsvurderingTest {
             )
         }
 
-        assertEquals(ApiForsikringsvurdering(harDekningIVentetid = true, erBetalt = false), vurdering)
+        assertEquals(ApiForsikringsvurdering(harDekningIVentetid = true), vurdering)
     }
 
     @Test
@@ -99,7 +99,7 @@ internal class ForsikringsvurderingTest {
             )
         }
 
-        assertEquals(ApiForsikringsvurdering(harDekningIVentetid = false, erBetalt = false), vurdering)
+        assertEquals(ApiForsikringsvurdering(harDekningIVentetid = false), vurdering)
     }
 
     @Test

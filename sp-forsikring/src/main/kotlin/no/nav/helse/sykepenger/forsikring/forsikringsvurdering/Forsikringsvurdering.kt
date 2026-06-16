@@ -15,7 +15,6 @@ value class ForsikringsvurderingId(val value: UUID) {
 
 data class ApiForsikringsvurdering(
     val harDekningIVentetid: Boolean,
-    val erBetalt: Boolean,
 )
 
 class Forsikringsvurdering private constructor(
