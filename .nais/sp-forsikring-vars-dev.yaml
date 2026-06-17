@@ -1,2 +1,5 @@
 kafkaPool: nav-dev
-db-tier: "db-f1-micro"
+db:
+  tier: "db-f1-micro"
+  extraUsers:
+    - "sp-forsikring-opprydding-dev"

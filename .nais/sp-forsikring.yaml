@@ -10,13 +10,17 @@ spec:
     sqlInstances:
       - type: POSTGRES_18
         diskAutoresize: true
-        tier: {{db-tier}}
+        tier: {{ db.tier }}
         name: sp-forsikring
         databases:
           - name: sp-forsikring
             envVarPrefix: DATABASE
+{{#if db.extraUsers}}
             users:
-              - name: sp-forsikring-opprydding-dev
+{{#each db.extraUsers as |extraUser|}}
+              - name: {{ extraUser }}
+{{/each}}
+{{/if}}
   port: 8080
   startup:
     path: isready
