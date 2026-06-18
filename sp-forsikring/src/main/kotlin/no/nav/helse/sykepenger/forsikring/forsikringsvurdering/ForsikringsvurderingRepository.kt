@@ -15,6 +15,16 @@ class ForsikringsvurderingRepository(private val transaction: TransactionalSessi
         }
     }
 
+    fun hentLøsningJson(id: ForsikringsvurderingId): String? {
+        @Language("PostgreSQL")
+        val statement = "SELECT løsning FROM forsikringsvurdering WHERE id = :id"
+        return transaction.run(
+            queryOf(statement, mapOf("id" to id.value))
+                .map { row -> row.string("løsning") }
+                .asSingle
+        )
+    }
+
     private fun lagreForsikringsvurdering(forsikringsvurdering: Forsikringsvurdering) {
         @Language("PostgreSQL")
         val statement = """

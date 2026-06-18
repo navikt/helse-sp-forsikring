@@ -1,0 +1,77 @@
+package no.nav.helse.sykepenger.forsikring
+
+import com.github.navikt.tbd_libs.rapids_and_rivers.JsonMessage
+import com.github.navikt.tbd_libs.rapids_and_rivers.River
+import com.github.navikt.tbd_libs.rapids_and_rivers_api.MessageContext
+import com.github.navikt.tbd_libs.rapids_and_rivers_api.MessageMetadata
+import com.github.navikt.tbd_libs.rapids_and_rivers_api.MessageProblems
+import com.github.navikt.tbd_libs.rapids_and_rivers_api.RapidsConnection
+import io.micrometer.core.instrument.MeterRegistry
+import java.util.UUID
+import javax.sql.DataSource
+import kotliquery.sessionOf
+import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.ForsikringsvurderingId
+import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.ForsikringsvurderingRepository
+import tools.jackson.module.kotlin.jacksonObjectMapper
+
+class ForsikringsvurderingResultatRiver(
+    rapidsConnection: RapidsConnection,
+    private val spForsikringDataSource: DataSource,
+) : River.PacketListener {
+    private val objectMapper = jacksonObjectMapper()
+
+    init {
+        River(rapidsConnection)
+            .apply {
+                precondition {
+                    it.requireAll("@behov", listOf("ForsikringsvurderingResultat"))
+                    it.forbid("@løsning")
+                }
+                validate {
+                    it.requireKey(
+                        "@id",
+                        "ForsikringsvurderingResultat.forsikringsvurderingId"
+                    )
+                }
+            }.register(this)
+    }
+
+    override fun onPacket(
+        packet: JsonMessage,
+        context: MessageContext,
+        metadata: MessageMetadata,
+        meterRegistry: MeterRegistry
+    ) {
+        val meldingId = packet["@id"].asString()
+        val forsikringsvurderingId = ForsikringsvurderingId(
+            UUID.fromString(packet["ForsikringsvurderingResultat.forsikringsvurderingId"].asString())
+        )
+
+        medMdc(MdcKey.MELDING_ID to meldingId) {
+            loggInfo("Henter forsikringsvurderingsresultat")
+            try {
+                sessionOf(spForsikringDataSource).use { session ->
+                    session.transaction { transaction ->
+                        val løsningJson = ForsikringsvurderingRepository(transaction).hentLøsningJson(forsikringsvurderingId)
+                            ?: error("Fant ikke forsikringsvurdering med id ${forsikringsvurderingId.value}")
+
+                        packet["@løsning"] = mapOf(
+                            "ForsikringsvurderingResultat" to objectMapper.readTree(løsningJson)
+                        )
+                        context.publish(packet.toJson())
+                    }
+                }
+            } catch (err: Exception) {
+                loggError("Feil ved håndtering av ForsikringsvurderingResultat-behov", err, "melding" to packet.toJson())
+            }
+        }
+    }
+
+    override fun onError(
+        problems: MessageProblems,
+        context: MessageContext,
+        metadata: MessageMetadata
+    ) {
+        loggError("Forstod ikke ForsikringsvurderingResultat-behov", "extendedReport" to problems.toExtendedReport())
+    }
+}
