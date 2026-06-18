@@ -12,7 +12,7 @@ class ReplikabaseDao(private val dataSource: DataSource) {
             val statement = """
                 SELECT *
                 FROM IF_VEDFRIVT_10
-                WHERE IF01_KODE = '1' AND IF01_AGNR_FNR = ?
+                WHERE IF01_KODE = '1' AND IF01_AGNR_FNR = ? AND IF10_GODKJ = 'J'
                 ORDER BY IF10_FORSFOM_SEQ
             """
             session.run(

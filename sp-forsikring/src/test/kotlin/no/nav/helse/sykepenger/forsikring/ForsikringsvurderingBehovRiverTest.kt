@@ -149,6 +149,27 @@ internal class ForsikringsvurderingBehovRiverTest {
         forventLøsning("""{ "harForsikring": false } """)
     }
 
+    @Test
+    fun `gir løsning uten forsikring dersom bruker kun har en ikke-godkjent forsikring`() {
+        insertBetaltVedfrivt(IF01_AGNR_FNR = 3020112345L, IF10_TYPE = '1', IF10_GODKJ = 'N')
+
+        rapid.sendTestMessage(
+            """
+                {
+                    "@behov": [ "Forsikringsvurdering" ],
+                    "fødselsnummer": "01020312345",
+                    "yrkesaktivitetstype": "SELVSTENDIG",
+                    "Forsikringsvurdering" : {
+                        "spesielleYrkesgrupper": [],
+                        "skjæringstidspunkt": "2026-01-01"
+                    }
+                }
+            """.trimIndent()
+        )
+
+        forventLøsning("""{ "harForsikring": false } """)
+    }
+
     @ParameterizedTest(name = "{0} særskilt {1} infotrygd-type {2}", quoteTextArguments = false)
     @CsvSource(
         "ARBEIDSTAKER, , 1",
@@ -685,6 +706,7 @@ internal class ForsikringsvurderingBehovRiverTest {
         IF10_FORSFOM: Int = 0,
         IF10_VIRKDATO: Int = 20260101,
         IF10_FORSTOM: Int = 0,
+        IF10_GODKJ: Char = 'J'
     ) {
         TestcontainersReplikadatabase.insertVedfrivt(
             IF01_AGNR_FNR = IF01_AGNR_FNR,
@@ -693,6 +715,7 @@ internal class ForsikringsvurderingBehovRiverTest {
             IF10_FORSFOM = IF10_FORSFOM,
             IF10_VIRKDATO = IF10_VIRKDATO,
             IF10_FORSTOM = IF10_FORSTOM,
+            IF10_GODKJ = IF10_GODKJ,
         )
         TestcontainersReplikadatabase.insertFkonto12(
             IF01_AGNR_FNR = IF01_AGNR_FNR,
