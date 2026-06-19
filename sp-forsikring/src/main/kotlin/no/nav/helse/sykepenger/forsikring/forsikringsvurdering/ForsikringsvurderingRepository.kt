@@ -33,7 +33,7 @@ class ForsikringsvurderingRepository(private val transaction: TransactionalSessi
                                 grad = grad,
                             )
                         },
-                        opphørsdato = row.localDateOrNull("opphorsdato"),
+                        opphørsdato = row.localDateOrNull("opphørsdato"),
                     )
                 }
                 .asSingle
@@ -62,7 +62,7 @@ class ForsikringsvurderingRepository(private val transaction: TransactionalSessi
     private fun lagreForsikringsvurdering(forsikringsvurdering: Forsikringsvurdering) {
         @Language("PostgreSQL")
         val statement = """
-            INSERT INTO forsikringsvurdering (id, oppslag_id, behov, har_forsikring, dekning_i_ventetid, dekning_grad, opphorsdato)
+            INSERT INTO forsikringsvurdering (id, oppslag_id, behov, har_forsikring, dekning_i_ventetid, dekning_grad, opphørsdato)
             VALUES (:id, :oppslag_id, :behov::jsonb, :har_forsikring, :dekning_i_ventetid, :dekning_grad, :opphorsdato)
         """
         transaction.run(

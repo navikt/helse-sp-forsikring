@@ -1,2 +1,2 @@
 ALTER TABLE forsikringsvurdering
-    ADD COLUMN opphorsdato DATE;
+    ADD COLUMN opphørsdato DATE;
