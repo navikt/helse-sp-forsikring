@@ -170,16 +170,14 @@ internal class SlettPersonRiverTest {
     }
 
     private fun insertForsikringsvurdering(id: UUID, oppslagId: UUID, fødselsnummer: String) {
-        val behovJson = """{"fødselsnummer": "$fødselsnummer", "@behov": ["Forsikringsvurdering"]}"""
-        val løsningJson = """{"harForsikring": false}"""
         Database.dataSource.connection.use { conn ->
             conn.prepareStatement(
-                "INSERT INTO forsikringsvurdering (id, oppslag_id, behov, løsning) VALUES (?, ?, ?::jsonb, ?::jsonb)"
+                "INSERT INTO forsikringsvurdering (id, oppslag_id, behov, har_forsikring) VALUES (?, ?, ?::jsonb, ?)"
             ).use { stmt ->
                 stmt.setObject(1, id)
                 stmt.setObject(2, oppslagId)
-                stmt.setString(3, behovJson)
-                stmt.setString(4, løsningJson)
+                stmt.setString(3, """{"fødselsnummer": "$fødselsnummer", "@behov": ["Forsikringsvurdering"]}""")
+                stmt.setBoolean(4, false)
                 stmt.executeUpdate()
             }
         }
