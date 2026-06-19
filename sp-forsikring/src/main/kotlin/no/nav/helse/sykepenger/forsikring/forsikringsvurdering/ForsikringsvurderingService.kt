@@ -99,6 +99,7 @@ class ForsikringsvurderingService(
             dekning = besteforsikring?.let {
                 Forsikringsvurdering.Dekning(iVentetid = it.dekningFraDag() == 1, grad = it.dekningGrad())
             },
+            opphørsdato = besteforsikring?.opphørsdato()
         )
 
         forsikringsvurderingRepository.lagre(forsikringsvurdering)

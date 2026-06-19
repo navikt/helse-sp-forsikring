@@ -1,5 +1,6 @@
 package no.nav.helse.sykepenger.forsikring
 
+import java.time.LocalDate
 import no.nav.helse.sykepenger.forsikring.SpesiellYrkesgruppe.Fisker.Blad
 
 data class KollektivForsikring(
@@ -9,6 +10,7 @@ data class KollektivForsikring(
 ) : Forsikring {
     override fun dekningGrad() = dekningGrad
     override fun dekningFraDag() = dekningFraDag
+    override fun opphørsdato(): LocalDate? = null
 }
 
 private val kollektiveForsikringer = listOf(

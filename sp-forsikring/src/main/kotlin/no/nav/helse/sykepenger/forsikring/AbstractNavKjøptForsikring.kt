@@ -58,6 +58,8 @@ sealed class AbstractNavKjøptForsikring(
 
     override fun dekningFraDag(): Int = type.dekningFraDag
 
+    override fun opphørsdato(): LocalDate? = opphørsdato
+
     fun validerType(yrkesaktivitetstype: Yrkesaktivitetstype, spesielleYrkesgrupper: Set<SpesiellYrkesgruppe>) {
         when (type) {
             Type.SELVSTENDIG_80_PROSENT_FRA_DAG_1 ->

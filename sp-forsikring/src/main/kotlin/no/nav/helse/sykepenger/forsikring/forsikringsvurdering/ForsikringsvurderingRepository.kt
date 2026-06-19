@@ -33,6 +33,7 @@ class ForsikringsvurderingRepository(private val transaction: TransactionalSessi
                                 grad = grad,
                             )
                         },
+                        opphørsdato = row.localDateOrNull("opphorsdato"),
                     )
                 }
                 .asSingle
@@ -61,8 +62,8 @@ class ForsikringsvurderingRepository(private val transaction: TransactionalSessi
     private fun lagreForsikringsvurdering(forsikringsvurdering: Forsikringsvurdering) {
         @Language("PostgreSQL")
         val statement = """
-            INSERT INTO forsikringsvurdering (id, oppslag_id, behov, har_forsikring, dekning_i_ventetid, dekning_grad)
-            VALUES (:id, :oppslag_id, :behov::jsonb, :har_forsikring, :dekning_i_ventetid, :dekning_grad)
+            INSERT INTO forsikringsvurdering (id, oppslag_id, behov, har_forsikring, dekning_i_ventetid, dekning_grad, opphorsdato)
+            VALUES (:id, :oppslag_id, :behov::jsonb, :har_forsikring, :dekning_i_ventetid, :dekning_grad, :opphorsdato)
         """
         transaction.run(
             queryOf(
@@ -74,6 +75,7 @@ class ForsikringsvurderingRepository(private val transaction: TransactionalSessi
                     "har_forsikring" to forsikringsvurdering.harForsikring,
                     "dekning_i_ventetid" to forsikringsvurdering.dekning?.iVentetid,
                     "dekning_grad" to forsikringsvurdering.dekning?.grad,
+                    "opphorsdato" to forsikringsvurdering.opphørsdato
                 )
             ).asUpdate
         )

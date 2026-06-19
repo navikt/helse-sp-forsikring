@@ -1,5 +1,6 @@
 package no.nav.helse.sykepenger.forsikring.forsikringsvurdering
 
+import java.time.LocalDate
 import java.util.*
 import no.nav.helse.sykepenger.forsikring.AbstractNavKjøptForsikring
 import no.nav.helse.sykepenger.forsikring.generateUuidV7
@@ -20,6 +21,7 @@ class Forsikringsvurdering private constructor(
     val ekskluderinger: List<EkskluderingNavKjøptForsikring>,
     val harForsikring: Boolean,
     val dekning: Dekning?,
+    val opphørsdato: LocalDate?,
 ) {
     data class Dekning(val iVentetid: Boolean, val grad: Int)
 
@@ -35,6 +37,7 @@ class Forsikringsvurdering private constructor(
             ekskluderinger: List<EkskluderingNavKjøptForsikring>,
             harForsikring: Boolean,
             dekning: Dekning?,
+            opphørsdato: LocalDate?,
         ) = Forsikringsvurdering(
             id = ForsikringsvurderingId.ny(),
             oppslagId = oppslagId,
@@ -42,6 +45,7 @@ class Forsikringsvurdering private constructor(
             ekskluderinger = ekskluderinger,
             harForsikring = harForsikring,
             dekning = dekning,
+            opphørsdato = opphørsdato,
         )
 
         fun fraLagring(
@@ -51,6 +55,7 @@ class Forsikringsvurdering private constructor(
             ekskluderinger: List<EkskluderingNavKjøptForsikring>,
             harForsikring: Boolean,
             dekning: Dekning?,
+            opphørsdato: LocalDate?,
         ) = Forsikringsvurdering(
             id = id,
             oppslagId = oppslagId,
@@ -58,6 +63,7 @@ class Forsikringsvurdering private constructor(
             ekskluderinger = ekskluderinger,
             harForsikring = harForsikring,
             dekning = dekning,
+            opphørsdato = opphørsdato
         )
     }
 }

@@ -84,7 +84,30 @@ internal class ForsikringsvurderingResultatRiverTest {
 
         rapid.sendTestMessage(behovMelding(forsikringsvurderingId))
 
-        forventLøsning("""{ "harForsikring": true, "dekning": { "iVentetid": false, "grad": 100 } }""")
+        forventLøsning("""{ "harForsikring": true, "dekning": { "iVentetid": false, "grad": 100 }, "opphørsdato": null }""")
+    }
+
+    @Test
+    fun `returnerer løsning med forsikring og opphørsdato basert på forsikringsvurderingId`() {
+        TestcontainersReplikadatabase.insertVedfrivt(
+            IF01_AGNR_FNR = 3020112345L,
+            IF10_FORSFOM_SEQ = 0,
+            IF10_TYPE = '2',
+            IF10_VIRKDATO = 20260101,
+            IF10_FORSTOM = 20260531
+        )
+        TestcontainersReplikadatabase.insertFkonto12(
+            IF01_AGNR_FNR = 3020112345L,
+            IF10_FORSFOM_SEQ = 0,
+            IF12_BETDATO_SEQ = 1,
+            IF12_BETDATO = 20260101
+        )
+
+        val forsikringsvurderingId = opprettVurdering(yrkesaktivitetstype = "SELVSTENDIG")
+
+        rapid.sendTestMessage(behovMelding(forsikringsvurderingId))
+
+        forventLøsning("""{ "harForsikring": true, "dekning": { "iVentetid": false, "grad": 100 }, "opphørsdato": "2026-05-31" }""")
     }
 
     @Test
@@ -93,7 +116,7 @@ internal class ForsikringsvurderingResultatRiverTest {
 
         rapid.sendTestMessage(behovMelding(forsikringsvurderingId))
 
-        forventLøsning("""{ "harForsikring": false, "dekning": null }""")
+        forventLøsning("""{ "harForsikring": false, "dekning": null, "opphørsdato": null }""")
     }
 
     @Test

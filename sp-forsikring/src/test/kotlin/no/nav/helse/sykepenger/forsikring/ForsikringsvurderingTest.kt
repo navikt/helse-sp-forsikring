@@ -6,6 +6,8 @@ import kotlin.test.assertIs
 import kotliquery.sessionOf
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.Forsikringsvurdering
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.ForsikringsvurderingService
+import org.junit.jupiter.api.Assertions.assertNull
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
@@ -33,9 +35,31 @@ internal class ForsikringsvurderingTest {
             )
         }
 
-        val løsning = assertIs<Forsikringsvurdering.Dekning>(vurdering.dekning)
-        assertEquals(100, løsning.grad)
-        assertEquals(false, løsning.iVentetid)
+        val dekning = assertIs<Forsikringsvurdering.Dekning>(vurdering.dekning)
+        assertTrue(vurdering.harForsikring)
+        assertNull(vurdering.opphørsdato)
+        assertEquals(100, dekning.grad)
+        assertEquals(false, dekning.iVentetid)
+        assertEquals(1, TestcontainersSpForsikringDatabase.countOppslag(vurdering.id.value.toString()))
+    }
+
+    @Test
+    fun `gjørVurdering inneholder opphørsdato når den er satt`() {
+        insertBetaltVedfrivt(IF10_TYPE = '2', IF10_FORSTOM = 20260331)
+        val vurdering = medService {
+            gjørVurdering(
+                behovJson = """{"@behov":["Forsikringsvurdering"]}""",
+                skjæringstidspunkt = SKJÆRINGSTIDSPUNKT,
+                fødselsnummer = FØDSELSNUMMER,
+                spesielleYrkesgrupper = emptySet(),
+                yrkesaktivitetstype = Yrkesaktivitetstype.SELVSTENDIG
+            )
+        }
+        val dekning = assertIs<Forsikringsvurdering.Dekning>(vurdering.dekning)
+        assertTrue(vurdering.harForsikring)
+        assertEquals(LocalDate.of(2026, 3, 31), vurdering.opphørsdato)
+        assertEquals(100, dekning.grad)
+        assertEquals(false, dekning.iVentetid)
         assertEquals(1, TestcontainersSpForsikringDatabase.countOppslag(vurdering.id.value.toString()))
     }
 
@@ -172,7 +196,7 @@ internal class ForsikringsvurderingTest {
         IF10_TYPE: Char = '1',
         IF10_FORSFOM: Int = 0,
         IF10_VIRKDATO: Int = 20260101,
-        IF10_FORSTOM: Int = 20260531,
+        IF10_FORSTOM: Int = 0,
     ) = insertVedfrivtMedBetaling(
         IF10_FORSFOM_SEQ = IF10_FORSFOM_SEQ,
         IF10_TYPE = IF10_TYPE,

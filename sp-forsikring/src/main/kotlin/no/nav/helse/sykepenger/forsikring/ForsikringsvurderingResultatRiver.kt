@@ -62,7 +62,8 @@ class ForsikringsvurderingResultatRiver(
                                         "iVentetid" to dekning.iVentetid,
                                         "grad" to dekning.grad,
                                     )
-                                }
+                                },
+                                "opphørsdato" to forsikringsvurdering.opphørsdato
                             )
                         )
 
