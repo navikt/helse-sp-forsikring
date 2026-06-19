@@ -78,7 +78,19 @@ class ForsikringsvurderingBehovRiver(
                             yrkesaktivitetstype = yrkesaktivitetstype
                         )
 
-                        packet["@løsning"] = mapOf("Forsikringsvurdering" to forsikringsvurdering.løsning)
+                        packet["@løsning"] = mapOf(
+                            "Forsikringsvurdering" to mapOf(
+                                "forsikringsvurderingId" to forsikringsvurdering.id.value.toString(),
+                                "harForsikring" to forsikringsvurdering.harForsikring,
+                                "dekning" to forsikringsvurdering.dekning?.let { dekning ->
+                                    mapOf(
+                                        "grad" to dekning.grad,
+                                        "fraDag" to if (dekning.iVentetid) 1 else 17,
+                                    )
+                                }
+                            )
+                        )
+
                         context.publish(packet.toJson())
                     }
                 }

@@ -1,16 +1,16 @@
 package no.nav.helse.sykepenger.forsikring
 
+import java.time.LocalDate
+import kotlin.test.assertEquals
+import kotlin.test.assertIs
 import kotliquery.sessionOf
-import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.Løsning
+import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.Forsikringsvurdering
+import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.ForsikringsvurderingService
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.CsvSource
-import java.time.LocalDate
-import kotlin.test.assertEquals
-import kotlin.test.assertIs
-import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.ForsikringsvurderingService as VurderingService
 
 internal class ForsikringsvurderingTest {
     @BeforeEach
@@ -33,9 +33,9 @@ internal class ForsikringsvurderingTest {
             )
         }
 
-        val løsning = assertIs<Løsning.MedForsikring>(vurdering.løsning)
-        assertEquals(100, løsning.dekning.grad)
-        assertEquals(17, løsning.dekning.fraDag)
+        val løsning = assertIs<Forsikringsvurdering.Dekning>(vurdering.dekning)
+        assertEquals(100, løsning.grad)
+        assertEquals(false, løsning.iVentetid)
         assertEquals(1, TestcontainersSpForsikringDatabase.countOppslag(vurdering.id.value.toString()))
     }
 
@@ -208,10 +208,10 @@ internal class ForsikringsvurderingTest {
         )
     }
 
-    private fun <T> medService(block: VurderingService.() -> T): T =
+    private fun <T> medService(block: ForsikringsvurderingService.() -> T): T =
         sessionOf(TestcontainersSpForsikringDatabase.dataSource).use { session ->
             session.transaction { transaction ->
-                VurderingService(
+                ForsikringsvurderingService(
                     spForsikringTransaction = transaction,
                     replikabaseDataSource = TestcontainersReplikadatabase.dataSource
                 ).block()

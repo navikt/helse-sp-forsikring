@@ -6,7 +6,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.github.navikt.tbd_libs.rapids_and_rivers.test_support.TestRapid
-import java.util.UUID
+import java.util.*
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import org.junit.jupiter.api.BeforeEach
@@ -84,7 +84,7 @@ internal class ForsikringsvurderingResultatRiverTest {
 
         rapid.sendTestMessage(behovMelding(forsikringsvurderingId))
 
-        forventLøsning("""{ "harForsikring": true, "dekning": { "grad": 100, "fraDag": 17 } }""")
+        forventLøsning("""{ "harForsikring": true, "dekning": { "iVentetid": false, "grad": 100 } }""")
     }
 
     @Test
@@ -93,7 +93,7 @@ internal class ForsikringsvurderingResultatRiverTest {
 
         rapid.sendTestMessage(behovMelding(forsikringsvurderingId))
 
-        forventLøsning("""{ "harForsikring": false }""")
+        forventLøsning("""{ "harForsikring": false, "dekning": null }""")
     }
 
     @Test

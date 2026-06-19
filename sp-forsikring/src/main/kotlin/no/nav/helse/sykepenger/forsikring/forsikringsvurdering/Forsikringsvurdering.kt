@@ -1,10 +1,10 @@
 package no.nav.helse.sykepenger.forsikring.forsikringsvurdering
 
+import java.util.*
 import no.nav.helse.sykepenger.forsikring.AbstractNavKjøptForsikring
 import no.nav.helse.sykepenger.forsikring.generateUuidV7
 import no.nav.helse.sykepenger.forsikring.oppslag.OppslagId
 import no.nav.helse.sykepenger.forsikring.oppslag.OppslagIfVedrift10Id
-import java.util.*
 
 @JvmInline
 value class ForsikringsvurderingId(val value: UUID) {
@@ -17,9 +17,12 @@ class Forsikringsvurdering private constructor(
     val id: ForsikringsvurderingId,
     val oppslagId: OppslagId,
     val behovJson: String,
-    val løsning: Løsning,
     val ekskluderinger: List<EkskluderingNavKjøptForsikring>,
+    val harForsikring: Boolean,
+    val dekning: Dekning?,
 ) {
+    data class Dekning(val iVentetid: Boolean, val grad: Int)
+
     data class EkskluderingNavKjøptForsikring(
         val oppslagIfVedfrivt10Id: OppslagIfVedrift10Id,
         val ekskluderingsårsak: AbstractNavKjøptForsikring.Ekskluderingsårsak,
@@ -27,17 +30,34 @@ class Forsikringsvurdering private constructor(
 
     companion object {
         fun ny(
+            oppslagId: OppslagId,
+            behovJson: String,
+            ekskluderinger: List<EkskluderingNavKjøptForsikring>,
+            harForsikring: Boolean,
+            dekning: Dekning?,
+        ) = Forsikringsvurdering(
+            id = ForsikringsvurderingId.ny(),
+            oppslagId = oppslagId,
+            behovJson = behovJson,
+            ekskluderinger = ekskluderinger,
+            harForsikring = harForsikring,
+            dekning = dekning,
+        )
+
+        fun fraLagring(
             id: ForsikringsvurderingId,
             oppslagId: OppslagId,
             behovJson: String,
-            løsning: Løsning,
-            ekskluderinger: List<EkskluderingNavKjøptForsikring>
+            ekskluderinger: List<EkskluderingNavKjøptForsikring>,
+            harForsikring: Boolean,
+            dekning: Dekning?,
         ) = Forsikringsvurdering(
             id = id,
             oppslagId = oppslagId,
             behovJson = behovJson,
-            løsning = løsning,
-            ekskluderinger = ekskluderinger
+            ekskluderinger = ekskluderinger,
+            harForsikring = harForsikring,
+            dekning = dekning,
         )
     }
 }

@@ -7,18 +7,16 @@ import com.github.navikt.tbd_libs.rapids_and_rivers_api.MessageMetadata
 import com.github.navikt.tbd_libs.rapids_and_rivers_api.MessageProblems
 import com.github.navikt.tbd_libs.rapids_and_rivers_api.RapidsConnection
 import io.micrometer.core.instrument.MeterRegistry
-import java.util.UUID
+import java.util.*
 import javax.sql.DataSource
 import kotliquery.sessionOf
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.ForsikringsvurderingId
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.ForsikringsvurderingRepository
-import tools.jackson.module.kotlin.jacksonObjectMapper
 
 class ForsikringsvurderingResultatRiver(
     rapidsConnection: RapidsConnection,
     private val spForsikringDataSource: DataSource,
 ) : River.PacketListener {
-    private val objectMapper = jacksonObjectMapper()
 
     init {
         River(rapidsConnection)
@@ -52,12 +50,22 @@ class ForsikringsvurderingResultatRiver(
             try {
                 sessionOf(spForsikringDataSource).use { session ->
                     session.transaction { transaction ->
-                        val løsningJson = ForsikringsvurderingRepository(transaction).hentLøsningJson(forsikringsvurderingId)
+                        val forsikringsvurdering = ForsikringsvurderingRepository(transaction).hent(forsikringsvurderingId)
                             ?: error("Fant ikke forsikringsvurdering med id ${forsikringsvurderingId.value}")
 
                         packet["@løsning"] = mapOf(
-                            "ForsikringsvurderingResultat" to objectMapper.readTree(løsningJson)
+                            "ForsikringsvurderingResultat" to mapOf(
+                                "forsikringsvurderingId" to forsikringsvurdering.id.value.toString(),
+                                "harForsikring" to forsikringsvurdering.harForsikring,
+                                "dekning" to forsikringsvurdering.dekning?.let { dekning ->
+                                    mapOf(
+                                        "iVentetid" to dekning.iVentetid,
+                                        "grad" to dekning.grad,
+                                    )
+                                }
+                            )
                         )
+
                         context.publish(packet.toJson())
                     }
                 }

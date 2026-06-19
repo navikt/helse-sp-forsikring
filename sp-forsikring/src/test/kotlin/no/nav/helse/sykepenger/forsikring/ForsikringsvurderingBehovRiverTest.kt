@@ -120,7 +120,7 @@ internal class ForsikringsvurderingBehovRiverTest {
             """.trimIndent()
         )
 
-        forventLøsning("""{ "harForsikring": true, "dekning": { "grad": $grad, "fraDag": $fraDag } } """)
+        forventLøsning("""{ "harForsikring": true, "dekning": { "grad": $grad, "fraDag": $fraDag } }""")
     }
 
     @ParameterizedTest(name = "{0} særskilt {1} infotrygd-type {2}", quoteTextArguments = false)
@@ -146,7 +146,7 @@ internal class ForsikringsvurderingBehovRiverTest {
             """.trimIndent()
         )
 
-        forventLøsning("""{ "harForsikring": false } """)
+        forventLøsning("""{ "harForsikring": false, "dekning": null }""")
     }
 
     @Test
@@ -167,7 +167,7 @@ internal class ForsikringsvurderingBehovRiverTest {
             """.trimIndent()
         )
 
-        forventLøsning("""{ "harForsikring": false } """)
+        forventLøsning("""{ "harForsikring": false, "dekning": null }""")
     }
 
     @ParameterizedTest(name = "{0} særskilt {1} infotrygd-type {2}", quoteTextArguments = false)
@@ -249,7 +249,7 @@ internal class ForsikringsvurderingBehovRiverTest {
             """.trimIndent()
         )
 
-        forventLøsning("""{ "harForsikring": false }""")
+        forventLøsning("""{ "harForsikring": false, "dekning": null }""")
     }
 
     @Test
@@ -349,7 +349,7 @@ internal class ForsikringsvurderingBehovRiverTest {
             """.trimIndent()
         )
 
-        forventLøsning("""{ "harForsikring": false }""")
+        forventLøsning("""{ "harForsikring": false, "dekning": null }""")
     }
 
     @Test
@@ -444,7 +444,7 @@ internal class ForsikringsvurderingBehovRiverTest {
             """.trimIndent()
         )
 
-        forventLøsning("""{ "harForsikring": false }""")
+        forventLøsning("""{ "harForsikring": false, "dekning": null }""")
     }
 
     @Test
@@ -466,7 +466,7 @@ internal class ForsikringsvurderingBehovRiverTest {
             """.trimIndent()
         )
 
-        forventLøsning("""{ "harForsikring": false }""")
+        forventLøsning("""{ "harForsikring": false, "dekning": null }""")
     }
 
     @Test
@@ -488,7 +488,7 @@ internal class ForsikringsvurderingBehovRiverTest {
             """.trimIndent()
         )
 
-        forventLøsning("""{ "harForsikring": false }""")
+        forventLøsning("""{ "harForsikring": false, "dekning": null }""")
     }
 
     @Test
@@ -514,7 +514,7 @@ internal class ForsikringsvurderingBehovRiverTest {
             """.trimIndent()
         )
 
-        forventLøsning("""{ "harForsikring": false }""")
+        forventLøsning("""{ "harForsikring": false, "dekning": null }""")
     }
 
     @Test
@@ -540,7 +540,7 @@ internal class ForsikringsvurderingBehovRiverTest {
             """.trimIndent()
         )
 
-        forventLøsning("""{ "harForsikring": false }""")
+        forventLøsning("""{ "harForsikring": false, "dekning": null }""")
     }
 
     @Test

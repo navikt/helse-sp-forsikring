@@ -1,13 +1,23 @@
 package no.nav.helse.sykepenger.forsikring.forsikringsvurdering
 
-import kotliquery.TransactionalSession
-import no.nav.helse.sykepenger.forsikring.*
-import no.nav.helse.sykepenger.forsikring.AbstractNavKjøptForsikring.Ekskluderingsårsak.*
-import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.Forsikringsvurdering.EkskluderingNavKjøptForsikring
-import no.nav.helse.sykepenger.forsikring.oppslag.OppslagService
-import no.nav.helse.sykepenger.forsikring.replikabase.ReplikabaseDao
 import java.time.LocalDate
 import javax.sql.DataSource
+import kotliquery.TransactionalSession
+import no.nav.helse.sykepenger.forsikring.AbstractNavKjøptForsikring
+import no.nav.helse.sykepenger.forsikring.AbstractNavKjøptForsikring.Ekskluderingsårsak.ALDRI_BETALT
+import no.nav.helse.sykepenger.forsikring.AbstractNavKjøptForsikring.Ekskluderingsårsak.OPPHØRT_PÅ_SKJÆRINGSTIDSPUNKT
+import no.nav.helse.sykepenger.forsikring.AbstractNavKjøptForsikring.Ekskluderingsårsak.SKJÆRINGSTIDSPUNKT_INNEN_28_DAGER_FØR_VIRKNINGSDATO
+import no.nav.helse.sykepenger.forsikring.AbstractNavKjøptForsikring.Ekskluderingsårsak.SKJÆRINGSTIDSPUNKT_MER_ENN_28_DAGER_FØR_VIRKNINGSDATO
+import no.nav.helse.sykepenger.forsikring.KollektivForsikring
+import no.nav.helse.sykepenger.forsikring.NavKjøptForsikring
+import no.nav.helse.sykepenger.forsikring.SpesiellYrkesgruppe
+import no.nav.helse.sykepenger.forsikring.Yrkesaktivitetstype
+import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.Forsikringsvurdering.EkskluderingNavKjøptForsikring
+import no.nav.helse.sykepenger.forsikring.kollektiveForsikringerFor
+import no.nav.helse.sykepenger.forsikring.loggError
+import no.nav.helse.sykepenger.forsikring.loggInfo
+import no.nav.helse.sykepenger.forsikring.oppslag.OppslagService
+import no.nav.helse.sykepenger.forsikring.replikabase.ReplikabaseDao
 
 class ForsikringsvurderingService(
     spForsikringTransaction: TransactionalSession,
@@ -32,12 +42,12 @@ class ForsikringsvurderingService(
         loggInfo("Fant ${navKjøpteForsikringer.size} NAV-kjøpte forsikringer for bruker", teamLogsDetaljer = arrayOf("navKjøpteForsikringer" to navKjøpteForsikringer.map { "Nav-kjøpt forsikring av type ${it.type} med virkningsdato ${it.virkningsdato} og opphørsdato ${it.opphørsdato}" }))
 
         // Skjæringstidspunkt må ikke være i opptjeningstid [IF10_FORSFOM, IF10_VIRKDATO)
-       navKjøpteForsikringer.filter {
+        navKjøpteForsikringer.filter {
             it.erInnen28DagerFørVirkningsdato(skjæringstidspunkt)
-       }.forEach {
-           ekskluderinger.add(EkskluderingNavKjøptForsikring(it.id, SKJÆRINGSTIDSPUNKT_INNEN_28_DAGER_FØR_VIRKNINGSDATO))
-           navKjøpteForsikringer.remove(it)
-       }
+        }.forEach {
+            ekskluderinger.add(EkskluderingNavKjøptForsikring(it.id, SKJÆRINGSTIDSPUNKT_INNEN_28_DAGER_FØR_VIRKNINGSDATO))
+            navKjøpteForsikringer.remove(it)
+        }
 
         // Skjæringstidspunkt må være etter eller lik virkningsdato
         navKjøpteForsikringer.filterNot {
@@ -46,7 +56,6 @@ class ForsikringsvurderingService(
             ekskluderinger.add(EkskluderingNavKjøptForsikring(it.id, SKJÆRINGSTIDSPUNKT_MER_ENN_28_DAGER_FØR_VIRKNINGSDATO))
             navKjøpteForsikringer.remove(it)
         }
-
 
         // Skjæringstidspunkt må være før eller lik opphørsdato (hvis det er en opphørsdato)
         navKjøpteForsikringer.filter { forsikring ->
@@ -70,10 +79,6 @@ class ForsikringsvurderingService(
 
         val alleForsikringer = navKjøpteForsikringer + kollektiveForsikringerFor(spesielleYrkesgrupper)
 
-        val dekninger = alleForsikringer.map {
-            Løsning.MedForsikring.Dekning(grad = it.dekningGrad(), fraDag = it.dekningFraDag())
-        }
-
         if (alleForsikringer.distinctBy { it.dekningGrad() }.size > 1) {
             val message = "Bruker har flere gyldige forsikringer med ulike dekningsgrader"
             loggError(message, "forsikringer" to alleForsikringer.map {
@@ -85,18 +90,15 @@ class ForsikringsvurderingService(
             error(message)
         }
 
-        val forsikringsvurderingId = ForsikringsvurderingId.ny()
-
-        val dekning = dekninger.minByOrNull { it.fraDag }
-        val løsning = dekning?.let { Løsning.MedForsikring(forsikringsvurderingId = forsikringsvurderingId, dekning = it) }
-            ?: Løsning.UtenForsikring(forsikringsvurderingId = forsikringsvurderingId)
-
+        val besteforsikring = alleForsikringer.minByOrNull { it.dekningFraDag() }
         val forsikringsvurdering = Forsikringsvurdering.ny(
-            id = forsikringsvurderingId,
             oppslagId = oppslag.id,
             behovJson = behovJson,
-            løsning = løsning,
             ekskluderinger = ekskluderinger,
+            harForsikring = besteforsikring != null,
+            dekning = besteforsikring?.let {
+                Forsikringsvurdering.Dekning(iVentetid = it.dekningFraDag() == 1, grad = it.dekningGrad())
+            },
         )
 
         forsikringsvurderingRepository.lagre(forsikringsvurdering)

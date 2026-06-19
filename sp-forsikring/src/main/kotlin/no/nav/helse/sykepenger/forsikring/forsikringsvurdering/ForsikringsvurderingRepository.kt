@@ -2,11 +2,11 @@ package no.nav.helse.sykepenger.forsikring.forsikringsvurdering
 
 import kotliquery.TransactionalSession
 import kotliquery.queryOf
+import no.nav.helse.sykepenger.forsikring.oppslag.OppslagId
+import no.nav.helse.sykepenger.forsikring.oppslag.OppslagIfVedrift10Id
 import org.intellij.lang.annotations.Language
-import tools.jackson.module.kotlin.jacksonObjectMapper
 
 class ForsikringsvurderingRepository(private val transaction: TransactionalSession) {
-    private val objectMapper = jacksonObjectMapper()
 
     fun lagre(forsikringsvurdering: Forsikringsvurdering) {
         lagreForsikringsvurdering(forsikringsvurdering)
@@ -15,21 +15,54 @@ class ForsikringsvurderingRepository(private val transaction: TransactionalSessi
         }
     }
 
-    fun hentLøsningJson(id: ForsikringsvurderingId): String? {
+    fun hent(id: ForsikringsvurderingId): Forsikringsvurdering? {
         @Language("PostgreSQL")
-        val statement = "SELECT løsning FROM forsikringsvurdering WHERE id = :id"
+        val statement = "SELECT * FROM forsikringsvurdering WHERE id = :id"
         return transaction.run(
             queryOf(statement, mapOf("id" to id.value))
-                .map { row -> row.string("løsning") }
+                .map { row ->
+                    Forsikringsvurdering.fraLagring(
+                        id = id,
+                        oppslagId = OppslagId(row.uuid("oppslag_id")),
+                        behovJson = row.string("behov"),
+                        ekskluderinger = hentEkskluderinger(id),
+                        harForsikring = row.boolean("har_forsikring"),
+                        dekning = row.intOrNull("dekning_grad")?.let { grad ->
+                            Forsikringsvurdering.Dekning(
+                                iVentetid = row.anyOrNull("dekning_i_ventetid") as Boolean,
+                                grad = grad,
+                            )
+                        },
+                    )
+                }
                 .asSingle
+        )
+    }
+
+    private fun hentEkskluderinger(forsikringsvurderingId: ForsikringsvurderingId): List<Forsikringsvurdering.EkskluderingNavKjøptForsikring> {
+        @Language("PostgreSQL")
+        val statement = """
+            SELECT *
+            FROM forsikringsvurdering_ekskludering_navkjopt_forsikring
+            WHERE forsikringsvurdering_id = :forsikringsvurdering_id
+        """
+        return transaction.run(
+            queryOf(statement, mapOf("forsikringsvurdering_id" to forsikringsvurderingId.value))
+                .map { row ->
+                    Forsikringsvurdering.EkskluderingNavKjøptForsikring(
+                        oppslagIfVedfrivt10Id = OppslagIfVedrift10Id(row.uuid("oppslag_IF_VEDFRIVT_10_id")),
+                        ekskluderingsårsak = enumValueOf(row.string("ekskluderingsaarsak")),
+                    )
+                }
+                .asList
         )
     }
 
     private fun lagreForsikringsvurdering(forsikringsvurdering: Forsikringsvurdering) {
         @Language("PostgreSQL")
         val statement = """
-            INSERT INTO forsikringsvurdering (id, oppslag_id, behov, løsning)
-            VALUES (:id, :oppslag_id, :behov::jsonb, :losning::jsonb)
+            INSERT INTO forsikringsvurdering (id, oppslag_id, behov, har_forsikring, dekning_i_ventetid, dekning_grad)
+            VALUES (:id, :oppslag_id, :behov::jsonb, :har_forsikring, :dekning_i_ventetid, :dekning_grad)
         """
         transaction.run(
             queryOf(
@@ -38,7 +71,9 @@ class ForsikringsvurderingRepository(private val transaction: TransactionalSessi
                     "id" to forsikringsvurdering.id.value,
                     "oppslag_id" to forsikringsvurdering.oppslagId.value,
                     "behov" to forsikringsvurdering.behovJson,
-                    "losning" to objectMapper.writeValueAsString(forsikringsvurdering.løsning),
+                    "har_forsikring" to forsikringsvurdering.harForsikring,
+                    "dekning_i_ventetid" to forsikringsvurdering.dekning?.iVentetid,
+                    "dekning_grad" to forsikringsvurdering.dekning?.grad,
                 )
             ).asUpdate
         )
