@@ -3,7 +3,7 @@ flyway = "12.9.0"
 junit = "6.1.0"
 kotlin = "2.4.0"
 ktor = "3.4.3"
-tbd-libs = "20260526.1506"
+tbd-libs = "20260616.1253"
 testcontainers = "2.0.5"
 
 [libraries]
