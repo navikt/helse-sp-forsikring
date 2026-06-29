@@ -74,6 +74,8 @@ spec:
   accessPolicy:
     inbound:
       rules:
+        - application: spesialist
+          namespace: tbd
         - application: speil
           namespace: tbd
         - application: flex-sykmeldinger-backend

@@ -1,6 +1,7 @@
 package no.nav.helse.sykepenger.forsikring
 
 import com.auth0.jwk.JwkProviderBuilder
+import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
 import io.ktor.http.*
 import io.ktor.serialization.jackson.*
@@ -14,6 +15,9 @@ import io.ktor.server.plugins.statuspages.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
+import kotliquery.sessionOf
+import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.ForsikringsvurderingId
+import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.ForsikringsvurderingRepository
 import no.nav.helse.sykepenger.forsikring.replikabase.ReplikabaseDao
 import no.nav.helse.sykepenger.forsikring.replikabase.mapTilRåNavKjøptForsikring
 import org.slf4j.event.Level
@@ -22,6 +26,8 @@ import java.time.LocalDate
 import java.util.*
 import javax.sql.DataSource
 
+private val jsonMapper = ObjectMapper()
+
 data class ForsikringsvurderingRequest(
     val identitetsnummer: String,
     val skjæringstidspunkt: LocalDate
@@ -29,6 +35,17 @@ data class ForsikringsvurderingRequest(
 
 data class ForsikringsvurderingResponse(
     val harForsikringMedDekningIVentetid: Boolean
+)
+
+data class SpesialistForsikringsvurderingResponse(
+    val identitetsnummer: String,
+    val harForsikring: Boolean,
+    val dekning: SpesialistDekningResponse?
+)
+
+data class SpesialistDekningResponse(
+    val grad: Int,
+    val fraDag: Int
 )
 
 data class ProblemResponse(
@@ -41,6 +58,7 @@ data class ProblemResponse(
 
 fun Application.forsikringsvurderingApi(
     replikabaseDataSource: DataSource,
+    spForsikringDataSource: DataSource,
     clientId: String,
     issuerUrl: String,
     jwkProviderUri: String
@@ -99,6 +117,53 @@ fun Application.forsikringsvurderingApi(
     }
     routing {
         authenticate("oidc") {
+            get("/forsikringsvurderinger/{forsikringsvurderingId}") {
+                val rawId = call.parameters["forsikringsvurderingId"]
+                val id = rawId?.let { runCatching { UUID.fromString(it) }.getOrNull() }
+                    ?: return@get call.respond(
+                        HttpStatusCode.BadRequest,
+                        ProblemResponse(
+                            title = "Ugyldig forsikringsvurderingId",
+                            status = HttpStatusCode.BadRequest.value,
+                            detail = "forsikringsvurderingId må være en gyldig UUID",
+                            instance = call.request.uri,
+                        )
+                    )
+
+                val forsikringsvurdering = sessionOf(spForsikringDataSource).use { session ->
+                    session.transaction { transaction ->
+                        ForsikringsvurderingRepository(transaction).hent(ForsikringsvurderingId(id))
+                    }
+                }
+
+                if (forsikringsvurdering == null) {
+                    return@get call.respond(
+                        HttpStatusCode.NotFound,
+                        ProblemResponse(
+                            title = "Forsikringsvurdering ikke funnet",
+                            status = HttpStatusCode.NotFound.value,
+                            detail = "Fant ingen forsikringsvurdering med id $id",
+                            instance = call.request.uri,
+                        )
+                    )
+                }
+
+                val identitetsnummer = jsonMapper.readTree(forsikringsvurdering.behovJson)["fødselsnummer"].asText()
+
+                call.respond(
+                    SpesialistForsikringsvurderingResponse(
+                        identitetsnummer = identitetsnummer,
+                        harForsikring = forsikringsvurdering.harForsikring,
+                        dekning = forsikringsvurdering.dekning?.let { dekning ->
+                            SpesialistDekningResponse(
+                                grad = dekning.grad,
+                                fraDag = if (dekning.iVentetid) 1 else 17
+                            )
+                        }
+                    )
+                )
+            }
+
             post("/api/forsikringsvurdering") {
                 val request = call.receive<ForsikringsvurderingRequest>()
                 require(request.identitetsnummer.matches(Regex("\\d{11}"))) {
