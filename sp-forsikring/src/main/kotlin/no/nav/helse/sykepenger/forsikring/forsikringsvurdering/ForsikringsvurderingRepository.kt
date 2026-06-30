@@ -6,16 +6,16 @@ import no.nav.helse.sykepenger.forsikring.oppslag.OppslagId
 import no.nav.helse.sykepenger.forsikring.oppslag.OppslagIfVedrift10Id
 import org.intellij.lang.annotations.Language
 
-class ForsikringsvurderingRepository(private val transaction: TransactionalSession) {
+class ForsikringsvurderingRepository(private val transaction: TransactionalSession) : IForsikringsvurderingRepository {
 
-    fun lagre(forsikringsvurdering: Forsikringsvurdering) {
+    override fun lagre(forsikringsvurdering: Forsikringsvurdering) {
         lagreForsikringsvurdering(forsikringsvurdering)
         forsikringsvurdering.ekskluderinger.forEach { ekskludering ->
             lagreEkskludering(forsikringsvurdering.id, ekskludering)
         }
     }
 
-    fun hent(id: ForsikringsvurderingId): Forsikringsvurdering? {
+    override fun hent(id: ForsikringsvurderingId): Forsikringsvurdering? {
         @Language("PostgreSQL")
         val statement = "SELECT * FROM forsikringsvurdering WHERE id = :id"
         return transaction.run(

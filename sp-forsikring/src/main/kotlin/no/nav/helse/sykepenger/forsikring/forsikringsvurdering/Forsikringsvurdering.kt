@@ -11,6 +11,7 @@ import no.nav.helse.sykepenger.forsikring.oppslag.OppslagIfVedrift10Id
 value class ForsikringsvurderingId(val value: UUID) {
     companion object {
         fun ny() = ForsikringsvurderingId(generateUuidV7())
+        fun fromString(id: String) = ForsikringsvurderingId(UUID.fromString(id))
     }
 }
 
