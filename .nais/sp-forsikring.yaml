@@ -76,6 +76,8 @@ spec:
       rules:
         - application: spesialist
           namespace: tbd
+        - application: spre-gosys
+          namespace: tbd
         - application: speil
           namespace: tbd
         - application: flex-sykmeldinger-backend
