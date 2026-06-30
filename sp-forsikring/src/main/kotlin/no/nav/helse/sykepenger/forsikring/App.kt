@@ -66,7 +66,7 @@ fun launchApplication(env: Map<String, String>) {
                 replikabaseDataSource = replikabaseDataSource,
                 spForsikringDataSource = spForsikringDataSource
             )
-            ForsikringsvurderingResultatRiver(
+            ForsikringsvurderingResultatBehovRiver(
                 rapidsConnection = this,
                 spForsikringDataSource = spForsikringDataSource
             )

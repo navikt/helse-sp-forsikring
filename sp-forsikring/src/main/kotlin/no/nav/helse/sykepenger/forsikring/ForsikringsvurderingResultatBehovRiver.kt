@@ -13,7 +13,7 @@ import kotliquery.sessionOf
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.ForsikringsvurderingId
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.ForsikringsvurderingRepository
 
-class ForsikringsvurderingResultatRiver(
+class ForsikringsvurderingResultatBehovRiver(
     rapidsConnection: RapidsConnection,
     private val spForsikringDataSource: DataSource,
 ) : River.PacketListener {
@@ -46,7 +46,7 @@ class ForsikringsvurderingResultatRiver(
         )
 
         medMdc(MdcKey.MELDING_ID to meldingId) {
-            loggInfo("Henter forsikringsvurderingsresultat")
+            loggInfo("Mottok ForsikringsvurderingResultat-behov", "behov" to packet.toJson())
             try {
                 sessionOf(spForsikringDataSource).use { session ->
                     session.transaction { transaction ->
@@ -67,7 +67,9 @@ class ForsikringsvurderingResultatRiver(
                             )
                         )
 
-                        context.publish(packet.toJson())
+                        val løsningJson = packet.toJson()
+                        loggInfo("Svarer på ForsikringsvurderingResultat-behov med løsning", "løsning" to løsningJson)
+                        context.publish(løsningJson)
                     }
                 }
             } catch (err: Exception) {

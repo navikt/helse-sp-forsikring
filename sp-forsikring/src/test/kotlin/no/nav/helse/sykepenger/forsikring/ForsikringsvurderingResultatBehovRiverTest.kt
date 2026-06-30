@@ -16,7 +16,7 @@ import org.junit.jupiter.api.assertDoesNotThrow
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.CsvSource
 
-internal class ForsikringsvurderingResultatRiverTest {
+internal class ForsikringsvurderingResultatBehovRiverTest {
     private val objectMapper = jacksonObjectMapper().registerModule(JavaTimeModule())
 
     private val rapid = TestRapid().apply {
@@ -25,7 +25,7 @@ internal class ForsikringsvurderingResultatRiverTest {
             replikabaseDataSource = TestcontainersReplikadatabase.dataSource,
             spForsikringDataSource = TestcontainersSpForsikringDatabase.dataSource
         )
-        ForsikringsvurderingResultatRiver(
+        ForsikringsvurderingResultatBehovRiver(
             rapidsConnection = this,
             spForsikringDataSource = TestcontainersSpForsikringDatabase.dataSource
         )

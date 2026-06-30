@@ -129,6 +129,7 @@ fun Application.forsikringsvurderingApi(
                             instance = call.request.uri,
                         )
                     )
+                loggInfo("Mottok kall til GET /forsikringsvurderinger/$id")
 
                 val forsikringsvurdering = sessionOf(spForsikringDataSource).use { session ->
                     session.transaction { transaction ->
@@ -150,18 +151,20 @@ fun Application.forsikringsvurderingApi(
 
                 val identitetsnummer = jsonMapper.readTree(forsikringsvurdering.behovJson)["fødselsnummer"].asText()
 
-                call.respond(
-                    SpesialistForsikringsvurderingResponse(
-                        identitetsnummer = identitetsnummer,
-                        harForsikring = forsikringsvurdering.harForsikring,
-                        dekning = forsikringsvurdering.dekning?.let { dekning ->
-                            SpesialistDekningResponse(
-                                grad = dekning.grad,
-                                fraDag = if (dekning.iVentetid) 1 else 17
-                            )
-                        }
-                    )
+                val response = SpesialistForsikringsvurderingResponse(
+                    identitetsnummer = identitetsnummer,
+                    harForsikring = forsikringsvurdering.harForsikring,
+                    dekning = forsikringsvurdering.dekning?.let { dekning ->
+                        SpesialistDekningResponse(
+                            grad = dekning.grad,
+                            fraDag = if (dekning.iVentetid) 1 else 17
+                        )
+                    }
                 )
+
+                loggInfo("Svarer på GET /forsikringsvurderinger/$id", "response" to response)
+
+                call.respond(response)
             }
 
             post("/api/forsikringsvurdering") {
@@ -169,6 +172,8 @@ fun Application.forsikringsvurderingApi(
                 require(request.identitetsnummer.matches(Regex("\\d{11}"))) {
                     "identitetsnummer må bestå av nøyaktig 11 siffer"
                 }
+                loggInfo("Mottok kall til POST /api/forsikringsvurdering", "request" to request)
+
                 val replikabaseDao = ReplikabaseDao(dataSource = replikabaseDataSource)
 
                 val forsikringer = replikabaseDao.hentIfVedfrivt10Rader(
@@ -181,7 +186,11 @@ fun Application.forsikringsvurderingApi(
 
                 val harDekningIVentetid = aktuelleForsikringer.any { it.dekningFraDag() == 1 }
 
-                call.respond(ForsikringsvurderingResponse(harForsikringMedDekningIVentetid = harDekningIVentetid))
+                val response = ForsikringsvurderingResponse(harForsikringMedDekningIVentetid = harDekningIVentetid)
+
+                loggInfo("Svarer på POST /api/forsikringsvurdering", "response" to response)
+
+                call.respond(response)
             }
         }
     }

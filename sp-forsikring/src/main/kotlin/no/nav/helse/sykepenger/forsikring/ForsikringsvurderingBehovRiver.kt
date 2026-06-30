@@ -63,7 +63,7 @@ class ForsikringsvurderingBehovRiver(
         val skjæringstidspunkt = packet["Forsikringsvurdering.skjæringstidspunkt"].asLocalDate()
 
         medMdc(MdcKey.MELDING_ID to meldingId) {
-            loggInfo("Henter forsikringsvurdering")
+            loggInfo("Mottok Forsikringsvurdering-behov", "behov" to packet.toJson())
             try {
                 sessionOf(spForsikringDataSource).use { session ->
                     session.transaction { transaction ->
@@ -84,7 +84,9 @@ class ForsikringsvurderingBehovRiver(
                             )
                         )
 
-                        context.publish(packet.toJson())
+                        val løsningJson = packet.toJson()
+                        loggInfo("Svarer på Forsikringsvurdering-behov med løsning", "løsning" to løsningJson)
+                        context.publish(løsningJson)
                     }
                 }
             } catch (err: Exception) {
