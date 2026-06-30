@@ -24,6 +24,10 @@ ktor-server-content-negotiation = { module = "io.ktor:ktor-server-content-negoti
 ktor-server-core = { module = "io.ktor:ktor-server-core", version.ref = "ktor" }
 ktor-server-metrics-micrometer = { module = "io.ktor:ktor-server-metrics-micrometer", version.ref = "ktor" }
 ktor-server-status-pages = { module = "io.ktor:ktor-server-status-pages", version.ref = "ktor" }
+ktor-client-cio = { module="io.ktor:ktor-client-cio", version.ref = "ktor"}
+ktor-client-contentnegotiation = { module="io.ktor:ktor-client-content-negotiation", version.ref = "ktor"}
+tbd-libs-azure = {module = "com.github.navikt.tbd-libs:azure-token-client-default", version.ref = "tbd-libs"}
+tbd-libs-retry = {module = "com.github.navikt.tbd-libs:retry", version.ref = "tbd-libs"}
 logback-classic = "ch.qos.logback:logback-classic:1.5.34"
 logback-logstash-encoder = "net.logstash.logback:logstash-logback-encoder:9.0"
 postgresql = "org.postgresql:postgresql:42.7.11"
@@ -32,11 +36,13 @@ ojdbc11 = "com.oracle.database.jdbc:ojdbc11:23.26.2.0.0"
 
 junit-bom = { module = "org.junit:junit-bom", version.ref = "junit" }
 junit-jupiter = { module = "org.junit.jupiter:junit-jupiter", version.ref = "junit" }
+ktor-client-mock = {module = "io.ktor:ktor-client-mock-jvm", version.ref = "ktor"}
 mock-oauth2-server = "no.nav.security:mock-oauth2-server:4.0.1"
 tbd-libs-rapids-and-rivers-test = { module = "com.github.navikt.tbd-libs:rapids-and-rivers-test", version.ref = "tbd-libs" }
 testcontainers-postgres = { module = "org.testcontainers:testcontainers-postgresql", version.ref = "testcontainers" }
 testcontainers-oracle-free = { module = "org.testcontainers:testcontainers-oracle-free", version.ref = "testcontainers" }
 wiremock = "org.wiremock:wiremock-jetty12:3.13.2"
+mockk = "io.mockk:mockk:1.13.17"
 
 [bundles]
 ktor-server = [
@@ -51,6 +57,10 @@ ktor-server = [
     "jackson-datatype-jsr310",
     "ktor-server-metrics-micrometer",
     "ktor-server-status-pages"
+]
+ktor-client = [
+    "ktor-client-cio",
+    "ktor-client-contentnegotiation"
 ]
 logback = [
     "logback-classic",
