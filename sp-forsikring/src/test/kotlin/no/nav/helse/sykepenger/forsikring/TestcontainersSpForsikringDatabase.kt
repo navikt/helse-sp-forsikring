@@ -55,6 +55,12 @@ object TestcontainersSpForsikringDatabase {
         }
     }
 
+    fun countAlleOppslag(): Int =
+        countRows("oppslag")
+
+    fun countAlleForsikringsvurderinger(): Int =
+        countRows("forsikringsvurdering")
+
     fun countOppslagIF_VEDFRIVT_10(forsikringsvurderingId: String): Int {
         @Language("PostgreSQL")
         val statement = """
@@ -110,6 +116,18 @@ object TestcontainersSpForsikringDatabase {
                     mapOf("forsikringsvurdering_id" to forsikringsvurderingId)
                 ).map { it.int("IF10_FORSFOM_SEQ") to it.string("ekskluderingsaarsak") }.asList
             ).toMap()
+        }
+    }
+
+    private fun countRows(tableName: String): Int {
+        @Language("PostgreSQL")
+        val statement = "SELECT COUNT(*) FROM $tableName"
+        return sessionOf(dataSource).use { session ->
+            session.run(
+                queryOf(statement)
+                    .map { it.int(1) }
+                    .asSingle
+            )!!
         }
     }
 }

@@ -108,6 +108,8 @@ internal class ForsikringsvurderingBehovRiverTest {
     )
     fun `Når vurderingen feiler så sendes det ikke ut noe svar`(yrkesaktivitetstype: String, særskiltGruppe: String?, IF10_TYPE: Char?) {
         IF10_TYPE?.let { insertBetaltVedfrivt(IF01_AGNR_FNR = 3020112345L, IF10_TYPE = it) }
+        val antallOppslagFør = TestcontainersSpForsikringDatabase.countAlleOppslag()
+        val antallForsikringsvurderingerFør = TestcontainersSpForsikringDatabase.countAlleForsikringsvurderinger()
 
         assertDoesNotThrow {
             rapid.sendTestMessage(
@@ -126,12 +128,16 @@ internal class ForsikringsvurderingBehovRiverTest {
         }
 
         assertEquals(0, rapid.inspektør.size)
+        assertEquals(antallOppslagFør, TestcontainersSpForsikringDatabase.countAlleOppslag())
+        assertEquals(antallForsikringsvurderingerFør, TestcontainersSpForsikringDatabase.countAlleForsikringsvurderinger())
     }
 
     @Test
     fun `feiler når dekninger har ulike grader`() {
         insertBetaltVedfrivt(IF01_AGNR_FNR = 3020112345L, IF10_FORSFOM_SEQ = 1, IF10_TYPE = '1') // grad=80, fraDag=1
         insertBetaltVedfrivt(IF01_AGNR_FNR = 3020112345L, IF10_FORSFOM_SEQ = 2, IF10_TYPE = '2') // grad=100, fraDag=17
+        val antallOppslagFør = TestcontainersSpForsikringDatabase.countAlleOppslag()
+        val antallForsikringsvurderingerFør = TestcontainersSpForsikringDatabase.countAlleForsikringsvurderinger()
 
         assertDoesNotThrow {
             rapid.sendTestMessage(
@@ -150,6 +156,8 @@ internal class ForsikringsvurderingBehovRiverTest {
         }
 
         assertEquals(0, rapid.inspektør.size)
+        assertEquals(antallOppslagFør, TestcontainersSpForsikringDatabase.countAlleOppslag())
+        assertEquals(antallForsikringsvurderingerFør, TestcontainersSpForsikringDatabase.countAlleForsikringsvurderinger())
     }
 
     @Test
