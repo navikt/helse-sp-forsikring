@@ -1,7 +1,14 @@
-package no.nav.helse.sykepenger.forsikring.app
+package no.nav.helse.sykepenger.forsikring
 
+import com.fasterxml.jackson.databind.SerializationFeature
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
+import com.github.navikt.tbd_libs.azure.createAzureTokenClientFromEnvironment
 import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
+import io.ktor.client.*
+import io.ktor.client.engine.cio.*
+import io.ktor.client.plugins.contentnegotiation.*
+import io.ktor.serialization.jackson.*
 import io.ktor.server.application.*
 import java.time.Duration
 import no.nav.helse.rapids_rivers.RapidApplication
@@ -10,6 +17,9 @@ import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.adapter.postgres.
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.adapter.rapids.ForsikringsvurderingBehovRiver
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.adapter.rapids.ForsikringsvurderingResultatBehovRiver
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.application.ForsikringsvurderingService
+import no.nav.helse.sykepenger.forsikring.oppgaver.adapter.gosys.GosysOppgaveClient
+import no.nav.helse.sykepenger.forsikring.oppgaver.adapter.rapids.SelvstendigIngenDagerIgjenRiver
+import no.nav.helse.sykepenger.forsikring.oppgaver.adapter.rapids.SelvstendigUtbetaltEtterVentetidRiver
 import no.nav.helse.sykepenger.forsikring.oppslag.adapter.oracle.ReplikabaseDao
 import no.nav.helse.sykepenger.forsikring.oppslag.application.OppslagService
 import no.nav.helse.sykepenger.forsikring.shared.logging.loggInfo
@@ -43,6 +53,23 @@ fun launchApplication(env: Map<String, String>) {
     val replikabaseDao = ReplikabaseDao(dataSource = replikabaseDataSource)
     val oppslagService = OppslagService(replikabaseDao)
     val forsikringsvurderingService = ForsikringsvurderingService(forsikringsvurderingRepository, oppslagService)
+
+
+    val httpClient = HttpClient(CIO) {
+        install(ContentNegotiation) {
+            jackson {
+                registerModule(JavaTimeModule())
+                disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
+            }
+        }
+    }
+
+    val gosysOppgaveClient = GosysOppgaveClient(
+        baseUrl = env.getValue("GOSYS_BASE_URL"),
+        tokenClient = createAzureTokenClientFromEnvironment(env),
+        httpClient = httpClient,
+        gosysScope = env.getValue("GOSYS_SCOPE")
+    )
 
     RapidApplication
         .create(System.getenv(), builder = {
@@ -81,6 +108,16 @@ fun launchApplication(env: Map<String, String>) {
             )
             ForsikringsvurderingResultatBehovRiver(
                 rapidsConnection = this,
+                forsikringsvurderingRepository = forsikringsvurderingRepository,
+            )
+            SelvstendigUtbetaltEtterVentetidRiver(
+                rapidsConnection = this,
+                oppgaveClient = gosysOppgaveClient,
+                forsikringsvurderingRepository = forsikringsvurderingRepository,
+            )
+            SelvstendigIngenDagerIgjenRiver(
+                rapidsConnection = this,
+                oppgaveClient = gosysOppgaveClient,
                 forsikringsvurderingRepository = forsikringsvurderingRepository,
             )
         }.start()

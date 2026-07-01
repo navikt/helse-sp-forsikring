@@ -13,6 +13,9 @@ import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.domain.Forsikring
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.seam.ForsikringsvurderingRepository
 import no.nav.helse.sykepenger.forsikring.oppgaver.domain.Årsak
 import no.nav.helse.sykepenger.forsikring.oppgaver.seam.OppgaveoppretterClient
+import no.nav.helse.sykepenger.forsikring.shared.logging.MdcKey
+import no.nav.helse.sykepenger.forsikring.shared.logging.loggInfo
+import no.nav.helse.sykepenger.forsikring.shared.logging.medMdc
 
 private const val EVENT_NAME = "selvstendig_ingen_dager_igjen"
 
@@ -49,17 +52,21 @@ class SelvstendigIngenDagerIgjenRiver(
         val forsikringsvurderingId = ForsikringsvurderingId.fromString(packet["forsikringsvurderingId"].asString())
         val meldingId = UUID.fromString(packet["@id"].asString())
 
-        val forsikringsvurdering = forsikringsvurderingRepository.hent(forsikringsvurderingId)
-            ?: error("Fant ikke vurdering for forsikringsvurderingId=$forsikringsvurderingId")
-        if (!forsikringsvurdering.harForsikring) return
+        medMdc(MdcKey.MELDING_ID to meldingId.toString()) {
+            loggInfo("Mottok SelvstendigIngenDagerIgjen-melding", "behov" to packet.toJson())
 
-        runBlocking {
-            oppgaveClient.lagOppgave(
-                meldingId,
-                fødselsnummer,
-                Årsak.SykepengerettOpphørtPåGrunnAvMaksdatoAlderEllerDød,
-                skjæringstidspunkt
-            )
+            val forsikringsvurdering = forsikringsvurderingRepository.hent(forsikringsvurderingId)
+                ?: error("Fant ikke vurdering for forsikringsvurderingId=$forsikringsvurderingId")
+            if (!forsikringsvurdering.harForsikring) return@medMdc
+
+            runBlocking {
+                oppgaveClient.lagOppgave(
+                    meldingId,
+                    fødselsnummer,
+                    Årsak.SykepengerettOpphørtPåGrunnAvMaksdatoAlderEllerDød,
+                    skjæringstidspunkt
+                )
+            }
         }
     }
 }

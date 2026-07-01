@@ -14,6 +14,9 @@ import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.domain.Forsikring
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.seam.ForsikringsvurderingRepository
 import no.nav.helse.sykepenger.forsikring.oppgaver.domain.Årsak
 import no.nav.helse.sykepenger.forsikring.oppgaver.seam.OppgaveoppretterClient
+import no.nav.helse.sykepenger.forsikring.shared.logging.MdcKey
+import no.nav.helse.sykepenger.forsikring.shared.logging.loggInfo
+import no.nav.helse.sykepenger.forsikring.shared.logging.medMdc
 
 class SelvstendigUtbetaltEtterVentetidRiver(
     rapidsConnection: RapidsConnection,
@@ -32,6 +35,7 @@ class SelvstendigUtbetaltEtterVentetidRiver(
             }
         }.register(this)
     }
+
     override fun onPacket(
         packet: JsonMessage,
         context: MessageContext,
@@ -43,17 +47,20 @@ class SelvstendigUtbetaltEtterVentetidRiver(
         val forsikringsvurderingId = ForsikringsvurderingId.fromString(packet["forsikringsvurderingId"].asString())
         val meldingId = UUID.fromString(packet["@id"].asString())
 
-        val forsikringsvurdering = forsikringsvurderingRepository.hent(forsikringsvurderingId)
-            ?: error("Fant ikke vurdering for forsikringsvurderingId=$forsikringsvurderingId")
+        medMdc(MdcKey.MELDING_ID to meldingId.toString()) {
+            loggInfo("Mottok SelvstendigUtbetaltEtterVentetid-melding", "behov" to packet.toJson())
+            val forsikringsvurdering = forsikringsvurderingRepository.hent(forsikringsvurderingId)
+                ?: error("Fant ikke vurdering for forsikringsvurderingId=$forsikringsvurderingId")
 
-        if (forsikringsvurdering.forsikretMedDekningsgrad80ProsentFraDag1()) {
-            runBlocking {
-                oppgaveClient.lagOppgave(
-                    meldingId,
-                    fødselsnummer,
-                    Årsak.UtbetaltFraDagÉnOgDekningsgrad80Prosent,
-                    skjæringstidspunkt
-                )
+            if (forsikringsvurdering.forsikretMedDekningsgrad80ProsentFraDag1()) {
+                runBlocking {
+                    oppgaveClient.lagOppgave(
+                        meldingId,
+                        fødselsnummer,
+                        Årsak.UtbetaltFraDagÉnOgDekningsgrad80Prosent,
+                        skjæringstidspunkt
+                    )
+                }
             }
         }
     }
