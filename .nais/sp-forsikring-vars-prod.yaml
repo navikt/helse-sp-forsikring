@@ -1,3 +1,6 @@
 kafkaPool: nav-prod
 db:
   tier: "db-custom-1-3840"
+gosys:
+  baseurl: ""
+  scope: ""

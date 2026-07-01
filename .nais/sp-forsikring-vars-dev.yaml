@@ -3,3 +3,6 @@ db:
   tier: "db-f1-micro"
   extraUsers:
     - "sp-forsikring-opprydding-dev"
+gosys:
+  baseurl: https://oppgave.dev-fss-pub.nais.io
+  scope: api://dev-fss.oppgavehandtering.oppgave/.default
