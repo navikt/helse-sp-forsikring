@@ -4,7 +4,7 @@ plugins {
 }
 
 application {
-    mainClass.set("no.nav.helse.sykepenger.forsikring.AppKt")
+    mainClass.set("no.nav.helse.sykepenger.forsikring.app.AppKt")
     applicationName = "app"
 }
 

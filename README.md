@@ -3,6 +3,23 @@
 Denne applikasjonen svarer Spleis på hva slags forsikring en bruker har, til bruk for å regne ut
 tilleggssykepenger (Folketrygdloven § 8-36 og § 8-39).
 
+## Struktur i `sp-forsikring`
+
+Koden i `sp-forsikring` er organisert feature-først, med tydelig skille mellom domene, applikasjonslogikk og adaptere:
+
+- `shared`: felleskode som logging, utils og test-støtte.
+- `forsikringsvurdering`: hovedflyt for vurdering av forsikring.
+- `oppslag`: oppslag mot Infotrygd/replikabase og lagring av oppslag.
+- `oppgaver`: oppretting av oppgaver og tilhørende rivers.
+
+Hver feature er videre delt i:
+
+- `domain`: domenemodeller og regler.
+- `application`: orkestrering av use-cases.
+- `seam`: grensesnitt/abstraksjoner.
+- `adapter`: konkrete implementasjoner (for eksempel `http`, `rapids`, `postgres`, `oracle`, `gosys`).
+
+
 ## Kjøpte Nav-forsikringstyper i Infotrygd
 Det er fem forskjellige typer forsikringer dennne appen finner svar om fra Infotrygd. De er ligger som type 1 til 5 i dataen fra Infotrygd.
 Hva de tallene betyr vises i dette skjermbildet:

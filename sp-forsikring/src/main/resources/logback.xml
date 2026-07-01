@@ -11,7 +11,7 @@
     </appender>
 
     <appender name="team-logs" class="net.logstash.logback.appender.LogstashTcpSocketAppender">
-        <filter class="no.nav.helse.sykepenger.forsikring.SkipTeamLogsMarkerFilter"/>
+        <filter class="no.nav.helse.sykepenger.forsikring.shared.logging.SkipTeamLogsMarkerFilter"/>
         <destination>team-logs.nais-system:5170</destination>
         <encoder class="net.logstash.logback.encoder.LogstashEncoder">
             <customFields>

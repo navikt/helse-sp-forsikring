@@ -1,14 +1,18 @@
-package no.nav.helse.sykepenger.forsikring
+package no.nav.helse.sykepenger.forsikring.app
 
 import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
 import io.ktor.server.application.*
 import java.time.Duration
 import no.nav.helse.rapids_rivers.RapidApplication
-import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.ForsikringsvurderingService
-import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.PgForsikringsvurderingRepository
-import no.nav.helse.sykepenger.forsikring.oppslag.OppslagService
-import no.nav.helse.sykepenger.forsikring.replikabase.ReplikabaseDao
+import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.adapter.http.forsikringsvurderingApi
+import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.adapter.postgres.PgForsikringsvurderingRepository
+import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.adapter.rapids.ForsikringsvurderingBehovRiver
+import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.adapter.rapids.ForsikringsvurderingResultatBehovRiver
+import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.application.ForsikringsvurderingService
+import no.nav.helse.sykepenger.forsikring.oppslag.adapter.oracle.ReplikabaseDao
+import no.nav.helse.sykepenger.forsikring.oppslag.application.OppslagService
+import no.nav.helse.sykepenger.forsikring.shared.logging.loggInfo
 import org.flywaydb.core.Flyway
 
 fun main() {
