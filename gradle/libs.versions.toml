@@ -42,7 +42,7 @@ tbd-libs-rapids-and-rivers-test = { module = "com.github.navikt.tbd-libs:rapids-
 testcontainers-postgres = { module = "org.testcontainers:testcontainers-postgresql", version.ref = "testcontainers" }
 testcontainers-oracle-free = { module = "org.testcontainers:testcontainers-oracle-free", version.ref = "testcontainers" }
 wiremock = "org.wiremock:wiremock-jetty12:3.13.2"
-mockk = "io.mockk:mockk:1.13.17"
+mockk = "io.mockk:mockk:1.14.11"
 
 [bundles]
 ktor-server = [
