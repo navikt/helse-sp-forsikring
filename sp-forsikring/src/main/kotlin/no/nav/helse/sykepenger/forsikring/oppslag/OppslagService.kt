@@ -1,22 +1,20 @@
 package no.nav.helse.sykepenger.forsikring.oppslag
 
 import java.time.Instant
-import javax.sql.DataSource
 import kotliquery.TransactionalSession
 import no.nav.helse.sykepenger.forsikring.replikabase.ReplikabaseDao
 
 class OppslagService(
-    spForsikringTransaction: TransactionalSession,
     private val replikabaseDao: ReplikabaseDao,
 ) {
-    private val oppslagDao = OppslagDao(spForsikringTransaction)
+    private val oppslagDao = OppslagDao()
 
-    fun gjørNyttOppslag(fødselsnummer: String): Oppslag {
+    fun gjørNyttOppslag(session: TransactionalSession, fødselsnummer: String): Oppslag {
         val oppslagId = OppslagId.ny()
-        oppslagDao.lagreOppslag(oppslagId, Instant.now())
+        oppslagDao.lagreOppslag(oppslagId, Instant.now(), session)
         val vedfrivt10Rader = replikabaseDao.hentIfVedfrivt10Rader(fødselsnummer)
-        oppslagDao.lagreIfVedfrivt10Rader(oppslagId, vedfrivt10Rader)
+        oppslagDao.lagreIfVedfrivt10Rader(oppslagId, vedfrivt10Rader, session)
 
-        return oppslagDao.hentOppslag(oppslagId)
+        return oppslagDao.hentOppslag(oppslagId, session)
     }
 }

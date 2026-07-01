@@ -2,8 +2,12 @@ package no.nav.helse.sykepenger.forsikring
 
 import io.ktor.server.cio.*
 import io.ktor.server.engine.*
-import kotliquery.sessionOf
+import java.net.ServerSocket
+import java.time.LocalDate
+import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.ForsikringsvurderingRepository
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.ForsikringsvurderingService
+import no.nav.helse.sykepenger.forsikring.oppslag.OppslagService
+import no.nav.helse.sykepenger.forsikring.replikabase.ReplikabaseDao
 import no.nav.security.mock.oauth2.MockOAuth2Server
 import org.apache.hc.client5.http.fluent.Request
 import org.apache.hc.core5.http.ContentType
@@ -16,8 +20,6 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.ValueSource
-import java.net.ServerSocket
-import java.time.LocalDate
 
 private const val CLIENT_ID = "sp-forsikring-junit"
 
@@ -28,11 +30,16 @@ class ForsikringsvurderingApiTest {
     private val port = ServerSocket(0).use { it.localPort }
     private val serverUrl = "http://localhost:$port"
 
+    private val forsikringsvurderingRepository = ForsikringsvurderingRepository(TestcontainersSpForsikringDatabase.dataSource)
+    private val replikabaseDao = ReplikabaseDao(TestcontainersReplikadatabase.dataSource)
+    private val oppslagService = OppslagService(replikabaseDao)
+    private val forsikringsvurderingService = ForsikringsvurderingService(forsikringsvurderingRepository, oppslagService)
+
     private val embeddedServer =
         embeddedServer(CIO, port = port) {
             forsikringsvurderingApi(
                 replikabaseDataSource = TestcontainersReplikadatabase.dataSource,
-                spForsikringDataSource = TestcontainersSpForsikringDatabase.dataSource,
+                forsikringsvurderingRepository = forsikringsvurderingRepository,
                 clientId = CLIENT_ID,
                 issuerUrl = mockOAuth2Server.issuerUrl("default").toString(),
                 jwkProviderUri = mockOAuth2Server.jwksUrl("default").toString()
@@ -286,19 +293,15 @@ class ForsikringsvurderingApiTest {
         skjæringstidspunkt: LocalDate,
     ): String {
         val behovJson = """{"fødselsnummer":"$identitetsnummer","@behov":["Forsikringsvurdering"]}"""
-        return sessionOf(TestcontainersSpForsikringDatabase.dataSource).use { session ->
-            session.transaction { transaction ->
-                ForsikringsvurderingService(
-                    spForsikringTransaction = transaction,
-                    replikabaseDataSource = TestcontainersReplikadatabase.dataSource
-                ).gjørVurdering(
-                    behovJson = behovJson,
-                    skjæringstidspunkt = skjæringstidspunkt,
-                    fødselsnummer = identitetsnummer,
-                    spesielleYrkesgrupper = emptySet(),
-                    yrkesaktivitetstype = Yrkesaktivitetstype.SELVSTENDIG
-                ).id.value.toString()
-            }
+        return TestcontainersSpForsikringDatabase.dataSource.inTransaction { transaction ->
+            forsikringsvurderingService.gjørVurdering(
+                session = transaction,
+                behovJson = behovJson,
+                skjæringstidspunkt = skjæringstidspunkt,
+                fødselsnummer = identitetsnummer,
+                spesielleYrkesgrupper = emptySet(),
+                yrkesaktivitetstype = Yrkesaktivitetstype.SELVSTENDIG
+            ).id.value.toString()
         }
     }
 
@@ -329,4 +332,3 @@ class ForsikringsvurderingApiTest {
             .handleResponse { response -> response.code to (EntityUtils.toString(response.entity) ?: "") }
     }
 }
-

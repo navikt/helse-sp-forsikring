@@ -10,15 +10,14 @@ import com.github.navikt.tbd_libs.rapids_and_rivers_api.RapidsConnection
 import io.micrometer.core.instrument.MeterRegistry
 import javax.sql.DataSource
 import kotlin.uuid.ExperimentalUuidApi
-import kotliquery.sessionOf
 import no.nav.helse.sykepenger.forsikring.SpesiellYrkesgruppe.Fisker.Blad
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.ForsikringsvurderingService
 import tools.jackson.databind.JsonNode
 
 class ForsikringsvurderingBehovRiver(
     rapidsConnection: RapidsConnection,
-    private val replikabaseDataSource: DataSource,
     private val spForsikringDataSource: DataSource,
+    private val forsikringsvurderingService: ForsikringsvurderingService,
 ) : River.PacketListener {
     init {
         River(rapidsConnection)
@@ -65,29 +64,25 @@ class ForsikringsvurderingBehovRiver(
         medMdc(MdcKey.MELDING_ID to meldingId) {
             loggInfo("Mottok Forsikringsvurdering-behov", "behov" to packet.toJson())
             try {
-                sessionOf(spForsikringDataSource).use { session ->
-                    session.transaction { transaction ->
-                        val forsikringsvurdering = ForsikringsvurderingService(
-                            spForsikringTransaction = transaction,
-                            replikabaseDataSource = replikabaseDataSource
-                        ).gjørVurdering(
-                            behovJson = packet.toJson(),
-                            skjæringstidspunkt = skjæringstidspunkt,
-                            fødselsnummer = fødselsnummer,
-                            spesielleYrkesgrupper = spesielleYrkesgrupper,
-                            yrkesaktivitetstype = yrkesaktivitetstype
-                        )
+                spForsikringDataSource.inTransaction { transaction ->
+                    val forsikringsvurdering = forsikringsvurderingService.gjørVurdering(
+                        session = transaction,
+                        behovJson = packet.toJson(),
+                        skjæringstidspunkt = skjæringstidspunkt,
+                        fødselsnummer = fødselsnummer,
+                        spesielleYrkesgrupper = spesielleYrkesgrupper,
+                        yrkesaktivitetstype = yrkesaktivitetstype
+                    )
 
-                        packet["@løsning"] = mapOf(
-                            "Forsikringsvurdering" to mapOf(
-                                "forsikringsvurderingId" to forsikringsvurdering.id.value.toString(),
-                            )
+                    packet["@løsning"] = mapOf(
+                        "Forsikringsvurdering" to mapOf(
+                            "forsikringsvurderingId" to forsikringsvurdering.id.value.toString(),
                         )
+                    )
 
-                        val løsningJson = packet.toJson()
-                        loggInfo("Svarer på Forsikringsvurdering-behov med løsning", "løsning" to løsningJson)
-                        context.publish(løsningJson)
-                    }
+                    val løsningJson = packet.toJson()
+                    loggInfo("Svarer på Forsikringsvurdering-behov med løsning", "løsning" to løsningJson)
+                    context.publish(løsningJson)
                 }
             } catch (err: Exception) {
                 loggError("Feil ved håndtering av Forsikringsvurdering-behov", err, "melding" to packet.toJson())

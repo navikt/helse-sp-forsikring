@@ -15,16 +15,15 @@ import io.ktor.server.plugins.statuspages.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
-import kotliquery.sessionOf
-import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.ForsikringsvurderingId
-import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.ForsikringsvurderingRepository
-import no.nav.helse.sykepenger.forsikring.replikabase.ReplikabaseDao
-import no.nav.helse.sykepenger.forsikring.replikabase.mapTilRåNavKjøptForsikring
-import org.slf4j.event.Level
 import java.net.URI
 import java.time.LocalDate
 import java.util.*
 import javax.sql.DataSource
+import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.ForsikringsvurderingId
+import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.IForsikringsvurderingRepository
+import no.nav.helse.sykepenger.forsikring.replikabase.ReplikabaseDao
+import no.nav.helse.sykepenger.forsikring.replikabase.mapTilRåNavKjøptForsikring
+import org.slf4j.event.Level
 
 private val jsonMapper = ObjectMapper()
 
@@ -58,7 +57,7 @@ data class ProblemResponse(
 
 fun Application.forsikringsvurderingApi(
     replikabaseDataSource: DataSource,
-    spForsikringDataSource: DataSource,
+    forsikringsvurderingRepository: IForsikringsvurderingRepository,
     clientId: String,
     issuerUrl: String,
     jwkProviderUri: String
@@ -131,11 +130,7 @@ fun Application.forsikringsvurderingApi(
                     )
                 loggInfo("Mottok kall til GET /forsikringsvurderinger/$id")
 
-                val forsikringsvurdering = sessionOf(spForsikringDataSource).use { session ->
-                    session.transaction { transaction ->
-                        ForsikringsvurderingRepository(transaction).hent(ForsikringsvurderingId(id))
-                    }
-                }
+                val forsikringsvurdering = forsikringsvurderingRepository.hent(ForsikringsvurderingId(id))
 
                 if (forsikringsvurdering == null) {
                     return@get call.respond(

@@ -3,9 +3,12 @@ package no.nav.helse.sykepenger.forsikring
 import java.time.LocalDate
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
-import kotliquery.sessionOf
+import kotliquery.TransactionalSession
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.Forsikringsvurdering
+import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.ForsikringsvurderingRepository
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.ForsikringsvurderingService
+import no.nav.helse.sykepenger.forsikring.oppslag.OppslagService
+import no.nav.helse.sykepenger.forsikring.replikabase.ReplikabaseDao
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
@@ -25,8 +28,9 @@ internal class ForsikringsvurderingTest {
     fun `gjørVurdering returnerer løsning med forsikring uten TestRapid`() {
         insertBetaltVedfrivt(IF10_TYPE = '2')
 
-        val vurdering = medService {
+        val vurdering = medService { session ->
             gjørVurdering(
+                session = session,
                 behovJson = """{"@behov":["Forsikringsvurdering"]}""",
                 skjæringstidspunkt = SKJÆRINGSTIDSPUNKT,
                 fødselsnummer = FØDSELSNUMMER,
@@ -46,8 +50,9 @@ internal class ForsikringsvurderingTest {
     @Test
     fun `gjørVurdering inneholder opphørsdato når den er satt`() {
         insertBetaltVedfrivt(IF10_TYPE = '2', IF10_FORSTOM = 20260331)
-        val vurdering = medService {
+        val vurdering = medService { session ->
             gjørVurdering(
+                session = session,
                 behovJson = """{"@behov":["Forsikringsvurdering"]}""",
                 skjæringstidspunkt = SKJÆRINGSTIDSPUNKT,
                 fødselsnummer = FØDSELSNUMMER,
@@ -80,8 +85,9 @@ internal class ForsikringsvurderingTest {
         IF10_TYPE?.let { insertBetaltVedfrivt(IF10_TYPE = it) }
 
         assertThrows<AbstractNavKjøptForsikring.Valideringsfeil> {
-            medService {
+            medService { session ->
                 gjørVurdering(
+                    session = session,
                     behovJson = """{"@behov":["Forsikringsvurdering"]}""",
                     skjæringstidspunkt = SKJÆRINGSTIDSPUNKT,
                     fødselsnummer = FØDSELSNUMMER,
@@ -107,8 +113,9 @@ internal class ForsikringsvurderingTest {
         insertBetaltVedfrivt(IF10_FORSFOM_SEQ = 2, IF10_TYPE = '2')
 
         assertThrows<IllegalStateException> {
-            medService {
+            medService { session ->
                 gjørVurdering(
+                    session = session,
                     behovJson = """{"@behov":["Forsikringsvurdering"]}""",
                     skjæringstidspunkt = SKJÆRINGSTIDSPUNKT,
                     fødselsnummer = FØDSELSNUMMER,
@@ -163,8 +170,9 @@ internal class ForsikringsvurderingTest {
             IF12_BETDATO = 20260101
         )
 
-        val vurdering = medService {
+        val vurdering = medService { session ->
             gjørVurdering(
+                session = session,
                 behovJson = """{"@behov":["Forsikringsvurdering"]}""",
                 skjæringstidspunkt = SKJÆRINGSTIDSPUNKT,
                 fødselsnummer = FØDSELSNUMMER,
@@ -232,13 +240,13 @@ internal class ForsikringsvurderingTest {
         )
     }
 
-    private fun <T> medService(block: ForsikringsvurderingService.() -> T): T =
-        sessionOf(TestcontainersSpForsikringDatabase.dataSource).use { session ->
-            session.transaction { transaction ->
-                ForsikringsvurderingService(
-                    spForsikringTransaction = transaction,
-                    replikabaseDataSource = TestcontainersReplikadatabase.dataSource
-                ).block()
-            }
+    private fun <T> medService(block: ForsikringsvurderingService.(TransactionalSession) -> T): T {
+        val repository = ForsikringsvurderingRepository(TestcontainersSpForsikringDatabase.dataSource)
+        val replikabaseDao = ReplikabaseDao(TestcontainersReplikadatabase.dataSource)
+        val oppslagService = OppslagService(replikabaseDao)
+        val service = ForsikringsvurderingService(repository, oppslagService)
+        return TestcontainersSpForsikringDatabase.dataSource.inTransaction { transaction ->
+            service.block(transaction)
         }
+    }
 }

@@ -8,7 +8,6 @@ import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.Forsikringsvurdering
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.ForsikringsvurderingId
-import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.IForsikringsvurderingRepository
 import no.nav.helse.sykepenger.forsikring.oppgaver.Årsak
 import no.nav.helse.sykepenger.forsikring.oppslag.OppslagId
 import org.intellij.lang.annotations.Language
@@ -20,15 +19,7 @@ class SelvstendigIngenDagerIgjenRiverTest {
     private val fødselsnummer = "12345678910"
 
     private val oppgaveClient = TestOppgaveClient()
-    private val forsikringsvurderingRepository = object : IForsikringsvurderingRepository {
-        private val vurderinger = mutableListOf<Forsikringsvurdering>()
-        override fun lagre(forsikringsvurdering: Forsikringsvurdering) {
-            vurderinger.add(forsikringsvurdering)
-        }
-        override fun hent(id: ForsikringsvurderingId): Forsikringsvurdering? {
-            return vurderinger.firstOrNull() { it.id == id }
-        }
-    }
+    private val forsikringsvurderingRepository = FakeForsikringsvurderingRepository()
 
     init {
         SelvstendigIngenDagerIgjenRiver(
@@ -42,7 +33,7 @@ class SelvstendigIngenDagerIgjenRiverTest {
     fun `oppretter gosysoppgave`() {
         // given
         val forsikringsvurderingId = ForsikringsvurderingId.ny()
-        forsikringsvurderingRepository.lagre(Forsikringsvurdering.fraLagring(
+        forsikringsvurderingRepository.seed(Forsikringsvurdering.fraLagring(
             id = forsikringsvurderingId,
             oppslagId = OppslagId.ny(),
             behovJson = "{}",

@@ -19,10 +19,14 @@ internal class ForsikringsvurderingBehovRiverTest {
     private val objectMapper = jacksonObjectMapper().registerModule(JavaTimeModule())
 
     private val rapid = TestRapid().apply {
+        val forsikringsvurderingRepository = no.nav.helse.sykepenger.forsikring.forsikringsvurdering.ForsikringsvurderingRepository(TestcontainersSpForsikringDatabase.dataSource)
+        val replikabaseDao = no.nav.helse.sykepenger.forsikring.replikabase.ReplikabaseDao(TestcontainersReplikadatabase.dataSource)
+        val oppslagService = no.nav.helse.sykepenger.forsikring.oppslag.OppslagService(replikabaseDao)
+        val forsikringsvurderingService = no.nav.helse.sykepenger.forsikring.forsikringsvurdering.ForsikringsvurderingService(forsikringsvurderingRepository, oppslagService)
         ForsikringsvurderingBehovRiver(
             rapidsConnection = this,
-            replikabaseDataSource = TestcontainersReplikadatabase.dataSource,
-            spForsikringDataSource = TestcontainersSpForsikringDatabase.dataSource
+            spForsikringDataSource = TestcontainersSpForsikringDatabase.dataSource,
+            forsikringsvurderingService = forsikringsvurderingService,
         )
     }
 

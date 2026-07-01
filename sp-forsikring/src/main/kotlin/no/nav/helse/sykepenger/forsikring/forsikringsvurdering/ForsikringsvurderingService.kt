@@ -1,7 +1,6 @@
 package no.nav.helse.sykepenger.forsikring.forsikringsvurdering
 
 import java.time.LocalDate
-import javax.sql.DataSource
 import kotliquery.TransactionalSession
 import no.nav.helse.sykepenger.forsikring.AbstractNavKjøptForsikring
 import no.nav.helse.sykepenger.forsikring.AbstractNavKjøptForsikring.Ekskluderingsårsak.ALDRI_BETALT
@@ -17,24 +16,20 @@ import no.nav.helse.sykepenger.forsikring.kollektiveForsikringerFor
 import no.nav.helse.sykepenger.forsikring.loggError
 import no.nav.helse.sykepenger.forsikring.loggInfo
 import no.nav.helse.sykepenger.forsikring.oppslag.OppslagService
-import no.nav.helse.sykepenger.forsikring.replikabase.ReplikabaseDao
 
 class ForsikringsvurderingService(
-    spForsikringTransaction: TransactionalSession,
-    replikabaseDataSource: DataSource
+    private val forsikringsvurderingRepository: IForsikringsvurderingRepository,
+    private val oppslagService: OppslagService,
 ) {
-    private val replikabaseDao = ReplikabaseDao(dataSource = replikabaseDataSource)
-    private val oppslagService = OppslagService(spForsikringTransaction, replikabaseDao)
-    private val forsikringsvurderingRepository = ForsikringsvurderingRepository(spForsikringTransaction)
-
     fun gjørVurdering(
+        session: TransactionalSession,
         behovJson: String,
         skjæringstidspunkt: LocalDate,
         fødselsnummer: String,
         spesielleYrkesgrupper: Set<SpesiellYrkesgruppe>,
         yrkesaktivitetstype: Yrkesaktivitetstype
     ): Forsikringsvurdering {
-        val oppslag = oppslagService.gjørNyttOppslag(fødselsnummer)
+        val oppslag = oppslagService.gjørNyttOppslag(session, fødselsnummer)
 
         val navKjøpteForsikringer = oppslag.navKjøpteForsikringer.toMutableList()
         val ekskluderinger = mutableListOf<EkskluderingNavKjøptForsikring>()
@@ -102,7 +97,7 @@ class ForsikringsvurderingService(
             opphørsdato = besteforsikring?.opphørsdato()
         )
 
-        forsikringsvurderingRepository.lagre(forsikringsvurdering)
+        forsikringsvurderingRepository.lagre(forsikringsvurdering, session)
 
         return forsikringsvurdering
     }

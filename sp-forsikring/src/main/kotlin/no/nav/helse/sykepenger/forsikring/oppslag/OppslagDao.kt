@@ -12,14 +12,14 @@ import no.nav.helse.sykepenger.forsikring.replikabase.IF_VEDFRIVT_10_Rad
 import no.nav.helse.sykepenger.forsikring.toLocalDate
 import org.intellij.lang.annotations.Language
 
-class OppslagDao(private val transaction: TransactionalSession) {
-    fun lagreOppslag(oppslagId: OppslagId, oppslagTidspunkt: Instant) {
+class OppslagDao() {
+    fun lagreOppslag(oppslagId: OppslagId, oppslagTidspunkt: Instant, session: TransactionalSession) {
         @Language("PostgreSQL")
         val statement = """
             INSERT INTO oppslag (id, oppslag_tidspunkt)
             VALUES (:id, :oppslag_tidspunkt)
         """
-        transaction.run(
+        session.run(
             queryOf(
                 statement,
                 mapOf(
@@ -33,12 +33,13 @@ class OppslagDao(private val transaction: TransactionalSession) {
     fun lagreIfVedfrivt10Rader(
         oppslagId: OppslagId,
         rader: List<IF_VEDFRIVT_10_Rad>,
+        session: TransactionalSession,
     ) {
         rader.forEach { rad ->
             val oppslagIfVedrift10Id = OppslagIfVedrift10Id.ny()
-            lagreIfVedfrivt10Rad(oppslagIfVedrift10Id, oppslagId, rad)
+            lagreIfVedfrivt10Rad(oppslagIfVedrift10Id, oppslagId, rad, session)
             rad.IF_FKONTO_12_rader.forEach { fkontoRad ->
-                lagreIfFkonto12Rad(oppslagIfVedrift10Id, rad, fkontoRad)
+                lagreIfFkonto12Rad(oppslagIfVedrift10Id, rad, fkontoRad, session)
             }
         }
     }
@@ -46,7 +47,8 @@ class OppslagDao(private val transaction: TransactionalSession) {
     private fun lagreIfVedfrivt10Rad(
         id: OppslagIfVedrift10Id,
         oppslagId: OppslagId,
-        rad: IF_VEDFRIVT_10_Rad
+        rad: IF_VEDFRIVT_10_Rad,
+        session: TransactionalSession,
     ) {
         @Language("PostgreSQL")
         val statement = """
@@ -72,7 +74,7 @@ class OppslagDao(private val transaction: TransactionalSession) {
                     :OPPRETTET, :ENDRET_I_KILDE, :KILDE_IF, :ID_VED, :OPPDATERT
                 )
             """
-        transaction.run(
+        session.run(
             queryOf(
                 statement,
                 mapOf(
@@ -118,6 +120,7 @@ class OppslagDao(private val transaction: TransactionalSession) {
         oppslagIfVedrift10Id: OppslagIfVedrift10Id,
         vedfrivtRad: IF_VEDFRIVT_10_Rad,
         rad: IF_FKONTO_12_Rad,
+        session: TransactionalSession,
     ) {
         @Language("PostgreSQL")
         val statement = """
@@ -135,7 +138,7 @@ class OppslagDao(private val transaction: TransactionalSession) {
                 :OPPRETTET, :ENDRET_I_KILDE, :KILDE_IF, :ID_KONT, :OPPDATERT
             )
         """
-        transaction.run(
+        session.run(
             queryOf(
                 statement,
                 mapOf(
@@ -161,7 +164,7 @@ class OppslagDao(private val transaction: TransactionalSession) {
         )
     }
 
-    fun hentOppslag(oppslagId: OppslagId): Oppslag {
+    fun hentOppslag(oppslagId: OppslagId, session: TransactionalSession): Oppslag {
         @Language("PostgreSQL")
         val statement = """
             SELECT
@@ -180,7 +183,7 @@ class OppslagDao(private val transaction: TransactionalSession) {
             FROM oppslag_IF_VEDFRIVT_10 v
             WHERE v.oppslag_id = :oppslag_id
         """
-        val navKjøpteForsikringer = transaction.run(
+        val navKjøpteForsikringer = session.run(
             queryOf(statement, mapOf("oppslag_id" to oppslagId.value))
                 .map { row ->
                     NavKjøptForsikring(
