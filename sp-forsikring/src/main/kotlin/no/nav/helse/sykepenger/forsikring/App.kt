@@ -5,8 +5,8 @@ import com.zaxxer.hikari.HikariDataSource
 import io.ktor.server.application.*
 import java.time.Duration
 import no.nav.helse.rapids_rivers.RapidApplication
-import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.ForsikringsvurderingRepository
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.ForsikringsvurderingService
+import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.PgForsikringsvurderingRepository
 import no.nav.helse.sykepenger.forsikring.oppslag.OppslagService
 import no.nav.helse.sykepenger.forsikring.replikabase.ReplikabaseDao
 import org.flywaydb.core.Flyway
@@ -35,7 +35,7 @@ fun launchApplication(env: Map<String, String>) {
         }
     )
 
-    val forsikringsvurderingRepository = ForsikringsvurderingRepository(spForsikringDataSource)
+    val forsikringsvurderingRepository = PgForsikringsvurderingRepository(spForsikringDataSource)
     val replikabaseDao = ReplikabaseDao(dataSource = replikabaseDataSource)
     val oppslagService = OppslagService(replikabaseDao)
     val forsikringsvurderingService = ForsikringsvurderingService(forsikringsvurderingRepository, oppslagService)

@@ -20,7 +20,7 @@ import java.time.LocalDate
 import java.util.*
 import javax.sql.DataSource
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.ForsikringsvurderingId
-import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.IForsikringsvurderingRepository
+import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.ForsikringsvurderingRepository
 import no.nav.helse.sykepenger.forsikring.replikabase.ReplikabaseDao
 import no.nav.helse.sykepenger.forsikring.replikabase.mapTilRåNavKjøptForsikring
 import org.slf4j.event.Level
@@ -57,7 +57,7 @@ data class ProblemResponse(
 
 fun Application.forsikringsvurderingApi(
     replikabaseDataSource: DataSource,
-    forsikringsvurderingRepository: IForsikringsvurderingRepository,
+    forsikringsvurderingRepository: ForsikringsvurderingRepository,
     clientId: String,
     issuerUrl: String,
     jwkProviderUri: String

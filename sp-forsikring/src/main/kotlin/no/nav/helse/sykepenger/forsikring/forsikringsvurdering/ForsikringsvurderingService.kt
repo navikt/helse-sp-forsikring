@@ -18,7 +18,7 @@ import no.nav.helse.sykepenger.forsikring.loggInfo
 import no.nav.helse.sykepenger.forsikring.oppslag.OppslagService
 
 class ForsikringsvurderingService(
-    private val forsikringsvurderingRepository: IForsikringsvurderingRepository,
+    private val forsikringsvurderingRepository: ForsikringsvurderingRepository,
     private val oppslagService: OppslagService,
 ) {
     fun gjørVurdering(

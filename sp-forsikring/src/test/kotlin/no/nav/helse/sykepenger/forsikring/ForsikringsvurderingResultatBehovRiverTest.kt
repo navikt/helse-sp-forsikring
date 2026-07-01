@@ -9,7 +9,7 @@ import com.github.navikt.tbd_libs.rapids_and_rivers.test_support.TestRapid
 import java.util.*
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
-import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.ForsikringsvurderingRepository
+import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.PgForsikringsvurderingRepository
 import no.nav.helse.sykepenger.forsikring.oppslag.OppslagService
 import no.nav.helse.sykepenger.forsikring.replikabase.ReplikabaseDao
 import org.intellij.lang.annotations.Language
@@ -23,7 +23,7 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
     private val objectMapper = jacksonObjectMapper().registerModule(JavaTimeModule())
 
     private val rapid = TestRapid().apply {
-        val forsikringsvurderingRepository = ForsikringsvurderingRepository(TestcontainersSpForsikringDatabase.dataSource)
+        val forsikringsvurderingRepository = PgForsikringsvurderingRepository(TestcontainersSpForsikringDatabase.dataSource)
         val replikabaseDao = ReplikabaseDao(TestcontainersReplikadatabase.dataSource)
         val oppslagService = OppslagService(replikabaseDao)
         val forsikringsvurderingService = no.nav.helse.sykepenger.forsikring.forsikringsvurdering.ForsikringsvurderingService(forsikringsvurderingRepository, oppslagService)

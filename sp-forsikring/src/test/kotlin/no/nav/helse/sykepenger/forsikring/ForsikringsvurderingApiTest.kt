@@ -4,8 +4,8 @@ import io.ktor.server.cio.*
 import io.ktor.server.engine.*
 import java.net.ServerSocket
 import java.time.LocalDate
-import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.ForsikringsvurderingRepository
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.ForsikringsvurderingService
+import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.PgForsikringsvurderingRepository
 import no.nav.helse.sykepenger.forsikring.oppslag.OppslagService
 import no.nav.helse.sykepenger.forsikring.replikabase.ReplikabaseDao
 import no.nav.security.mock.oauth2.MockOAuth2Server
@@ -30,7 +30,7 @@ class ForsikringsvurderingApiTest {
     private val port = ServerSocket(0).use { it.localPort }
     private val serverUrl = "http://localhost:$port"
 
-    private val forsikringsvurderingRepository = ForsikringsvurderingRepository(TestcontainersSpForsikringDatabase.dataSource)
+    private val forsikringsvurderingRepository = PgForsikringsvurderingRepository(TestcontainersSpForsikringDatabase.dataSource)
     private val replikabaseDao = ReplikabaseDao(TestcontainersReplikadatabase.dataSource)
     private val oppslagService = OppslagService(replikabaseDao)
     private val forsikringsvurderingService = ForsikringsvurderingService(forsikringsvurderingRepository, oppslagService)

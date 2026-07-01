@@ -11,14 +11,14 @@ import java.util.*
 import kotlinx.coroutines.runBlocking
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.Forsikringsvurdering
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.ForsikringsvurderingId
-import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.IForsikringsvurderingRepository
+import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.ForsikringsvurderingRepository
 import no.nav.helse.sykepenger.forsikring.oppgaver.OppgaveoppretterClient
 import no.nav.helse.sykepenger.forsikring.oppgaver.Årsak
 
 class SelvstendigUtbetaltEtterVentetidRiver(
     rapidsConnection: RapidsConnection,
     private val oppgaveClient: OppgaveoppretterClient,
-    private val forsikringsvurderingRepository: IForsikringsvurderingRepository,
+    private val forsikringsvurderingRepository: ForsikringsvurderingRepository,
 ) : River.PacketListener {
 
     init {

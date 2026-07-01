@@ -5,8 +5,8 @@ import kotlin.test.assertEquals
 import kotlin.test.assertIs
 import kotliquery.TransactionalSession
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.Forsikringsvurdering
-import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.ForsikringsvurderingRepository
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.ForsikringsvurderingService
+import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.PgForsikringsvurderingRepository
 import no.nav.helse.sykepenger.forsikring.oppslag.OppslagService
 import no.nav.helse.sykepenger.forsikring.replikabase.ReplikabaseDao
 import org.junit.jupiter.api.Assertions.assertNull
@@ -241,7 +241,7 @@ internal class ForsikringsvurderingTest {
     }
 
     private fun <T> medService(block: ForsikringsvurderingService.(TransactionalSession) -> T): T {
-        val repository = ForsikringsvurderingRepository(TestcontainersSpForsikringDatabase.dataSource)
+        val repository = PgForsikringsvurderingRepository(TestcontainersSpForsikringDatabase.dataSource)
         val replikabaseDao = ReplikabaseDao(TestcontainersReplikadatabase.dataSource)
         val oppslagService = OppslagService(replikabaseDao)
         val service = ForsikringsvurderingService(repository, oppslagService)

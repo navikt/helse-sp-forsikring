@@ -10,7 +10,7 @@ import io.micrometer.core.instrument.MeterRegistry
 import java.util.*
 import kotlinx.coroutines.runBlocking
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.ForsikringsvurderingId
-import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.IForsikringsvurderingRepository
+import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.ForsikringsvurderingRepository
 import no.nav.helse.sykepenger.forsikring.oppgaver.OppgaveoppretterClient
 import no.nav.helse.sykepenger.forsikring.oppgaver.Årsak
 
@@ -19,7 +19,7 @@ private const val EVENT_NAME = "selvstendig_ingen_dager_igjen"
 class SelvstendigIngenDagerIgjenRiver(
     rapidsConnection: RapidsConnection,
     private val oppgaveClient: OppgaveoppretterClient,
-    private val forsikringsvurderingRepository: IForsikringsvurderingRepository,
+    private val forsikringsvurderingRepository: ForsikringsvurderingRepository,
 ) : River.PacketListener {
     init {
         River(rapidsConnection)

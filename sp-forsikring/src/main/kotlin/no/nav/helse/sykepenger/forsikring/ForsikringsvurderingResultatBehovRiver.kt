@@ -9,11 +9,11 @@ import com.github.navikt.tbd_libs.rapids_and_rivers_api.RapidsConnection
 import io.micrometer.core.instrument.MeterRegistry
 import java.util.*
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.ForsikringsvurderingId
-import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.IForsikringsvurderingRepository
+import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.ForsikringsvurderingRepository
 
 class ForsikringsvurderingResultatBehovRiver(
     rapidsConnection: RapidsConnection,
-    private val forsikringsvurderingRepository: IForsikringsvurderingRepository,
+    private val forsikringsvurderingRepository: ForsikringsvurderingRepository,
 ) : River.PacketListener {
 
     init {
