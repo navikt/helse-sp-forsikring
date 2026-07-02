@@ -1,8 +1,8 @@
 package no.nav.helse.sykepenger.forsikring.forsikringsvurdering.adapter.postgres
 
-import javax.sql.DataSource
 import kotliquery.TransactionalSession
 import kotliquery.queryOf
+import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.domain.Forsikringskategori
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.domain.Forsikringsvurdering
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.domain.ForsikringsvurderingId
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.seam.ForsikringsvurderingRepository
@@ -10,6 +10,7 @@ import no.nav.helse.sykepenger.forsikring.oppslag.domain.OppslagId
 import no.nav.helse.sykepenger.forsikring.oppslag.domain.OppslagIfVedrift10Id
 import no.nav.helse.sykepenger.forsikring.shared.util.withSession
 import org.intellij.lang.annotations.Language
+import javax.sql.DataSource
 
 class PgForsikringsvurderingRepository(private val dataSource: DataSource) : ForsikringsvurderingRepository {
 
@@ -40,6 +41,14 @@ class PgForsikringsvurderingRepository(private val dataSource: DataSource) : For
                                 )
                             },
                             opphørsdato = row.localDateOrNull("opphørsdato"),
+                            forsikringskategori = when (row.stringOrNull("forsikringskategori")) {
+                                Forsikringskategori.Kategori.KOLLEKTIV.name -> Forsikringskategori.KollektivForsikring
+                                Forsikringskategori.Kategori.NAVKJØPT.name -> Forsikringskategori.NavKjøptForsikring(
+                                    OppslagIfVedrift10Id(row.uuid("oppslag_IF_VEDFRIVT_10_id"))
+                                )
+
+                                else -> null
+                            }
                         )
                     }
                     .asSingle
@@ -71,12 +80,12 @@ class PgForsikringsvurderingRepository(private val dataSource: DataSource) : For
 
     private fun lagreForsikringsvurdering(
         forsikringsvurdering: Forsikringsvurdering,
-        session: TransactionalSession,
+        session: kotliquery.Session,
     ) {
         @Language("PostgreSQL")
         val statement = """
-            INSERT INTO forsikringsvurdering (id, oppslag_id, behov, har_forsikring, dekning_i_ventetid, dekning_grad, opphørsdato)
-            VALUES (:id, :oppslag_id, :behov::jsonb, :har_forsikring, :dekning_i_ventetid, :dekning_grad, :opphorsdato)
+            INSERT INTO forsikringsvurdering (id, oppslag_id, behov, har_forsikring, dekning_i_ventetid, dekning_grad, opphørsdato, oppslag_IF_VEDFRIVT_10_id, forsikringskategori)
+            VALUES (:id, :oppslag_id, :behov::jsonb, :har_forsikring, :dekning_i_ventetid, :dekning_grad, :opphorsdato, :oppslag_IF_VEDFRIVT_10_id, :forsikringskategori)
         """
         session.run(
             queryOf(
@@ -88,7 +97,9 @@ class PgForsikringsvurderingRepository(private val dataSource: DataSource) : For
                     "har_forsikring" to forsikringsvurdering.harForsikring,
                     "dekning_i_ventetid" to forsikringsvurdering.dekning?.iVentetid,
                     "dekning_grad" to forsikringsvurdering.dekning?.grad,
-                    "opphorsdato" to forsikringsvurdering.opphørsdato
+                    "opphorsdato" to forsikringsvurdering.opphørsdato,
+                    "oppslag_IF_VEDFRIVT_10_id" to (forsikringsvurdering.forsikringskategori as? Forsikringskategori.NavKjøptForsikring)?.id?.value,
+                    "forsikringskategori" to forsikringsvurdering.forsikringskategori?.navn()
                 )
             ).asUpdate
         )

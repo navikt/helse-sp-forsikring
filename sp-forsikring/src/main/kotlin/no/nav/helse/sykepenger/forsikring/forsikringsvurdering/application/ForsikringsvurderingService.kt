@@ -7,10 +7,12 @@ import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.domain.AbstractNa
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.domain.AbstractNavKjøptForsikring.Ekskluderingsårsak.OPPHØRT_PÅ_SKJÆRINGSTIDSPUNKT
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.domain.AbstractNavKjøptForsikring.Ekskluderingsårsak.SKJÆRINGSTIDSPUNKT_INNEN_28_DAGER_FØR_VIRKNINGSDATO
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.domain.AbstractNavKjøptForsikring.Ekskluderingsårsak.SKJÆRINGSTIDSPUNKT_MER_ENN_28_DAGER_FØR_VIRKNINGSDATO
+import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.domain.Forsikringskategori
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.domain.Forsikringsvurdering
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.domain.Forsikringsvurdering.EkskluderingNavKjøptForsikring
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.domain.KollektivForsikring
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.domain.NavKjøptForsikring
+import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.domain.RåNavKjøptForsikring
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.domain.SpesiellYrkesgruppe
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.domain.Yrkesaktivitetstype
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.domain.kollektiveForsikringerFor
@@ -88,6 +90,13 @@ class ForsikringsvurderingService(
         }
 
         val besteforsikring = alleForsikringer.minByOrNull { it.dekningFraDag() }
+        val type = when (besteforsikring) {
+            is NavKjøptForsikring -> Forsikringskategori.NavKjøptForsikring(id = besteforsikring.id)
+            is KollektivForsikring -> Forsikringskategori.KollektivForsikring
+            is RåNavKjøptForsikring -> error("Forsikringstype ${besteforsikring.type} er ikke gyldig under vurdering.")
+            null -> null
+        }
+
         val forsikringsvurdering = Forsikringsvurdering.ny(
             oppslagId = oppslag.id,
             behovJson = behovJson,
@@ -96,7 +105,8 @@ class ForsikringsvurderingService(
             dekning = besteforsikring?.let {
                 Forsikringsvurdering.Dekning(iVentetid = it.dekningFraDag() == 1, grad = it.dekningGrad())
             },
-            opphørsdato = besteforsikring?.opphørsdato()
+            opphørsdato = besteforsikring?.opphørsdato(),
+            forsikringskategori = type,
         )
 
         forsikringsvurderingRepository.lagre(forsikringsvurdering, session)

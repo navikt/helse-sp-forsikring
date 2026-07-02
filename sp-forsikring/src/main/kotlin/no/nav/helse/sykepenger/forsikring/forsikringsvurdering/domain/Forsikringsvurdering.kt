@@ -22,6 +22,7 @@ class Forsikringsvurdering private constructor(
     val harForsikring: Boolean,
     val dekning: Dekning?,
     val opphørsdato: LocalDate?,
+    val forsikringskategori: Forsikringskategori?,
 ) {
     data class Dekning(val iVentetid: Boolean, val grad: Int)
 
@@ -38,6 +39,7 @@ class Forsikringsvurdering private constructor(
             harForsikring: Boolean,
             dekning: Dekning?,
             opphørsdato: LocalDate?,
+            forsikringskategori: Forsikringskategori?,
         ) = Forsikringsvurdering(
             id = ForsikringsvurderingId.ny(),
             oppslagId = oppslagId,
@@ -46,6 +48,7 @@ class Forsikringsvurdering private constructor(
             harForsikring = harForsikring,
             dekning = dekning,
             opphørsdato = opphørsdato,
+            forsikringskategori = forsikringskategori,
         )
 
         fun fraLagring(
@@ -56,6 +59,7 @@ class Forsikringsvurdering private constructor(
             harForsikring: Boolean,
             dekning: Dekning?,
             opphørsdato: LocalDate?,
+            forsikringskategori: Forsikringskategori?,
         ) = Forsikringsvurdering(
             id = id,
             oppslagId = oppslagId,
@@ -63,7 +67,8 @@ class Forsikringsvurdering private constructor(
             ekskluderinger = ekskluderinger,
             harForsikring = harForsikring,
             dekning = dekning,
-            opphørsdato = opphørsdato
+            opphørsdato = opphørsdato,
+            forsikringskategori = forsikringskategori,
         )
     }
 }

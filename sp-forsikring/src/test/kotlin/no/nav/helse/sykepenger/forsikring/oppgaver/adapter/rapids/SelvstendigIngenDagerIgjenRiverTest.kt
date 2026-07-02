@@ -43,7 +43,8 @@ class SelvstendigIngenDagerIgjenRiverTest {
                 iVentetid = true,
                 grad = 100
             ),
-            opphørsdato = null
+            opphørsdato = null,
+            forsikringskategori = null
         ))
 
         // when

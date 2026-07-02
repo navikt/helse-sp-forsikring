@@ -6,6 +6,7 @@ import kotlin.test.assertIs
 import kotliquery.TransactionalSession
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.adapter.postgres.PgForsikringsvurderingRepository
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.domain.AbstractNavKjøptForsikring
+import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.domain.Forsikringskategori
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.domain.Forsikringsvurdering
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.domain.SpesiellYrkesgruppe
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.domain.Yrkesaktivitetstype
@@ -45,11 +46,32 @@ internal class ForsikringsvurderingTest {
         }
 
         val dekning = assertIs<Forsikringsvurdering.Dekning>(vurdering.dekning)
+        val valgtType = assertIs<Forsikringskategori.NavKjøptForsikring>(vurdering.forsikringskategori)
+        val hentet = PgForsikringsvurderingRepository(TestcontainersSpForsikringDatabase.dataSource).hent(vurdering.id)
+
         assertTrue(vurdering.harForsikring)
         assertNull(vurdering.opphørsdato)
         assertEquals(100, dekning.grad)
         assertEquals(false, dekning.iVentetid)
+        assertEquals(valgtType.id, (hentet?.forsikringskategori as? Forsikringskategori.NavKjøptForsikring)?.id)
         assertEquals(1, TestcontainersSpForsikringDatabase.countOppslag(vurdering.id.value.toString()))
+    }
+
+    @Test
+    fun `gjørVurdering lagrer kollektiv forsikringstype`() {
+        val vurdering = medService { session ->
+            gjørVurdering(
+                session = session,
+                behovJson = """{"@behov":["Forsikringsvurdering"]}""",
+                skjæringstidspunkt = SKJÆRINGSTIDSPUNKT,
+                fødselsnummer = FØDSELSNUMMER,
+                spesielleYrkesgrupper = setOf(SpesiellYrkesgruppe.Fisker(SpesiellYrkesgruppe.Fisker.Blad.B)),
+                yrkesaktivitetstype = Yrkesaktivitetstype.SELVSTENDIG
+            )
+        }
+
+        val hentet = PgForsikringsvurderingRepository(TestcontainersSpForsikringDatabase.dataSource).hent(vurdering.id)
+        assertEquals(Forsikringskategori.KollektivForsikring, hentet?.forsikringskategori)
     }
 
     @Test

@@ -43,7 +43,8 @@ class SelvstendigUtbetaltEtterVentetidRiverTest {
                 iVentetid = true,
                 grad = 80
             ),
-            opphørsdato = null
+            opphørsdato = null,
+            forsikringskategori = null
         ))
 
         // when
@@ -82,7 +83,8 @@ class SelvstendigUtbetaltEtterVentetidRiverTest {
                 iVentetid = false,
                 grad = 100
             ),
-            opphørsdato = null
+            opphørsdato = null,
+            forsikringskategori = null
         ))
 
         // when
@@ -106,7 +108,8 @@ class SelvstendigUtbetaltEtterVentetidRiverTest {
                 iVentetid = true,
                 grad = 100
             ),
-            opphørsdato = null
+            opphørsdato = null,
+            forsikringskategori = null
         ))
 
         // when
