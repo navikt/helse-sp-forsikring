@@ -1,5 +1,6 @@
 package no.nav.helse.sykepenger.forsikring.forsikringsvurdering.adapter.postgres
 
+import javax.sql.DataSource
 import kotliquery.TransactionalSession
 import kotliquery.queryOf
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.domain.Forsikringskategori
@@ -10,7 +11,6 @@ import no.nav.helse.sykepenger.forsikring.oppslag.domain.OppslagId
 import no.nav.helse.sykepenger.forsikring.oppslag.domain.OppslagIfVedrift10Id
 import no.nav.helse.sykepenger.forsikring.shared.util.withSession
 import org.intellij.lang.annotations.Language
-import javax.sql.DataSource
 
 class PgForsikringsvurderingRepository(private val dataSource: DataSource) : ForsikringsvurderingRepository {
 

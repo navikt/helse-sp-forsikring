@@ -5,19 +5,18 @@ tilleggssykepenger (Folketrygdloven § 8-36 og § 8-39).
 
 ## Struktur i `sp-forsikring`
 
-Koden i `sp-forsikring` er organisert feature-først, med tydelig skille mellom domene, applikasjonslogikk og adaptere:
+Koden i `sp-forsikring` er organisert etter løk-arkitektur (onion architecture), feature-først:
 
 - `shared`: felleskode som logging, utils og test-støtte.
 - `forsikringsvurdering`: hovedflyt for vurdering av forsikring.
 - `oppslag`: oppslag mot Infotrygd/replikabase og lagring av oppslag.
 - `oppgaver`: oppretting av oppgaver og tilhørende rivers.
 
-Hver feature er videre delt i:
+Hver feature følger dette mønsteret:
 
-- `domain`: domenemodeller og regler.
-- `application`: orkestrering av use-cases.
-- `seam`: grensesnitt/abstraksjoner.
-- `adapter`: konkrete implementasjoner (for eksempel `http`, `rapids`, `postgres`, `oracle`, `gosys`).
+- `domain/`: rene domenetyper og -logikk.
+- Rot-nivå i feature-pakken: service og port-grensesnitt (abstraksjoner).
+- `infrastructure/`: konkrete implementasjoner (database, rapids, HTTP-klienter o.l.).
 
 
 ## Kjøpte Nav-forsikringstyper i Infotrygd
