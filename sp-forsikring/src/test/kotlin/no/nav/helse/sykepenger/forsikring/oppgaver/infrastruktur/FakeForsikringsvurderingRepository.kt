@@ -1,4 +1,4 @@
-package no.nav.helse.sykepenger.forsikring.oppgaver.adapter.rapids
+package no.nav.helse.sykepenger.forsikring.oppgaver.infrastruktur
 
 import kotliquery.TransactionalSession
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.ForsikringsvurderingRepository

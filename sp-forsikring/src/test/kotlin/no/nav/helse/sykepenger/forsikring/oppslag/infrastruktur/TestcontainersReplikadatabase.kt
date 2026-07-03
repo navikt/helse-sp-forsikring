@@ -1,4 +1,4 @@
-package no.nav.helse.sykepenger.forsikring.oppslag.adapter.oracle
+package no.nav.helse.sykepenger.forsikring.oppslag.infrastruktur
 
 import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource

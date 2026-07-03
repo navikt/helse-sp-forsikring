@@ -1,4 +1,4 @@
-package no.nav.helse.sykepenger.forsikring.oppgaver.adapter.rapids
+package no.nav.helse.sykepenger.forsikring.oppgaver.infrastruktur
 
 import com.github.navikt.tbd_libs.rapids_and_rivers.test_support.TestRapid
 import java.math.BigDecimal
@@ -15,7 +15,6 @@ import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.domain.Forsikring
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.domain.ForsikringsvurderingId
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.domain.NavKjøptForsikring
 import no.nav.helse.sykepenger.forsikring.oppgaver.domain.Årsak
-import no.nav.helse.sykepenger.forsikring.oppgaver.infrastruktur.VedtakFattetRiver
 import no.nav.helse.sykepenger.forsikring.oppslag.domain.Oppslag
 import no.nav.helse.sykepenger.forsikring.oppslag.domain.OppslagId
 import no.nav.helse.sykepenger.forsikring.oppslag.domain.OppslagIfVedrift10Id

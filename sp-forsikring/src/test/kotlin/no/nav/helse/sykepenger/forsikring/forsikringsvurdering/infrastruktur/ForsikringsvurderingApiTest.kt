@@ -1,16 +1,15 @@
-package no.nav.helse.sykepenger.forsikring.forsikringsvurdering.adapter.http
+package no.nav.helse.sykepenger.forsikring.forsikringsvurdering.infrastruktur
 
 import io.ktor.server.cio.*
 import io.ktor.server.engine.*
 import java.net.ServerSocket
 import java.time.LocalDate
+import java.util.*
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.ForsikringsvurderingService
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.domain.Yrkesaktivitetstype
-import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.infrastruktur.PgForsikringsvurderingRepository
-import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.infrastruktur.forsikringsvurderingApi
 import no.nav.helse.sykepenger.forsikring.oppslag.OppslagService
-import no.nav.helse.sykepenger.forsikring.oppslag.adapter.oracle.TestcontainersReplikadatabase
 import no.nav.helse.sykepenger.forsikring.oppslag.infrastruktur.ReplikabaseDao
+import no.nav.helse.sykepenger.forsikring.oppslag.infrastruktur.TestcontainersReplikadatabase
 import no.nav.helse.sykepenger.forsikring.shared.testsupport.TestcontainersSpForsikringDatabase
 import no.nav.helse.sykepenger.forsikring.shared.util.inTransaction
 import no.nav.security.mock.oauth2.MockOAuth2Server
@@ -270,7 +269,7 @@ class ForsikringsvurderingApiTest {
     @Test
     fun `GET forsikringsvurderinger returnerer 404 når id ikke finnes`() {
         val (statusCode, body) = getForsikringsvurdering(
-            forsikringsvurderingId = java.util.UUID.randomUUID().toString(),
+            forsikringsvurderingId = UUID.randomUUID().toString(),
             token = bearerToken()
         )
 
@@ -281,7 +280,7 @@ class ForsikringsvurderingApiTest {
     @Test
     fun `GET forsikringsvurderinger returnerer 401 uten autentiseringstoken`() {
         val (statusCode, _) = getForsikringsvurdering(
-            forsikringsvurderingId = java.util.UUID.randomUUID().toString(),
+            forsikringsvurderingId = UUID.randomUUID().toString(),
             token = null
         )
 

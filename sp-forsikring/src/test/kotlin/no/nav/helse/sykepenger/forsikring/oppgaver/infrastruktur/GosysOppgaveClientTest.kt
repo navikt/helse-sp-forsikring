@@ -1,7 +1,8 @@
-package no.nav.helse.sykepenger.forsikring.oppgaver.adapter.gosys
+package no.nav.helse.sykepenger.forsikring.oppgaver.infrastruktur
 
 import com.fasterxml.jackson.databind.SerializationFeature
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
+import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.github.navikt.tbd_libs.azure.AzureToken
 import com.github.navikt.tbd_libs.azure.AzureTokenProvider
 import com.github.navikt.tbd_libs.result_object.ok
@@ -20,15 +21,12 @@ import java.util.*
 import kotlin.test.Test
 import kotlinx.coroutines.runBlocking
 import no.nav.helse.sykepenger.forsikring.oppgaver.domain.Årsak
-import no.nav.helse.sykepenger.forsikring.oppgaver.infrastruktur.GosysOppgaveClient
-import no.nav.helse.sykepenger.forsikring.oppgaver.infrastruktur.OpprettOppgaveRequest
-import no.nav.helse.sykepenger.forsikring.oppgaver.infrastruktur.Prioritet
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 
 class GosysOppgaveClientTest {
 
-    private val objectMapper = com.fasterxml.jackson.module.kotlin.jacksonObjectMapper()
+    private val objectMapper = jacksonObjectMapper()
         .registerModule(JavaTimeModule())
         .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
 

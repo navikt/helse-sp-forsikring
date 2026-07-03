@@ -1,4 +1,4 @@
-package no.nav.helse.sykepenger.forsikring.forsikringsvurdering.adapter.rapids
+package no.nav.helse.sykepenger.forsikring.forsikringsvurdering.infrastruktur
 
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.node.ArrayNode
@@ -10,12 +10,9 @@ import java.util.*
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.ForsikringsvurderingService
-import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.infrastruktur.ForsikringsvurderingBehovRiver
-import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.infrastruktur.ForsikringsvurderingResultatBehovRiver
-import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.infrastruktur.PgForsikringsvurderingRepository
 import no.nav.helse.sykepenger.forsikring.oppslag.OppslagService
-import no.nav.helse.sykepenger.forsikring.oppslag.adapter.oracle.TestcontainersReplikadatabase
 import no.nav.helse.sykepenger.forsikring.oppslag.infrastruktur.ReplikabaseDao
+import no.nav.helse.sykepenger.forsikring.oppslag.infrastruktur.TestcontainersReplikadatabase
 import no.nav.helse.sykepenger.forsikring.shared.testsupport.TestcontainersSpForsikringDatabase
 import org.intellij.lang.annotations.Language
 import org.junit.jupiter.api.BeforeEach

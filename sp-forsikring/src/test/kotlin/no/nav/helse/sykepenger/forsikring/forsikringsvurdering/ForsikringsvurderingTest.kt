@@ -1,10 +1,9 @@
-package no.nav.helse.sykepenger.forsikring.forsikringsvurdering.application
+package no.nav.helse.sykepenger.forsikring.forsikringsvurdering
 
 import java.time.LocalDate
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
 import kotliquery.TransactionalSession
-import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.ForsikringsvurderingService
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.domain.AbstractNavKjøptForsikring
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.domain.Forsikringskategori
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.domain.Forsikringsvurdering
@@ -12,8 +11,8 @@ import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.domain.SpesiellYr
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.domain.Yrkesaktivitetstype
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.infrastruktur.PgForsikringsvurderingRepository
 import no.nav.helse.sykepenger.forsikring.oppslag.OppslagService
-import no.nav.helse.sykepenger.forsikring.oppslag.adapter.oracle.TestcontainersReplikadatabase
 import no.nav.helse.sykepenger.forsikring.oppslag.infrastruktur.ReplikabaseDao
+import no.nav.helse.sykepenger.forsikring.oppslag.infrastruktur.TestcontainersReplikadatabase
 import no.nav.helse.sykepenger.forsikring.shared.testsupport.TestcontainersSpForsikringDatabase
 import no.nav.helse.sykepenger.forsikring.shared.util.inTransaction
 import org.junit.jupiter.api.Assertions.assertNull

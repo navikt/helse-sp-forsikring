@@ -1,4 +1,4 @@
-package no.nav.helse.sykepenger.forsikring.oppgaver.adapter.rapids
+package no.nav.helse.sykepenger.forsikring.oppgaver.infrastruktur
 
 import no.nav.helse.sykepenger.forsikring.oppslag.OppslagRepository
 import no.nav.helse.sykepenger.forsikring.oppslag.domain.Oppslag

@@ -1,4 +1,4 @@
-package no.nav.helse.sykepenger.forsikring.oppgaver.adapter.rapids
+package no.nav.helse.sykepenger.forsikring.oppgaver.infrastruktur
 
 import java.time.LocalDate
 import java.util.*
