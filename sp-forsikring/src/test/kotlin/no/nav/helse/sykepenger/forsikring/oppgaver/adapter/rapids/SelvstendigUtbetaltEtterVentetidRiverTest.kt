@@ -9,6 +9,7 @@ import kotlin.test.assertNull
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.domain.Forsikringsvurdering
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.domain.ForsikringsvurderingId
 import no.nav.helse.sykepenger.forsikring.oppgaver.domain.Årsak
+import no.nav.helse.sykepenger.forsikring.oppgaver.infrastruktur.SelvstendigUtbetaltEtterVentetidRiver
 import no.nav.helse.sykepenger.forsikring.oppslag.domain.OppslagId
 import org.intellij.lang.annotations.Language
 import org.junit.jupiter.api.assertThrows

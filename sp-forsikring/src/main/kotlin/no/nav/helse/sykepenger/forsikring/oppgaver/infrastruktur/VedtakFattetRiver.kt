@@ -1,4 +1,4 @@
-package no.nav.helse.sykepenger.forsikring.oppgaver.adapter.rapids
+package no.nav.helse.sykepenger.forsikring.oppgaver.infrastruktur
 
 import com.github.navikt.tbd_libs.rapids_and_rivers.JsonMessage
 import com.github.navikt.tbd_libs.rapids_and_rivers.River
@@ -11,12 +11,12 @@ import java.math.BigDecimal
 import java.math.RoundingMode
 import java.util.*
 import kotlinx.coroutines.runBlocking
+import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.ForsikringsvurderingRepository
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.domain.Forsikringskategori
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.domain.ForsikringsvurderingId
-import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.seam.ForsikringsvurderingRepository
+import no.nav.helse.sykepenger.forsikring.oppgaver.OppgaveClient
 import no.nav.helse.sykepenger.forsikring.oppgaver.domain.Årsak
-import no.nav.helse.sykepenger.forsikring.oppgaver.seam.OppgaveClient
-import no.nav.helse.sykepenger.forsikring.oppslag.seam.OppslagRepository
+import no.nav.helse.sykepenger.forsikring.oppslag.OppslagRepository
 import no.nav.helse.sykepenger.forsikring.shared.logging.MdcKey
 import no.nav.helse.sykepenger.forsikring.shared.logging.loggInfo
 import no.nav.helse.sykepenger.forsikring.shared.logging.medMdc

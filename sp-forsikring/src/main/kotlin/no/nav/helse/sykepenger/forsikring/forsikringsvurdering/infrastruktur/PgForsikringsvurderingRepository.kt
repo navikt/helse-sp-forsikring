@@ -1,12 +1,13 @@
-package no.nav.helse.sykepenger.forsikring.forsikringsvurdering.adapter.postgres
+package no.nav.helse.sykepenger.forsikring.forsikringsvurdering.infrastruktur
 
 import javax.sql.DataSource
+import kotliquery.Session
 import kotliquery.TransactionalSession
 import kotliquery.queryOf
+import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.ForsikringsvurderingRepository
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.domain.Forsikringskategori
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.domain.Forsikringsvurdering
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.domain.ForsikringsvurderingId
-import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.seam.ForsikringsvurderingRepository
 import no.nav.helse.sykepenger.forsikring.oppslag.domain.OppslagId
 import no.nav.helse.sykepenger.forsikring.oppslag.domain.OppslagIfVedrift10Id
 import no.nav.helse.sykepenger.forsikring.shared.util.withSession
@@ -58,7 +59,7 @@ class PgForsikringsvurderingRepository(private val dataSource: DataSource) : For
 
     private fun hentEkskluderinger(
         forsikringsvurderingId: ForsikringsvurderingId,
-        session: kotliquery.Session,
+        session: Session,
     ): List<Forsikringsvurdering.EkskluderingNavKjøptForsikring> {
         @Language("PostgreSQL")
         val statement = """
@@ -80,7 +81,7 @@ class PgForsikringsvurderingRepository(private val dataSource: DataSource) : For
 
     private fun lagreForsikringsvurdering(
         forsikringsvurdering: Forsikringsvurdering,
-        session: kotliquery.Session,
+        session: Session,
     ) {
         @Language("PostgreSQL")
         val statement = """

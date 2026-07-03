@@ -1,4 +1,4 @@
-package no.nav.helse.sykepenger.forsikring.forsikringsvurdering.seam
+package no.nav.helse.sykepenger.forsikring.forsikringsvurdering
 
 import kotliquery.TransactionalSession
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.domain.Forsikringsvurdering

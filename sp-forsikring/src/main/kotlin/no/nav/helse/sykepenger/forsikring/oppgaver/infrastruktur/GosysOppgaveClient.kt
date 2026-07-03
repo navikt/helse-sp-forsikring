@@ -1,4 +1,4 @@
-package no.nav.helse.sykepenger.forsikring.oppgaver.adapter.gosys
+package no.nav.helse.sykepenger.forsikring.oppgaver.infrastruktur
 
 import com.github.navikt.tbd_libs.azure.AzureTokenProvider
 import com.github.navikt.tbd_libs.result_object.getOrThrow
@@ -12,8 +12,8 @@ import java.time.format.DateTimeFormatter
 import java.util.*
 import java.util.UUID.randomUUID
 import kotlinx.serialization.Serializable
+import no.nav.helse.sykepenger.forsikring.oppgaver.OppgaveClient
 import no.nav.helse.sykepenger.forsikring.oppgaver.domain.Årsak
-import no.nav.helse.sykepenger.forsikring.oppgaver.seam.OppgaveClient
 import no.nav.helse.sykepenger.forsikring.shared.logging.loggError
 import no.nav.helse.sykepenger.forsikring.shared.logging.loggInfo
 

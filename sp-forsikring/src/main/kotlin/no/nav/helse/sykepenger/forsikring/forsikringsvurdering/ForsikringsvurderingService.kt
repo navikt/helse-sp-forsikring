@@ -1,4 +1,4 @@
-package no.nav.helse.sykepenger.forsikring.forsikringsvurdering.application
+package no.nav.helse.sykepenger.forsikring.forsikringsvurdering
 
 import java.time.LocalDate
 import kotliquery.TransactionalSession
@@ -16,8 +16,7 @@ import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.domain.RåNavKjø
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.domain.SpesiellYrkesgruppe
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.domain.Yrkesaktivitetstype
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.domain.kollektiveForsikringerFor
-import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.seam.ForsikringsvurderingRepository
-import no.nav.helse.sykepenger.forsikring.oppslag.application.OppslagService
+import no.nav.helse.sykepenger.forsikring.oppslag.OppslagService
 import no.nav.helse.sykepenger.forsikring.shared.logging.loggError
 import no.nav.helse.sykepenger.forsikring.shared.logging.loggInfo
 

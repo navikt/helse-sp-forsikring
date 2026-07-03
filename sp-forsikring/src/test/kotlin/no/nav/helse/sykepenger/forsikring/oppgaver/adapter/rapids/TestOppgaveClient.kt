@@ -2,8 +2,8 @@ package no.nav.helse.sykepenger.forsikring.oppgaver.adapter.rapids
 
 import java.time.LocalDate
 import java.util.*
+import no.nav.helse.sykepenger.forsikring.oppgaver.OppgaveClient
 import no.nav.helse.sykepenger.forsikring.oppgaver.domain.Årsak
-import no.nav.helse.sykepenger.forsikring.oppgaver.seam.OppgaveClient
 
 class TestOppgaveClient : OppgaveClient {
     internal var oppgaveParams: OppgaveParams? = null

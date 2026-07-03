@@ -4,12 +4,13 @@ import io.ktor.server.cio.*
 import io.ktor.server.engine.*
 import java.net.ServerSocket
 import java.time.LocalDate
-import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.adapter.postgres.PgForsikringsvurderingRepository
-import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.application.ForsikringsvurderingService
+import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.ForsikringsvurderingService
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.domain.Yrkesaktivitetstype
-import no.nav.helse.sykepenger.forsikring.oppslag.adapter.oracle.ReplikabaseDao
+import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.infrastruktur.PgForsikringsvurderingRepository
+import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.infrastruktur.forsikringsvurderingApi
+import no.nav.helse.sykepenger.forsikring.oppslag.OppslagService
 import no.nav.helse.sykepenger.forsikring.oppslag.adapter.oracle.TestcontainersReplikadatabase
-import no.nav.helse.sykepenger.forsikring.oppslag.application.OppslagService
+import no.nav.helse.sykepenger.forsikring.oppslag.infrastruktur.ReplikabaseDao
 import no.nav.helse.sykepenger.forsikring.shared.testsupport.TestcontainersSpForsikringDatabase
 import no.nav.helse.sykepenger.forsikring.shared.util.inTransaction
 import no.nav.security.mock.oauth2.MockOAuth2Server

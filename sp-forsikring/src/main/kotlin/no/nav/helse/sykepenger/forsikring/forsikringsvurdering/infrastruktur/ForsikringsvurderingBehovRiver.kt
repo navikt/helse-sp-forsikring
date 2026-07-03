@@ -1,4 +1,4 @@
-package no.nav.helse.sykepenger.forsikring.forsikringsvurdering.adapter.rapids
+package no.nav.helse.sykepenger.forsikring.forsikringsvurdering.infrastruktur
 
 import com.github.navikt.tbd_libs.rapids_and_rivers.JsonMessage
 import com.github.navikt.tbd_libs.rapids_and_rivers.River
@@ -10,7 +10,7 @@ import com.github.navikt.tbd_libs.rapids_and_rivers_api.RapidsConnection
 import io.micrometer.core.instrument.MeterRegistry
 import javax.sql.DataSource
 import kotlin.uuid.ExperimentalUuidApi
-import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.application.ForsikringsvurderingService
+import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.ForsikringsvurderingService
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.domain.SpesiellYrkesgruppe
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.domain.SpesiellYrkesgruppe.Fisker.Blad
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.domain.Yrkesaktivitetstype

@@ -1,4 +1,4 @@
-package no.nav.helse.sykepenger.forsikring.forsikringsvurdering.adapter.http
+package no.nav.helse.sykepenger.forsikring.forsikringsvurdering.infrastruktur
 
 import com.auth0.jwk.JwkProviderBuilder
 import com.fasterxml.jackson.databind.ObjectMapper
@@ -19,10 +19,10 @@ import java.net.URI
 import java.time.LocalDate
 import java.util.*
 import javax.sql.DataSource
+import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.ForsikringsvurderingRepository
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.domain.ForsikringsvurderingId
-import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.seam.ForsikringsvurderingRepository
-import no.nav.helse.sykepenger.forsikring.oppslag.adapter.oracle.ReplikabaseDao
-import no.nav.helse.sykepenger.forsikring.oppslag.adapter.oracle.mapTilRåNavKjøptForsikring
+import no.nav.helse.sykepenger.forsikring.oppslag.infrastruktur.ReplikabaseDao
+import no.nav.helse.sykepenger.forsikring.oppslag.infrastruktur.mapTilRåNavKjøptForsikring
 import no.nav.helse.sykepenger.forsikring.shared.logging.loggInfo
 import no.nav.helse.sykepenger.forsikring.shared.logging.teamLogs
 import org.slf4j.event.Level

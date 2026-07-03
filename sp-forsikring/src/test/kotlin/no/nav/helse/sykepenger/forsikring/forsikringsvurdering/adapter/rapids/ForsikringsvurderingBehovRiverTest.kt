@@ -9,11 +9,12 @@ import com.github.navikt.tbd_libs.rapids_and_rivers.test_support.TestRapid
 import java.util.*
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
-import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.adapter.postgres.PgForsikringsvurderingRepository
-import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.application.ForsikringsvurderingService
-import no.nav.helse.sykepenger.forsikring.oppslag.adapter.oracle.ReplikabaseDao
+import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.ForsikringsvurderingService
+import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.infrastruktur.ForsikringsvurderingBehovRiver
+import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.infrastruktur.PgForsikringsvurderingRepository
+import no.nav.helse.sykepenger.forsikring.oppslag.OppslagService
 import no.nav.helse.sykepenger.forsikring.oppslag.adapter.oracle.TestcontainersReplikadatabase
-import no.nav.helse.sykepenger.forsikring.oppslag.application.OppslagService
+import no.nav.helse.sykepenger.forsikring.oppslag.infrastruktur.ReplikabaseDao
 import no.nav.helse.sykepenger.forsikring.shared.testsupport.TestcontainersSpForsikringDatabase
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test

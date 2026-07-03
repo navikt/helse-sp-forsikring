@@ -1,4 +1,4 @@
-package no.nav.helse.sykepenger.forsikring.oppgaver.seam
+package no.nav.helse.sykepenger.forsikring.oppgaver
 
 import java.time.LocalDate
 import java.util.*

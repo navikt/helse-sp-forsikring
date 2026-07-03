@@ -1,4 +1,4 @@
-package no.nav.helse.sykepenger.forsikring.oppslag.adapter.postgres
+package no.nav.helse.sykepenger.forsikring.oppslag.infrastruktur
 
 import java.sql.Timestamp
 import java.time.Instant
@@ -7,8 +7,6 @@ import kotliquery.TransactionalSession
 import kotliquery.queryOf
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.domain.AbstractNavKjøptForsikring
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.domain.NavKjøptForsikring
-import no.nav.helse.sykepenger.forsikring.oppslag.adapter.oracle.IF_FKONTO_12_Rad
-import no.nav.helse.sykepenger.forsikring.oppslag.adapter.oracle.IF_VEDFRIVT_10_Rad
 import no.nav.helse.sykepenger.forsikring.oppslag.domain.Oppslag
 import no.nav.helse.sykepenger.forsikring.oppslag.domain.OppslagId
 import no.nav.helse.sykepenger.forsikring.oppslag.domain.OppslagIfFkonto12Id

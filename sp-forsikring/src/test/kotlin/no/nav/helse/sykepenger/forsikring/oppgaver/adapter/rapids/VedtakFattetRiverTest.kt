@@ -15,6 +15,7 @@ import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.domain.Forsikring
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.domain.ForsikringsvurderingId
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.domain.NavKjøptForsikring
 import no.nav.helse.sykepenger.forsikring.oppgaver.domain.Årsak
+import no.nav.helse.sykepenger.forsikring.oppgaver.infrastruktur.VedtakFattetRiver
 import no.nav.helse.sykepenger.forsikring.oppslag.domain.Oppslag
 import no.nav.helse.sykepenger.forsikring.oppslag.domain.OppslagId
 import no.nav.helse.sykepenger.forsikring.oppslag.domain.OppslagIfVedrift10Id

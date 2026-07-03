@@ -20,6 +20,9 @@ import java.util.*
 import kotlin.test.Test
 import kotlinx.coroutines.runBlocking
 import no.nav.helse.sykepenger.forsikring.oppgaver.domain.Årsak
+import no.nav.helse.sykepenger.forsikring.oppgaver.infrastruktur.GosysOppgaveClient
+import no.nav.helse.sykepenger.forsikring.oppgaver.infrastruktur.OpprettOppgaveRequest
+import no.nav.helse.sykepenger.forsikring.oppgaver.infrastruktur.Prioritet
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 

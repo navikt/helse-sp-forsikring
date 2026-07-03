@@ -1,4 +1,4 @@
-package no.nav.helse.sykepenger.forsikring.forsikringsvurdering.adapter.rapids
+package no.nav.helse.sykepenger.forsikring.forsikringsvurdering.infrastruktur
 
 import com.github.navikt.tbd_libs.rapids_and_rivers.JsonMessage
 import com.github.navikt.tbd_libs.rapids_and_rivers.River
@@ -8,8 +8,8 @@ import com.github.navikt.tbd_libs.rapids_and_rivers_api.MessageProblems
 import com.github.navikt.tbd_libs.rapids_and_rivers_api.RapidsConnection
 import io.micrometer.core.instrument.MeterRegistry
 import java.util.*
+import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.ForsikringsvurderingRepository
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.domain.ForsikringsvurderingId
-import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.seam.ForsikringsvurderingRepository
 import no.nav.helse.sykepenger.forsikring.shared.logging.MdcKey
 import no.nav.helse.sykepenger.forsikring.shared.logging.loggError
 import no.nav.helse.sykepenger.forsikring.shared.logging.loggInfo

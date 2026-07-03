@@ -1,11 +1,11 @@
-package no.nav.helse.sykepenger.forsikring.oppslag.application
+package no.nav.helse.sykepenger.forsikring.oppslag
 
 import java.time.Instant
 import kotliquery.TransactionalSession
-import no.nav.helse.sykepenger.forsikring.oppslag.adapter.oracle.ReplikabaseDao
-import no.nav.helse.sykepenger.forsikring.oppslag.adapter.postgres.OppslagDao
 import no.nav.helse.sykepenger.forsikring.oppslag.domain.Oppslag
 import no.nav.helse.sykepenger.forsikring.oppslag.domain.OppslagId
+import no.nav.helse.sykepenger.forsikring.oppslag.infrastruktur.OppslagDao
+import no.nav.helse.sykepenger.forsikring.oppslag.infrastruktur.ReplikabaseDao
 
 class OppslagService(
     private val replikabaseDao: ReplikabaseDao,

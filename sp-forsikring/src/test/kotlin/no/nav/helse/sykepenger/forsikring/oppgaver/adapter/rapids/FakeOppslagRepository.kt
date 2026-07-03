@@ -1,8 +1,8 @@
 package no.nav.helse.sykepenger.forsikring.oppgaver.adapter.rapids
 
+import no.nav.helse.sykepenger.forsikring.oppslag.OppslagRepository
 import no.nav.helse.sykepenger.forsikring.oppslag.domain.Oppslag
 import no.nav.helse.sykepenger.forsikring.oppslag.domain.OppslagId
-import no.nav.helse.sykepenger.forsikring.oppslag.seam.OppslagRepository
 
 class FakeOppslagRepository : OppslagRepository {
 

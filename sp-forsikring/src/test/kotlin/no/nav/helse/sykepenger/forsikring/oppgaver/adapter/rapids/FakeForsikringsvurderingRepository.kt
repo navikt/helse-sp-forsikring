@@ -1,9 +1,9 @@
 package no.nav.helse.sykepenger.forsikring.oppgaver.adapter.rapids
 
 import kotliquery.TransactionalSession
+import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.ForsikringsvurderingRepository
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.domain.Forsikringsvurdering
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.domain.ForsikringsvurderingId
-import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.seam.ForsikringsvurderingRepository
 
 class FakeForsikringsvurderingRepository : ForsikringsvurderingRepository {
     private val vurderinger = mutableListOf<Forsikringsvurdering>()
