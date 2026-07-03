@@ -7,12 +7,13 @@ import com.github.navikt.tbd_libs.rapids_and_rivers_api.MessageContext
 import com.github.navikt.tbd_libs.rapids_and_rivers_api.MessageMetadata
 import com.github.navikt.tbd_libs.rapids_and_rivers_api.RapidsConnection
 import io.micrometer.core.instrument.MeterRegistry
+import java.math.BigDecimal
+import java.math.RoundingMode
 import java.util.*
 import kotlinx.coroutines.runBlocking
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.domain.Forsikringskategori
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.domain.ForsikringsvurderingId
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.seam.ForsikringsvurderingRepository
-import no.nav.helse.sykepenger.forsikring.oppgaver.domain.beregnAvvik
 import no.nav.helse.sykepenger.forsikring.oppgaver.domain.Årsak
 import no.nav.helse.sykepenger.forsikring.oppgaver.seam.OppgaveoppretterClient
 import no.nav.helse.sykepenger.forsikring.oppslag.seam.OppslagRepository
@@ -80,4 +81,20 @@ class VedtakFattetRiver(
             }
         }
     }
+}
+
+
+/**
+ * Beregner og returnerer prosentvis avvik mellom sykepengegrunnlag og premiegrunnlag.
+ *
+ * @param sykepengegrunnlag Det beregnede sykepengegrunnlaget.
+ * @param premiegrunnlag Det registrerte premiegrunnlaget.
+ * @return prosent avvik mellom sykepengegrunnlaget og premiegrunnlaget
+ *
+ * Formel: Avvik (%) = ((Fastsatt sykepengegrunnlag - fastsatt premiegrunnlag) / fastsatt sykepengegrunnlag) * 100
+ */
+
+fun beregnAvvik(sykepengegrunnlag: BigDecimal, premiegrunnlag: BigDecimal): BigDecimal {
+    val differansen = (sykepengegrunnlag.subtract(premiegrunnlag)).abs()
+    return differansen.divide(sykepengegrunnlag, RoundingMode.HALF_UP).multiply(BigDecimal("100")).setScale(2, RoundingMode.HALF_UP)
 }

@@ -14,7 +14,6 @@ import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.domain.Forsikring
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.domain.Forsikringsvurdering
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.domain.ForsikringsvurderingId
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.domain.NavKjøptForsikring
-import no.nav.helse.sykepenger.forsikring.oppgaver.domain.toBigDecimal
 import no.nav.helse.sykepenger.forsikring.oppgaver.domain.Årsak
 import no.nav.helse.sykepenger.forsikring.oppslag.domain.Oppslag
 import no.nav.helse.sykepenger.forsikring.oppslag.domain.OppslagId
@@ -81,9 +80,9 @@ class VedtakFattetRiverTest {
         val actual = oppgaveClient.oppgaveParams
         assertNotNull(actual)
         val årsak = assertIs<Årsak.ForStortAvvikMellomSykepengegrunnlagOgPremiegrunnlag>(actual.årsak)
-        assertEquals(0, årsak.sykepengegrunnlag.compareTo("400000".toBigDecimal()))
+        assertEquals(0, årsak.sykepengegrunnlag.compareTo(BigDecimal("400000")))
         assertEquals(0, årsak.premiegrunnlag.compareTo(premiegrunnlag))
-        assertEquals(0, årsak.avviksprosent.compareTo("50.00".toBigDecimal(2)))
+        assertEquals(0, årsak.avviksprosent.compareTo(BigDecimal("50.00")))
         assertEquals(fødselsnummer, actual.fødselsnummer)
     }
 

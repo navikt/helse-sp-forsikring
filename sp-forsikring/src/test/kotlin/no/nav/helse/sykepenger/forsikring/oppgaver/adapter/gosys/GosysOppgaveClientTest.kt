@@ -19,7 +19,6 @@ import java.time.LocalDateTime
 import java.util.*
 import kotlin.test.Test
 import kotlinx.coroutines.runBlocking
-import no.nav.helse.sykepenger.forsikring.oppgaver.domain.toBigDecimal
 import no.nav.helse.sykepenger.forsikring.oppgaver.domain.Årsak
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -111,7 +110,7 @@ class GosysOppgaveClientTest {
                 årsak = Årsak.ForStortAvvikMellomSykepengegrunnlagOgPremiegrunnlag(
                     sykepengegrunnlag = sykepengegrunnlag,
                     premiegrunnlag = premiegrunnlag,
-                    avviksprosent = "66.67".toBigDecimal()
+                    avviksprosent = BigDecimal("66.67")
                 ),
                 skjæringstidspunkt = skjæringstidspunkt
             )
