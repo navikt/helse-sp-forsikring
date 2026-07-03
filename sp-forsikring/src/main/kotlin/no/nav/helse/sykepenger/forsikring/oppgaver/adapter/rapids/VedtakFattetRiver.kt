@@ -17,6 +17,7 @@ import no.nav.helse.sykepenger.forsikring.oppgaver.domain.Årsak
 import no.nav.helse.sykepenger.forsikring.oppgaver.seam.OppgaveoppretterClient
 import no.nav.helse.sykepenger.forsikring.oppslag.seam.OppslagRepository
 import no.nav.helse.sykepenger.forsikring.shared.logging.MdcKey
+import no.nav.helse.sykepenger.forsikring.shared.logging.loggError
 import no.nav.helse.sykepenger.forsikring.shared.logging.loggInfo
 import no.nav.helse.sykepenger.forsikring.shared.logging.medMdc
 
@@ -41,6 +42,7 @@ class VedtakFattetRiver(
             }
         }.register(this)
     }
+
     override fun onPacket(packet: JsonMessage, context: MessageContext, metadata: MessageMetadata, meterRegistry: MeterRegistry) {
         val fødselsnummer = packet["fødselsnummer"].asString()
         val sykepengegrunnlag = packet["sykepengegrunnlag"].asString().toBigDecimal()
@@ -57,7 +59,10 @@ class VedtakFattetRiver(
             if (!forsikringsvurdering.harForsikring || forsikringsvurdering.forsikringskategori == Forsikringskategori.KollektivForsikring) return@medMdc
 
             val premiegrunnlag = oppslagRepository.hent(forsikringsvurdering.oppslagId).navKjøpteForsikringer.find { it.id == (forsikringsvurdering.forsikringskategori as? Forsikringskategori.NavKjøptForsikring)?.id }?.premiegrunnlag
-                ?: error("Fant ikke premiegrunnlag for forsikringsvurderingId=$forsikringsvurderingId")
+                ?: run {
+                    loggError("Fant ikke premiegrunnlag for forsikringsvurderingId=$forsikringsvurderingId")
+                    return@medMdc
+                }
 
             if (sykepengegrunnlag.compareTo(premiegrunnlag) != 0) {
                 val avviksprosent = beregnAvvik(sykepengegrunnlag, premiegrunnlag)
