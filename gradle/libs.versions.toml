@@ -2,6 +2,7 @@
 flyway = "12.9.0"
 junit = "6.1.0"
 kotlin = "2.4.0"
+coroutines = "1.11.0"
 ktor = "3.5.0"
 tbd-libs = "20260526.1506"
 testcontainers = "2.0.5"
@@ -26,6 +27,7 @@ ktor-server-metrics-micrometer = { module = "io.ktor:ktor-server-metrics-microme
 ktor-server-status-pages = { module = "io.ktor:ktor-server-status-pages", version.ref = "ktor" }
 ktor-client-cio = { module="io.ktor:ktor-client-cio", version.ref = "ktor"}
 ktor-client-contentnegotiation = { module="io.ktor:ktor-client-content-negotiation", version.ref = "ktor"}
+kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "coroutines" }
 tbd-libs-azure = {module = "com.github.navikt.tbd-libs:azure-token-client-default", version.ref = "tbd-libs"}
 tbd-libs-retry = {module = "com.github.navikt.tbd-libs:retry", version.ref = "tbd-libs"}
 logback-classic = "ch.qos.logback:logback-classic:1.5.35"

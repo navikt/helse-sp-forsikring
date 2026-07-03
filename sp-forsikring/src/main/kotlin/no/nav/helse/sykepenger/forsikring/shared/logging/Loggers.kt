@@ -89,7 +89,8 @@ enum class MdcKey(
     val value: String
 ) {
     HENDELSE_ID("hendelseId"),
-    MELDING_ID("meldingId")
+    MELDING_ID("meldingId"),
+    FORSIKRINGSVURDERING_ID("forsikringsvurderingId"),
 }
 
 fun <T> medMdc(

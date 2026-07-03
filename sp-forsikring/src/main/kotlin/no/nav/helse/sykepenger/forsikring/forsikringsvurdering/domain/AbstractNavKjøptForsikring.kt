@@ -1,15 +1,15 @@
 package no.nav.helse.sykepenger.forsikring.forsikringsvurdering.domain
 
+import java.math.BigDecimal
 import java.time.LocalDate
 import no.nav.helse.sykepenger.forsikring.oppslag.domain.OppslagIfVedrift10Id
-
 
 class RåNavKjøptForsikring(
     type: Type,
     virkningsdato: LocalDate,
     opphørsdato: LocalDate?,
     opphørsgrunn: String?,
-    val erBetalt: Boolean
+    val erBetalt: Boolean,
 ): AbstractNavKjøptForsikring (
     type = type,
     virkningsdato = virkningsdato,
@@ -23,7 +23,8 @@ class NavKjøptForsikring(
     virkningsdato: LocalDate,
     opphørsdato: LocalDate?,
     opphørsgrunn: String?,
-    val erBetaltNoenGang: Boolean
+    val premiegrunnlag: BigDecimal,
+    val erBetaltNoenGang: Boolean,
 ): AbstractNavKjøptForsikring (
     type = type,
     virkningsdato = virkningsdato,

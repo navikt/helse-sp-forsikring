@@ -52,7 +52,7 @@ class SelvstendigIngenDagerIgjenRiver(
         val forsikringsvurderingId = ForsikringsvurderingId.fromString(packet["forsikringsvurderingId"].asString())
         val meldingId = UUID.fromString(packet["@id"].asString())
 
-        medMdc(MdcKey.MELDING_ID to meldingId.toString()) {
+        medMdc(MdcKey.MELDING_ID to meldingId.toString(), MdcKey.FORSIKRINGSVURDERING_ID to forsikringsvurderingId.toString()) {
             loggInfo("Mottok SelvstendigIngenDagerIgjen-melding", "behov" to packet.toJson())
 
             val forsikringsvurdering = forsikringsvurderingRepository.hent(forsikringsvurderingId)

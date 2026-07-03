@@ -15,6 +15,7 @@ dependencies {
     implementation(libs.rapids.and.rivers)
     implementation(libs.bundles.ktor.server)
     implementation(libs.bundles.ktor.client)
+    implementation(libs.kotlinx.coroutines.core)
     implementation(libs.bundles.logback)
     implementation(libs.kotliquery)
     implementation(libs.flyway.database.postgresql)

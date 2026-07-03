@@ -1,0 +1,19 @@
+package no.nav.helse.sykepenger.forsikring.oppgaver.adapter.rapids
+
+import no.nav.helse.sykepenger.forsikring.oppslag.domain.Oppslag
+import no.nav.helse.sykepenger.forsikring.oppslag.domain.OppslagId
+import no.nav.helse.sykepenger.forsikring.oppslag.seam.OppslagRepository
+
+class FakeOppslagRepository : OppslagRepository {
+
+    private val alleOppslag = mutableListOf<Oppslag>()
+
+
+    override fun hent(id: OppslagId): Oppslag {
+        return alleOppslag.find { it.id == id } ?: Oppslag(id, emptyList())
+    }
+
+    fun lagre(oppslag: Oppslag) {
+        alleOppslag.add(oppslag)
+    }
+}

@@ -177,6 +177,7 @@ class OppslagDao() {
                 v.IF10_VIRKDATO,
                 v.IF10_FORSTOM,
                 v.IF10_OPPHGR,
+                v.IF10_PREMGRL,
                 EXISTS (
                     SELECT 1
                     FROM oppslag_IF_FKONTO_12 f
@@ -204,6 +205,7 @@ class OppslagDao() {
                         opphørsdato = row.intToLocalDate("IF10_FORSTOM"),
                         opphørsgrunn = row.string("IF10_OPPHGR").takeIf { it.isNotBlank() },
                         erBetaltNoenGang = row.boolean("er_betalt_noen_gang"),
+                        premiegrunnlag = row.bigDecimal("IF10_PREMGRL"),
                     )
                 }
                 .asList

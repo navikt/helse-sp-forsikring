@@ -20,7 +20,9 @@ import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.application.Forsi
 import no.nav.helse.sykepenger.forsikring.oppgaver.adapter.gosys.GosysOppgaveClient
 import no.nav.helse.sykepenger.forsikring.oppgaver.adapter.rapids.SelvstendigIngenDagerIgjenRiver
 import no.nav.helse.sykepenger.forsikring.oppgaver.adapter.rapids.SelvstendigUtbetaltEtterVentetidRiver
+import no.nav.helse.sykepenger.forsikring.oppgaver.adapter.rapids.VedtakFattetRiver
 import no.nav.helse.sykepenger.forsikring.oppslag.adapter.oracle.ReplikabaseDao
+import no.nav.helse.sykepenger.forsikring.oppslag.adapter.postgres.PgOppslagRepository
 import no.nav.helse.sykepenger.forsikring.oppslag.application.OppslagService
 import no.nav.helse.sykepenger.forsikring.shared.logging.loggInfo
 import org.flywaydb.core.Flyway
@@ -50,6 +52,7 @@ fun launchApplication(env: Map<String, String>) {
     )
 
     val forsikringsvurderingRepository = PgForsikringsvurderingRepository(spForsikringDataSource)
+    val oppslagRepository = PgOppslagRepository(spForsikringDataSource)
     val replikabaseDao = ReplikabaseDao(dataSource = replikabaseDataSource)
     val oppslagService = OppslagService(replikabaseDao)
     val forsikringsvurderingService = ForsikringsvurderingService(forsikringsvurderingRepository, oppslagService)
@@ -118,6 +121,12 @@ fun launchApplication(env: Map<String, String>) {
             SelvstendigIngenDagerIgjenRiver(
                 rapidsConnection = this,
                 oppgaveClient = gosysOppgaveClient,
+                forsikringsvurderingRepository = forsikringsvurderingRepository,
+            )
+            VedtakFattetRiver(
+                rapidsConnection = this,
+                oppgaveClient = gosysOppgaveClient,
+                oppslagRepository = oppslagRepository,
                 forsikringsvurderingRepository = forsikringsvurderingRepository,
             )
         }.start()
