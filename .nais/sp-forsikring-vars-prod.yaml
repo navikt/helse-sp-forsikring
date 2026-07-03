@@ -4,3 +4,4 @@ db:
 gosys:
   baseurl: ""
   scope: ""
+  externalAddress: ""
