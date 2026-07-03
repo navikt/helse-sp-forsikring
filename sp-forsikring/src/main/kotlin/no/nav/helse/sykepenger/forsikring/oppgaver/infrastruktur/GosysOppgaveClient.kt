@@ -13,7 +13,7 @@ import java.util.*
 import java.util.UUID.randomUUID
 import kotlinx.serialization.Serializable
 import no.nav.helse.sykepenger.forsikring.oppgaver.domain.Årsak
-import no.nav.helse.sykepenger.forsikring.oppgaver.seam.OppgaveoppretterClient
+import no.nav.helse.sykepenger.forsikring.oppgaver.seam.OppgaveClient
 import no.nav.helse.sykepenger.forsikring.shared.logging.loggError
 import no.nav.helse.sykepenger.forsikring.shared.logging.loggInfo
 
@@ -22,7 +22,7 @@ class GosysOppgaveClient(
     private val tokenClient: AzureTokenProvider,
     private val httpClient: HttpClient,
     private val gosysScope: String,
-) : OppgaveoppretterClient {
+) : OppgaveClient {
 
     override suspend fun lagOppgave(duplikatkontrollId: UUID, fødselsnummer: String, årsak: Årsak, skjæringstidspunkt: LocalDate) {
         val årsakTekst = when (årsak) {

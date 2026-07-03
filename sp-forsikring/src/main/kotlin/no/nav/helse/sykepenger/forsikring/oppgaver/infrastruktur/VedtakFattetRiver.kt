@@ -15,7 +15,7 @@ import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.domain.Forsikring
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.domain.ForsikringsvurderingId
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.seam.ForsikringsvurderingRepository
 import no.nav.helse.sykepenger.forsikring.oppgaver.domain.Årsak
-import no.nav.helse.sykepenger.forsikring.oppgaver.seam.OppgaveoppretterClient
+import no.nav.helse.sykepenger.forsikring.oppgaver.seam.OppgaveClient
 import no.nav.helse.sykepenger.forsikring.oppslag.seam.OppslagRepository
 import no.nav.helse.sykepenger.forsikring.shared.logging.MdcKey
 import no.nav.helse.sykepenger.forsikring.shared.logging.loggInfo
@@ -25,7 +25,7 @@ private const val EVENT_NAME = "vedtak_fattet"
 
 class VedtakFattetRiver(
     rapidsConnection: RapidsConnection,
-    private val oppgaveClient: OppgaveoppretterClient,
+    private val oppgaveClient: OppgaveClient,
     private val forsikringsvurderingRepository: ForsikringsvurderingRepository,
     private val oppslagRepository: OppslagRepository,
 ) : River.PacketListener {

@@ -12,7 +12,7 @@ import kotlinx.coroutines.runBlocking
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.domain.ForsikringsvurderingId
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.seam.ForsikringsvurderingRepository
 import no.nav.helse.sykepenger.forsikring.oppgaver.domain.Årsak
-import no.nav.helse.sykepenger.forsikring.oppgaver.seam.OppgaveoppretterClient
+import no.nav.helse.sykepenger.forsikring.oppgaver.seam.OppgaveClient
 import no.nav.helse.sykepenger.forsikring.shared.logging.MdcKey
 import no.nav.helse.sykepenger.forsikring.shared.logging.loggInfo
 import no.nav.helse.sykepenger.forsikring.shared.logging.medMdc
@@ -21,7 +21,7 @@ private const val EVENT_NAME = "selvstendig_ingen_dager_igjen"
 
 class SelvstendigIngenDagerIgjenRiver(
     rapidsConnection: RapidsConnection,
-    private val oppgaveClient: OppgaveoppretterClient,
+    private val oppgaveClient: OppgaveClient,
     private val forsikringsvurderingRepository: ForsikringsvurderingRepository,
 ) : River.PacketListener {
     init {
