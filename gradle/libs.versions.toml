@@ -30,7 +30,7 @@ ktor-client-contentnegotiation = { module="io.ktor:ktor-client-content-negotiati
 kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "coroutines" }
 tbd-libs-azure = {module = "com.github.navikt.tbd-libs:azure-token-client-default", version.ref = "tbd-libs"}
 tbd-libs-retry = {module = "com.github.navikt.tbd-libs:retry", version.ref = "tbd-libs"}
-logback-classic = "ch.qos.logback:logback-classic:1.5.36"
+logback-classic = "ch.qos.logback:logback-classic:1.5.37"
 logback-logstash-encoder = "net.logstash.logback:logstash-logback-encoder:9.0"
 postgresql = "org.postgresql:postgresql:42.7.11"
 rapids-and-rivers = "com.github.navikt:rapids-and-rivers:2026051812441779101082"
