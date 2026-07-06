@@ -25,6 +25,8 @@ import no.nav.helse.sykepenger.forsikring.oppslag.OppslagService
 import no.nav.helse.sykepenger.forsikring.oppslag.infrastruktur.PgOppslagRepository
 import no.nav.helse.sykepenger.forsikring.oppslag.infrastruktur.ReplikabaseDao
 import no.nav.helse.sykepenger.forsikring.shared.logging.loggInfo
+import no.nav.helse.sykepenger.forsikring.telling.infrastruktur.TellingDao
+import no.nav.helse.sykepenger.forsikring.telling.infrastruktur.VedtakFattetTellerRiver
 import org.flywaydb.core.Flyway
 
 fun main() {
@@ -57,6 +59,7 @@ fun launchApplication(env: Map<String, String>) {
     val oppslagService = OppslagService(replikabaseDao)
     val forsikringsvurderingService = ForsikringsvurderingService(forsikringsvurderingRepository, oppslagService)
 
+    val tellingDao = TellingDao(dataSource = spForsikringDataSource)
 
     val httpClient = HttpClient(CIO) {
         install(ContentNegotiation) {
@@ -128,6 +131,11 @@ fun launchApplication(env: Map<String, String>) {
                 oppgaveClient = gosysOppgaveClient,
                 oppslagRepository = oppslagRepository,
                 forsikringsvurderingRepository = forsikringsvurderingRepository,
+            )
+            VedtakFattetTellerRiver(
+                rapidsConnection = this,
+                forsikringsvurderingRepository = forsikringsvurderingRepository,
+                tellingDao = tellingDao,
             )
         }.start()
 }
