@@ -20,6 +20,8 @@ import java.time.LocalDate
 import java.util.*
 import javax.sql.DataSource
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.ForsikringsvurderingRepository
+import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.domain.Forsikringskategori.KollektivForsikring
+import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.domain.Forsikringskategori.NavKjøptForsikring
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.domain.ForsikringsvurderingId
 import no.nav.helse.sykepenger.forsikring.oppslag.infrastruktur.ReplikabaseDao
 import no.nav.helse.sykepenger.forsikring.oppslag.infrastruktur.mapTilRåNavKjøptForsikring
@@ -41,7 +43,8 @@ data class ForsikringsvurderingResponse(
 data class SpesialistForsikringsvurderingResponse(
     val identitetsnummer: String,
     val harForsikring: Boolean,
-    val dekning: SpesialistDekningResponse?
+    val forsikringskategori: String?,
+    val dekning: SpesialistDekningResponse?,
 )
 
 data class SpesialistDekningResponse(
@@ -132,19 +135,17 @@ fun Application.forsikringsvurderingApi(
                     )
                 loggInfo("Mottok kall til GET /forsikringsvurderinger/$id")
 
-                val forsikringsvurdering = forsikringsvurderingRepository.hent(ForsikringsvurderingId(id))
-
-                if (forsikringsvurdering == null) {
-                    return@get call.respond(
-                        HttpStatusCode.NotFound,
-                        ProblemResponse(
-                            title = "Forsikringsvurdering ikke funnet",
-                            status = HttpStatusCode.NotFound.value,
-                            detail = "Fant ingen forsikringsvurdering med id $id",
-                            instance = call.request.uri,
+                val forsikringsvurdering =
+                    forsikringsvurderingRepository.hent(ForsikringsvurderingId(id))
+                        ?: return@get call.respond(
+                            HttpStatusCode.NotFound,
+                            ProblemResponse(
+                                title = "Forsikringsvurdering ikke funnet",
+                                status = HttpStatusCode.NotFound.value,
+                                detail = "Fant ingen forsikringsvurdering med id $id",
+                                instance = call.request.uri,
+                            )
                         )
-                    )
-                }
 
                 val identitetsnummer = jsonMapper.readTree(forsikringsvurdering.behovJson)["fødselsnummer"].asText()
 
@@ -156,6 +157,11 @@ fun Application.forsikringsvurderingApi(
                             grad = dekning.grad,
                             fraDag = if (dekning.iVentetid) 1 else 17
                         )
+                    },
+                    forsikringskategori = when (forsikringsvurdering.forsikringskategori) {
+                        is KollektivForsikring -> "Kollektiv"
+                        is NavKjøptForsikring -> "Individuell"
+                        null -> null
                     }
                 )
 
