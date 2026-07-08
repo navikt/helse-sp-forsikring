@@ -63,7 +63,8 @@ class ForsikringsvurderingResultatBehovRiver(
                                 "grad" to dekning.grad,
                             )
                         },
-                        "opphørsdato" to forsikringsvurdering.opphørsdato
+                        "opphørsdato" to forsikringsvurdering.opphørsdato,
+                        "forsikringskategori" to forsikringsvurdering.forsikringskategori?.navn(),
                     )
                 )
 
