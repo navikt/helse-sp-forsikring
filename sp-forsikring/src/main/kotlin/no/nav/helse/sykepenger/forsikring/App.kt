@@ -120,6 +120,7 @@ fun launchApplication(env: Map<String, String>) {
                 rapidsConnection = this,
                 oppgaveClient = gosysOppgaveClient,
                 forsikringsvurderingRepository = forsikringsvurderingRepository,
+                oppslagRepository = oppslagRepository,
             )
             SelvstendigIngenDagerIgjenRiver(
                 rapidsConnection = this,

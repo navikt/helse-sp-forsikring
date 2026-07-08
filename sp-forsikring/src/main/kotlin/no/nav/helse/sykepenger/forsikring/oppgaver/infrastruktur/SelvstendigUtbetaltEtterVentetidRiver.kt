@@ -10,10 +10,12 @@ import io.micrometer.core.instrument.MeterRegistry
 import java.util.*
 import kotlinx.coroutines.runBlocking
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.ForsikringsvurderingRepository
-import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.domain.Forsikringsvurdering
+import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.domain.AbstractNavKjøptForsikring
+import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.domain.Forsikringskategori
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.domain.ForsikringsvurderingId
 import no.nav.helse.sykepenger.forsikring.oppgaver.OppgaveClient
 import no.nav.helse.sykepenger.forsikring.oppgaver.domain.Årsak
+import no.nav.helse.sykepenger.forsikring.oppslag.OppslagRepository
 import no.nav.helse.sykepenger.forsikring.shared.logging.MdcKey
 import no.nav.helse.sykepenger.forsikring.shared.logging.loggInfo
 import no.nav.helse.sykepenger.forsikring.shared.logging.medMdc
@@ -22,7 +24,8 @@ class SelvstendigUtbetaltEtterVentetidRiver(
     rapidsConnection: RapidsConnection,
     private val oppgaveClient: OppgaveClient,
     private val forsikringsvurderingRepository: ForsikringsvurderingRepository,
-) : River.PacketListener {
+    private val oppslagRepository: OppslagRepository,
+    ) : River.PacketListener {
 
     init {
         River(rapidsConnection).apply {
@@ -49,23 +52,27 @@ class SelvstendigUtbetaltEtterVentetidRiver(
 
         medMdc(MdcKey.MELDING_ID to meldingId.toString(), MdcKey.FORSIKRINGSVURDERING_ID to forsikringsvurderingId.toString()) {
             loggInfo("Mottok SelvstendigUtbetaltEtterVentetid-melding", "behov" to packet.toJson())
+
             val forsikringsvurdering = forsikringsvurderingRepository.hent(forsikringsvurderingId)
                 ?: error("Fant ikke vurdering for forsikringsvurderingId=$forsikringsvurderingId")
 
-            if (forsikringsvurdering.forsikretMedDekningsgrad80ProsentFraDag1()) {
-                runBlocking {
-                    oppgaveClient.lagOppgave(
-                        meldingId,
-                        fødselsnummer,
-                        Årsak.UtbetaltFraDagÉnOgDekningsgrad80Prosent,
-                        skjæringstidspunkt
-                    )
-                }
+            if (!forsikringsvurdering.harForsikring || forsikringsvurdering.forsikringskategori == Forsikringskategori.KollektivForsikring) return@medMdc
+
+            val navKjøptForsikring = hentNavKjøptForsikring(forsikringsvurdering, oppslagRepository, forsikringsvurderingId)
+            val årsak = when (navKjøptForsikring.type) {
+                AbstractNavKjøptForsikring.Type.SELVSTENDIG_80_PROSENT_FRA_DAG_1 -> Årsak.UtbetaltFraDagÉnOgDekningsgrad80Prosent
+                AbstractNavKjøptForsikring.Type.SELVSTENDIG_JORDBRUKER_100_PROSENT_FRA_DAG_1 -> Årsak.UtbetaltFraDagÉnOgDekningsgrad100ProsentJordbruker
+                else -> return@medMdc
+            }
+
+            runBlocking {
+                oppgaveClient.lagOppgave(
+                    meldingId,
+                    fødselsnummer,
+                    årsak,
+                    skjæringstidspunkt
+                )
             }
         }
-    }
-
-    private fun Forsikringsvurdering.forsikretMedDekningsgrad80ProsentFraDag1(): Boolean {
-        return harForsikring && dekning?.iVentetid == true && dekning.grad == 80
     }
 }

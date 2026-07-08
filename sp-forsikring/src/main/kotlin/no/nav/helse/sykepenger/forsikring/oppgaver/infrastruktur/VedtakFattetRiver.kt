@@ -57,8 +57,8 @@ class VedtakFattetRiver(
 
             if (!forsikringsvurdering.harForsikring || forsikringsvurdering.forsikringskategori == Forsikringskategori.KollektivForsikring) return@medMdc
 
-            val premiegrunnlag = oppslagRepository.hent(forsikringsvurdering.oppslagId).navKjøpteForsikringer.find { it.id == (forsikringsvurdering.forsikringskategori as? Forsikringskategori.NavKjøptForsikring)?.id }?.premiegrunnlag
-                ?: error("Fant ikke premiegrunnlag for forsikringsvurderingId=$forsikringsvurderingId")
+            val navKjøptForsikring = hentNavKjøptForsikring(forsikringsvurdering, oppslagRepository, forsikringsvurderingId)
+            val premiegrunnlag = navKjøptForsikring.premiegrunnlag
 
             if (sykepengegrunnlag.compareTo(premiegrunnlag) != 0) {
                 val avviksprosent = beregnAvvik(sykepengegrunnlag, premiegrunnlag)
