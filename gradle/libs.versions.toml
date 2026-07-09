@@ -4,7 +4,7 @@ junit = "6.1.1"
 kotlin = "2.4.0"
 coroutines = "1.11.0"
 ktor = "3.5.1"
-tbd-libs = "20260526.1506"
+tbd-libs = "20260702.1010"
 testcontainers = "2.0.5"
 
 [libraries]
