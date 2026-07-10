@@ -90,5 +90,7 @@ spec:
       rules:
         - application: logging
           namespace: nais-system
+{{#if gosys.externalAddress}}
       external:
         - host: {{ gosys.externalAddress }}
+{{/if}}
