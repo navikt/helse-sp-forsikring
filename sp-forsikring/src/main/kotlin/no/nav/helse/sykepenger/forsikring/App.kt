@@ -37,7 +37,7 @@ fun launchApplication(env: Map<String, String>) {
     val spForsikringDataSource = HikariDataSource(
         HikariConfig().apply {
             jdbcUrl = env.getValue("DATABASE_JDBC_URL")
-            maximumPoolSize = 2
+            maximumPoolSize = 10
         }
     )
 

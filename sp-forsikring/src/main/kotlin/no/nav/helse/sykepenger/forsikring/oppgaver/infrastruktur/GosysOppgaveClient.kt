@@ -33,7 +33,7 @@ class GosysOppgaveClient(
         }
         retry {
             loggInfo("Forsøker å opprette oppgave i Gosys.")
-            val response = httpClient.preparePost("$baseUrl/api/v1/oppgaver") {
+            val response = httpClient.post("$baseUrl/api/v1/oppgaver") {
                 contentType(ContentType.Application.Json)
                 accept(ContentType.Application.Json)
                 val bearerToken = tokenClient.bearerToken(gosysScope).getOrThrow()
@@ -51,7 +51,7 @@ class GosysOppgaveClient(
                     )
                 )
                 header("X-Correlation-ID", randomUUID().toString())
-            }.execute()
+            }
 
             if (response.status !in listOf(HttpStatusCode.Created, HttpStatusCode.Conflict)) {
                 loggError("Fikk status code ${response.status} ved oppretting av oppgave.", "Response body" to response.bodyAsText())

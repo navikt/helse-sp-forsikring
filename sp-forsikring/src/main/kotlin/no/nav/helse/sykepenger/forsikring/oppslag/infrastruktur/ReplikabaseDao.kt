@@ -28,26 +28,24 @@ class ReplikabaseDao(private val dataSource: DataSource) {
                         WHERE IF01_KODE = ? AND IF01_AGNR_FNR = ? AND IF10_FORSFOM_SEQ = ?
                         ORDER BY IF12_BETDATO_SEQ
                     """
-                    val fkonto12Rader = sessionOf(dataSource).use { innerSession ->
-                        innerSession.run(
-                            queryOf(fkonto12Statement, if01Kode.toString(), if01AgnrFnr, if10ForsfomSeq).map { fkRs ->
-                                IF_FKONTO_12_Rad(
-                                    IF12_BETDATO_SEQ = fkRs.intOrNull("IF12_BETDATO_SEQ"),
-                                    IF12_FOM = fkRs.intOrNull("IF12_FOM"),
-                                    IF12_TOM = fkRs.intOrNull("IF12_TOM"),
-                                    IF12_BET_KODE = fkRs.stringOrNull("IF12_BET_KODE")?.first(),
-                                    IF12_FRIUKER = fkRs.stringOrNull("IF12_FRIUKER"),
-                                    IF12_BELOEP = fkRs.bigDecimalOrNull("IF12_BELOEP"),
-                                    IF12_BETDATO = fkRs.intOrNull("IF12_BETDATO"),
-                                    OPPRETTET = fkRs.sqlTimestamp("OPPRETTET").toInstant(),
-                                    ENDRET_I_KILDE = fkRs.sqlTimestamp("ENDRET_I_KILDE").toInstant(),
-                                    KILDE_IF = fkRs.string("KILDE_IF"),
-                                    ID_KONT = fkRs.bigDecimal("ID_KONT"),
-                                    OPPDATERT = fkRs.sqlTimestampOrNull("OPPDATERT")?.toInstant(),
-                                )
-                            }.asList
-                        )
-                    }
+                    val fkonto12Rader = session.run(
+                        queryOf(fkonto12Statement, if01Kode.toString(), if01AgnrFnr, if10ForsfomSeq).map { fkRs ->
+                            IF_FKONTO_12_Rad(
+                                IF12_BETDATO_SEQ = fkRs.intOrNull("IF12_BETDATO_SEQ"),
+                                IF12_FOM = fkRs.intOrNull("IF12_FOM"),
+                                IF12_TOM = fkRs.intOrNull("IF12_TOM"),
+                                IF12_BET_KODE = fkRs.stringOrNull("IF12_BET_KODE")?.first(),
+                                IF12_FRIUKER = fkRs.stringOrNull("IF12_FRIUKER"),
+                                IF12_BELOEP = fkRs.bigDecimalOrNull("IF12_BELOEP"),
+                                IF12_BETDATO = fkRs.intOrNull("IF12_BETDATO"),
+                                OPPRETTET = fkRs.sqlTimestamp("OPPRETTET").toInstant(),
+                                ENDRET_I_KILDE = fkRs.sqlTimestamp("ENDRET_I_KILDE").toInstant(),
+                                KILDE_IF = fkRs.string("KILDE_IF"),
+                                ID_KONT = fkRs.bigDecimal("ID_KONT"),
+                                OPPDATERT = fkRs.sqlTimestampOrNull("OPPDATERT")?.toInstant(),
+                            )
+                        }.asList
+                    )
 
                     IF_VEDFRIVT_10_Rad(
                         IF01_KODE = if01Kode,
