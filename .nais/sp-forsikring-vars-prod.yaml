@@ -2,6 +2,6 @@ kafkaPool: nav-prod
 db:
   tier: "db-custom-1-3840"
 gosys:
-  baseurl: ""
-  scope: ""
-  externalAddress: ""
+  baseurl: https://oppgave.prod-fss-pub.nais.io
+  scope: api://prod-fss.oppgavehandtering.oppgave/.default
+  externalAddress: oppgave.prod-fss-pub.nais.io
