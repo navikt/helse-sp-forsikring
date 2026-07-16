@@ -1,5 +1,5 @@
 [versions]
-flyway = "12.10.0"
+flyway = "12.11.0"
 junit = "6.1.1"
 kotlin = "2.4.0"
 coroutines = "1.11.0"
