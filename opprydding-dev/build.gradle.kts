@@ -4,8 +4,15 @@ plugins {
 }
 
 application {
-    mainClass.set("no.nav.helse.sykepenger.forsikring.opprydding_dev.AppKt")
+    mainClass = "no.nav.helse.sykepenger.forsikring.opprydding_dev.AppKt"
     applicationName = "app"
+}
+
+// Legger main class i en argfil ved siden av start-scriptene, slik at Dockerfile kan peke på den og ikke har main class direkte definert
+tasks.startScripts {
+    val argsFile = outputDir!!.resolve("main.args")
+    val mainClass = application.mainClass
+    doLast { argsFile.writeText(mainClass.get() + "\n") }
 }
 
 dependencies {

@@ -36,7 +36,7 @@ jobs:
     secrets: inherit
     with:
       gradle_project: ':opprydding-dev'
-      docker_target: 'opprydding-dev'
+      docker_context: 'opprydding-dev'
       image_suffix: 'opprydding-dev'
 
   deployDev:

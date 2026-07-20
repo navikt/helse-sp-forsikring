@@ -13,8 +13,8 @@ on:
         type: string
         default: ':sp-forsikring'
         required: false
-      docker_target:
-        description: 'Target stage i Dockerfile'
+      docker_context:
+        description: 'Docker build-context (modulmappa som skal deployes)'
         type: string
         default: 'sp-forsikring'
         required: false
@@ -68,6 +68,5 @@ jobs:
           team: tbd
           push_image: ${{ inputs.push_image }}
           dockerfile: Dockerfile
-          docker_context: .
+          docker_context: ${{ inputs.docker_context }}
           image_suffix: ${{ inputs.image_suffix }}
-          target: ${{ inputs.docker_target }}
