@@ -43,7 +43,7 @@ jobs:
             threat-models: local
 
       - name: Gradle build
-        run: ./gradlew build
+        run: ./gradlew build testClasses -x test --no-parallel -Dorg.gradle.jvmargs=-Xmx512m
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
