@@ -13,11 +13,6 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
-permissions:
-  contents: read
-  id-token: write
-  packages: read
-
 jobs:
   bygg-og-test:
     name: Bygg og test
@@ -25,6 +20,7 @@ jobs:
     permissions:
       actions: read
       contents: write # for dependency graph
+      id-token: write # for nais login
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
@@ -63,13 +59,13 @@ jobs:
         uses: gradle/actions/dependency-submission@3f131e8634966bd73d06cc69884922b02e6faf92 # v6.2.0
 
   signer-og-deploy:
-    name: Signer og deploy (${{ matrix.module }})
+    name: Deploy ${{ matrix.module }}
     needs: bygg-og-test
     permissions:
       actions: read # for sarif
       contents: write # for sarif
       security-events: write # push sarif to github security
-      id-token: write # for nais docker-build-push
+      id-token: write # for nais login
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
