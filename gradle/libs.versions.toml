@@ -3,6 +3,7 @@ flyway = "12.11.0"
 coroutines = "1.11.0"
 ktor = "3.5.1"
 tbd-libs = "20260702.1010"
+sasGradlePlugins = "20260721.2050"
 testcontainers = "2.0.5"
 
 [libraries]
@@ -64,3 +65,7 @@ logback = [
     "logback-classic",
     "logback-logstash-encoder"
 ]
+
+[plugins]
+sas-deployable = { id = "no.nav.helse.sas.sas-deployable", version.ref = "sasGradlePlugins" }
+sas-multimodule-root = { id = "no.nav.helse.sas.sas-multimodule-root", version.ref = "sasGradlePlugins" }
