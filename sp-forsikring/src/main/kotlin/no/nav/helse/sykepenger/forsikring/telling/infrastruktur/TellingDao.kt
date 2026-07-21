@@ -1,13 +1,15 @@
 package no.nav.helse.sykepenger.forsikring.telling.infrastruktur
 
-import java.time.Instant
-import java.util.*
-import javax.sql.DataSource
 import kotliquery.queryOf
 import no.nav.helse.sykepenger.forsikring.shared.util.withSession
 import org.intellij.lang.annotations.Language
+import java.time.Instant
+import java.util.*
+import javax.sql.DataSource
 
-class TellingDao(private val dataSource: DataSource) {
+class TellingDao(
+    private val dataSource: DataSource,
+) {
     fun lagre(
         id: UUID,
         fødselsnummer: String,
@@ -20,11 +22,12 @@ class TellingDao(private val dataSource: DataSource) {
         json: String,
     ) {
         @Language("PostgreSQL")
-        val statement = """
+        val statement =
+            """
             INSERT INTO tell_utbetaling (id, fødselsnummer, vedtaksperiodeId, vedtakFattetTidspunkt, dekningsgrad, harDekningIVentetid, utbetaltIVentetid, utbetaltUtenomVentetid, json)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?::jsonb)
             ON CONFLICT (id) DO NOTHING;
-        """.trimIndent()
+            """.trimIndent()
         dataSource.withSession { session ->
             session.run(
                 queryOf(
@@ -37,15 +40,16 @@ class TellingDao(private val dataSource: DataSource) {
                     harDekningIVentetid,
                     utbetaltIVentetid,
                     utbetaltUtenomVentetid,
-                    json
-                ).asUpdate
+                    json,
+                ).asUpdate,
             )
         }
     }
 
     fun hent(id: UUID): LagretTelling? {
         @Language("PostgreSQL")
-        val statement = """
+        val statement =
+            """
             SELECT
                 id,
                 fødselsnummer,
@@ -57,7 +61,7 @@ class TellingDao(private val dataSource: DataSource) {
                 utbetaltUtenomVentetid
             FROM tell_utbetaling
             WHERE id = ?
-        """.trimIndent()
+            """.trimIndent()
 
         return dataSource.withSession { session ->
             session.run(
@@ -73,7 +77,7 @@ class TellingDao(private val dataSource: DataSource) {
                             utbetaltIVentetid = row.int("utbetaltIVentetid"),
                             utbetaltUtenomVentetid = row.int("utbetaltUtenomVentetid"),
                         )
-                    }.asSingle
+                    }.asSingle,
             )
         }
     }

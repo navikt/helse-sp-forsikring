@@ -2,9 +2,6 @@ package no.nav.helse.sykepenger.forsikring.forsikringsvurdering.infrastruktur
 
 import io.ktor.server.cio.*
 import io.ktor.server.engine.*
-import java.net.ServerSocket
-import java.time.LocalDate
-import java.util.*
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.ForsikringsvurderingService
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.domain.Yrkesaktivitetstype
 import no.nav.helse.sykepenger.forsikring.oppslag.OppslagService
@@ -24,6 +21,9 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.ValueSource
+import java.net.ServerSocket
+import java.time.LocalDate
+import java.util.*
 
 private const val CLIENT_ID = "sp-forsikring-junit"
 
@@ -46,7 +46,7 @@ class ForsikringsvurderingApiTest {
                 forsikringsvurderingRepository = forsikringsvurderingRepository,
                 clientId = CLIENT_ID,
                 issuerUrl = mockOAuth2Server.issuerUrl("default").toString(),
-                jwkProviderUri = mockOAuth2Server.jwksUrl("default").toString()
+                jwkProviderUri = mockOAuth2Server.jwksUrl("default").toString(),
             )
         }.start(wait = false)
 
@@ -63,11 +63,12 @@ class ForsikringsvurderingApiTest {
 
     @Test
     fun `returnerer harForsikringMedDekningIVentetid false når ingen forsikringer finnes i replikabasen`() {
-        val (statusCode, body) = postForsikringsvurdering(
-            identitetsnummer = "12345678901",
-            skjæringstidspunkt = "2026-01-01",
-            token = bearerToken()
-        )
+        val (statusCode, body) =
+            postForsikringsvurdering(
+                identitetsnummer = "12345678901",
+                skjæringstidspunkt = "2026-01-01",
+                token = bearerToken(),
+            )
 
         assertEquals(200, statusCode) { "Body was: $body" }
         assertTrue(body.contains("\"harForsikringMedDekningIVentetid\":false")) { "Forventet harForsikringMedDekningIVentetid=false, fikk: $body" }
@@ -82,11 +83,12 @@ class ForsikringsvurderingApiTest {
             IF10_VIRKDATO = 20260101,
         )
 
-        val (statusCode, body) = postForsikringsvurdering(
-            identitetsnummer = "12345678901",
-            skjæringstidspunkt = "2026-01-01",
-            token = bearerToken()
-        )
+        val (statusCode, body) =
+            postForsikringsvurdering(
+                identitetsnummer = "12345678901",
+                skjæringstidspunkt = "2026-01-01",
+                token = bearerToken(),
+            )
 
         assertEquals(200, statusCode) { "Body was: $body" }
         assertTrue(body.contains("\"harForsikringMedDekningIVentetid\":true")) { "Forventet harForsikringMedDekningIVentetid=true, fikk: $body" }
@@ -100,11 +102,12 @@ class ForsikringsvurderingApiTest {
             IF10_VIRKDATO = 20260101,
         )
 
-        val (statusCode, body) = postForsikringsvurdering(
-            identitetsnummer = "12345678901",
-            skjæringstidspunkt = "2026-01-01",
-            token = bearerToken()
-        )
+        val (statusCode, body) =
+            postForsikringsvurdering(
+                identitetsnummer = "12345678901",
+                skjæringstidspunkt = "2026-01-01",
+                token = bearerToken(),
+            )
 
         assertEquals(200, statusCode) { "Body was: $body" }
         assertTrue(body.contains("\"harForsikringMedDekningIVentetid\":false")) { "Forventet harForsikringMedDekningIVentetid=false, fikk: $body" }
@@ -119,11 +122,12 @@ class ForsikringsvurderingApiTest {
             IF10_FORSTOM = 20251231,
         )
 
-        val (statusCode, body) = postForsikringsvurdering(
-            identitetsnummer = "12345678901",
-            skjæringstidspunkt = "2026-01-01",
-            token = bearerToken()
-        )
+        val (statusCode, body) =
+            postForsikringsvurdering(
+                identitetsnummer = "12345678901",
+                skjæringstidspunkt = "2026-01-01",
+                token = bearerToken(),
+            )
 
         assertEquals(200, statusCode) { "Body was: $body" }
         assertTrue(body.contains("\"harForsikringMedDekningIVentetid\":false")) { "Forventet harForsikringMedDekningIVentetid=false, fikk: $body" }
@@ -137,11 +141,12 @@ class ForsikringsvurderingApiTest {
             IF10_VIRKDATO = 20260102,
         )
 
-        val (statusCode, body) = postForsikringsvurdering(
-            identitetsnummer = "12345678901",
-            skjæringstidspunkt = "2026-01-01",
-            token = bearerToken()
-        )
+        val (statusCode, body) =
+            postForsikringsvurdering(
+                identitetsnummer = "12345678901",
+                skjæringstidspunkt = "2026-01-01",
+                token = bearerToken(),
+            )
 
         assertEquals(200, statusCode) { "Body was: $body" }
         assertTrue(body.contains("\"harForsikringMedDekningIVentetid\":false")) { "Forventet harForsikringMedDekningIVentetid=false, fikk: $body" }
@@ -149,11 +154,12 @@ class ForsikringsvurderingApiTest {
 
     @Test
     fun `returnerer 400 når identitetsnummer ikke er 11 siffer`() {
-        val (statusCode, body) = postForsikringsvurdering(
-            identitetsnummer = "1234",
-            skjæringstidspunkt = "2026-01-01",
-            token = bearerToken()
-        )
+        val (statusCode, body) =
+            postForsikringsvurdering(
+                identitetsnummer = "1234",
+                skjæringstidspunkt = "2026-01-01",
+                token = bearerToken(),
+            )
 
         assertEquals(400, statusCode)
         assertTrue(body.contains("\"status\":400")) { "Forventet ProblemDetail-body med status 400, fikk: $body" }
@@ -161,33 +167,36 @@ class ForsikringsvurderingApiTest {
 
     @Test
     fun `returnerer 401 uten autentiseringstoken`() {
-        val (statusCode, _) = postForsikringsvurdering(
-            identitetsnummer = "12345678901",
-            skjæringstidspunkt = "2026-01-01",
-            token = null
-        )
+        val (statusCode, _) =
+            postForsikringsvurdering(
+                identitetsnummer = "12345678901",
+                skjæringstidspunkt = "2026-01-01",
+                token = null,
+            )
 
         assertEquals(401, statusCode)
     }
 
     @Test
     fun `returnerer 401 med token med feil audience`() {
-        val (statusCode, _) = postForsikringsvurdering(
-            identitetsnummer = "12345678901",
-            skjæringstidspunkt = "2026-01-01",
-            token = bearerToken(audience = "feil-audience")
-        )
+        val (statusCode, _) =
+            postForsikringsvurdering(
+                identitetsnummer = "12345678901",
+                skjæringstidspunkt = "2026-01-01",
+                token = bearerToken(audience = "feil-audience"),
+            )
 
         assertEquals(401, statusCode)
     }
 
     @Test
     fun `returnerer 401 med token fra feil issuer`() {
-        val (statusCode, _) = postForsikringsvurdering(
-            identitetsnummer = "12345678901",
-            skjæringstidspunkt = "2026-01-01",
-            token = bearerToken(issuerId = "feil-issuer")
-        )
+        val (statusCode, _) =
+            postForsikringsvurdering(
+                identitetsnummer = "12345678901",
+                skjæringstidspunkt = "2026-01-01",
+                token = bearerToken(issuerId = "feil-issuer"),
+            )
 
         assertEquals(401, statusCode)
     }
@@ -205,15 +214,17 @@ class ForsikringsvurderingApiTest {
             IF12_BETDATO_SEQ = 1,
             IF12_BETDATO = 20260101,
         )
-        val forsikringsvurderingId = opprettForsikringsvurdering(
-            identitetsnummer = "12345678901",
-            skjæringstidspunkt = LocalDate.parse("2026-01-01"),
-        )
+        val forsikringsvurderingId =
+            opprettForsikringsvurdering(
+                identitetsnummer = "12345678901",
+                skjæringstidspunkt = LocalDate.parse("2026-01-01"),
+            )
 
-        val (statusCode, body) = getForsikringsvurdering(
-            forsikringsvurderingId = forsikringsvurderingId,
-            token = bearerToken()
-        )
+        val (statusCode, body) =
+            getForsikringsvurdering(
+                forsikringsvurderingId = forsikringsvurderingId,
+                token = bearerToken(),
+            )
 
         assertEquals(200, statusCode) { "Body was: $body" }
         assertTrue(body.contains("\"identitetsnummer\":\"12345678901\"")) { "Forventet identitetsnummer, fikk: $body" }
@@ -224,15 +235,17 @@ class ForsikringsvurderingApiTest {
 
     @Test
     fun `GET forsikringsvurderinger returnerer 200 med harForsikring false og ingen dekning`() {
-        val forsikringsvurderingId = opprettForsikringsvurdering(
-            identitetsnummer = "12345678901",
-            skjæringstidspunkt = LocalDate.parse("2026-01-01"),
-        )
+        val forsikringsvurderingId =
+            opprettForsikringsvurdering(
+                identitetsnummer = "12345678901",
+                skjæringstidspunkt = LocalDate.parse("2026-01-01"),
+            )
 
-        val (statusCode, body) = getForsikringsvurdering(
-            forsikringsvurderingId = forsikringsvurderingId,
-            token = bearerToken()
-        )
+        val (statusCode, body) =
+            getForsikringsvurdering(
+                forsikringsvurderingId = forsikringsvurderingId,
+                token = bearerToken(),
+            )
 
         assertEquals(200, statusCode) { "Body was: $body" }
         assertTrue(body.contains("\"harForsikring\":false")) { "Forventet harForsikring=false, fikk: $body" }
@@ -252,15 +265,17 @@ class ForsikringsvurderingApiTest {
             IF12_BETDATO_SEQ = 1,
             IF12_BETDATO = 20260101,
         )
-        val forsikringsvurderingId = opprettForsikringsvurdering(
-            identitetsnummer = "12345678901",
-            skjæringstidspunkt = LocalDate.parse("2026-01-01"),
-        )
+        val forsikringsvurderingId =
+            opprettForsikringsvurdering(
+                identitetsnummer = "12345678901",
+                skjæringstidspunkt = LocalDate.parse("2026-01-01"),
+            )
 
-        val (statusCode, body) = getForsikringsvurdering(
-            forsikringsvurderingId = forsikringsvurderingId,
-            token = bearerToken()
-        )
+        val (statusCode, body) =
+            getForsikringsvurdering(
+                forsikringsvurderingId = forsikringsvurderingId,
+                token = bearerToken(),
+            )
 
         assertEquals(200, statusCode) { "Body was: $body" }
         assertTrue(body.contains("\"fraDag\":17")) { "Forventet fraDag=17, fikk: $body" }
@@ -268,10 +283,11 @@ class ForsikringsvurderingApiTest {
 
     @Test
     fun `GET forsikringsvurderinger returnerer 404 når id ikke finnes`() {
-        val (statusCode, body) = getForsikringsvurdering(
-            forsikringsvurderingId = UUID.randomUUID().toString(),
-            token = bearerToken()
-        )
+        val (statusCode, body) =
+            getForsikringsvurdering(
+                forsikringsvurderingId = UUID.randomUUID().toString(),
+                token = bearerToken(),
+            )
 
         assertEquals(404, statusCode) { "Body was: $body" }
         assertTrue(body.contains("\"status\":404")) { "Forventet ProblemDetail-body med status 404, fikk: $body" }
@@ -279,17 +295,18 @@ class ForsikringsvurderingApiTest {
 
     @Test
     fun `GET forsikringsvurderinger returnerer 401 uten autentiseringstoken`() {
-        val (statusCode, _) = getForsikringsvurdering(
-            forsikringsvurderingId = UUID.randomUUID().toString(),
-            token = null
-        )
+        val (statusCode, _) =
+            getForsikringsvurdering(
+                forsikringsvurderingId = UUID.randomUUID().toString(),
+                token = null,
+            )
 
         assertEquals(401, statusCode)
     }
 
     private fun bearerToken(
         issuerId: String = "default",
-        audience: String = CLIENT_ID
+        audience: String = CLIENT_ID,
     ): String = mockOAuth2Server.issueToken(issuerId = issuerId, audience = audience).serialize()
 
     private fun opprettForsikringsvurdering(
@@ -298,41 +315,40 @@ class ForsikringsvurderingApiTest {
     ): String {
         val behovJson = """{"fødselsnummer":"$identitetsnummer","@behov":["Forsikringsvurdering"]}"""
         return TestcontainersSpForsikringDatabase.dataSource.inTransaction { transaction ->
-            forsikringsvurderingService.gjørVurdering(
-                session = transaction,
-                behovJson = behovJson,
-                skjæringstidspunkt = skjæringstidspunkt,
-                fødselsnummer = identitetsnummer,
-                spesielleYrkesgrupper = emptySet(),
-                yrkesaktivitetstype = Yrkesaktivitetstype.SELVSTENDIG
-            ).id.value.toString()
+            forsikringsvurderingService
+                .gjørVurdering(
+                    session = transaction,
+                    behovJson = behovJson,
+                    skjæringstidspunkt = skjæringstidspunkt,
+                    fødselsnummer = identitetsnummer,
+                    spesielleYrkesgrupper = emptySet(),
+                    yrkesaktivitetstype = Yrkesaktivitetstype.SELVSTENDIG,
+                ).id.value
+                .toString()
         }
     }
 
     private fun getForsikringsvurdering(
         forsikringsvurderingId: String,
-        token: String?
-    ): Pair<Int, String> {
-        return Request
+        token: String?,
+    ): Pair<Int, String> =
+        Request
             .get("$serverUrl/forsikringsvurderinger/$forsikringsvurderingId")
             .apply { token?.let { addHeader("Authorization", "Bearer $it") } }
             .execute()
             .handleResponse { response -> response.code to (EntityUtils.toString(response.entity) ?: "") }
-    }
 
     private fun postForsikringsvurdering(
         identitetsnummer: String,
         skjæringstidspunkt: String,
-        token: String?
-    ): Pair<Int, String> {
-        return Request
+        token: String?,
+    ): Pair<Int, String> =
+        Request
             .post("$serverUrl/api/forsikringsvurdering")
             .bodyString(
                 """{ "identitetsnummer": "$identitetsnummer", "skjæringstidspunkt": "$`skjæringstidspunkt`" }""",
-                ContentType.APPLICATION_JSON
-            )
-            .apply { token?.let { addHeader("Authorization", "Bearer $it") } }
+                ContentType.APPLICATION_JSON,
+            ).apply { token?.let { addHeader("Authorization", "Bearer $it") } }
             .execute()
             .handleResponse { response -> response.code to (EntityUtils.toString(response.entity) ?: "") }
-    }
 }

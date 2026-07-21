@@ -15,10 +15,6 @@ import io.ktor.server.plugins.statuspages.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
-import java.net.URI
-import java.time.LocalDate
-import java.util.*
-import javax.sql.DataSource
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.ForsikringsvurderingRepository
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.domain.Forsikringskategori.KollektivForsikring
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.domain.Forsikringskategori.NavKjøptForsikring
@@ -28,16 +24,20 @@ import no.nav.helse.sykepenger.forsikring.oppslag.infrastruktur.mapTilRåNavKjø
 import no.nav.helse.sykepenger.forsikring.shared.logging.loggInfo
 import no.nav.helse.sykepenger.forsikring.shared.logging.teamLogs
 import org.slf4j.event.Level
+import java.net.URI
+import java.time.LocalDate
+import java.util.*
+import javax.sql.DataSource
 
 private val jsonMapper = ObjectMapper()
 
 data class ForsikringsvurderingRequest(
     val identitetsnummer: String,
-    val skjæringstidspunkt: LocalDate
+    val skjæringstidspunkt: LocalDate,
 )
 
 data class ForsikringsvurderingResponse(
-    val harForsikringMedDekningIVentetid: Boolean
+    val harForsikringMedDekningIVentetid: Boolean,
 )
 
 data class SpesialistForsikringsvurderingResponse(
@@ -49,7 +49,7 @@ data class SpesialistForsikringsvurderingResponse(
 
 data class SpesialistDekningResponse(
     val grad: Int,
-    val fraDag: Int
+    val fraDag: Int,
 )
 
 data class ProblemResponse(
@@ -65,7 +65,7 @@ fun Application.forsikringsvurderingApi(
     forsikringsvurderingRepository: ForsikringsvurderingRepository,
     clientId: String,
     issuerUrl: String,
-    jwkProviderUri: String
+    jwkProviderUri: String,
 ) {
     install(CallId) {
         retrieveFromHeader(HttpHeaders.XRequestId)
@@ -112,7 +112,7 @@ fun Application.forsikringsvurderingApi(
         jwt("oidc") {
             verifier(
                 jwkProvider = JwkProviderBuilder(URI(jwkProviderUri).toURL()).build(),
-                issuer = issuerUrl
+                issuer = issuerUrl,
             ) {
                 withAudience(clientId)
             }
@@ -123,16 +123,17 @@ fun Application.forsikringsvurderingApi(
         authenticate("oidc") {
             get("/forsikringsvurderinger/{forsikringsvurderingId}") {
                 val rawId = call.parameters["forsikringsvurderingId"]
-                val id = rawId?.let { runCatching { UUID.fromString(it) }.getOrNull() }
-                    ?: return@get call.respond(
-                        HttpStatusCode.BadRequest,
-                        ProblemResponse(
-                            title = "Ugyldig forsikringsvurderingId",
-                            status = HttpStatusCode.BadRequest.value,
-                            detail = "forsikringsvurderingId må være en gyldig UUID",
-                            instance = call.request.uri,
+                val id =
+                    rawId?.let { runCatching { UUID.fromString(it) }.getOrNull() }
+                        ?: return@get call.respond(
+                            HttpStatusCode.BadRequest,
+                            ProblemResponse(
+                                title = "Ugyldig forsikringsvurderingId",
+                                status = HttpStatusCode.BadRequest.value,
+                                detail = "forsikringsvurderingId må være en gyldig UUID",
+                                instance = call.request.uri,
+                            ),
                         )
-                    )
                 loggInfo("Mottok kall til GET /forsikringsvurderinger/$id")
 
                 val forsikringsvurdering =
@@ -144,26 +145,29 @@ fun Application.forsikringsvurderingApi(
                                 status = HttpStatusCode.NotFound.value,
                                 detail = "Fant ingen forsikringsvurdering med id $id",
                                 instance = call.request.uri,
-                            )
+                            ),
                         )
 
                 val identitetsnummer = jsonMapper.readTree(forsikringsvurdering.behovJson)["fødselsnummer"].asText()
 
-                val response = SpesialistForsikringsvurderingResponse(
-                    identitetsnummer = identitetsnummer,
-                    harForsikring = forsikringsvurdering.harForsikring,
-                    dekning = forsikringsvurdering.dekning?.let { dekning ->
-                        SpesialistDekningResponse(
-                            grad = dekning.grad,
-                            fraDag = if (dekning.iVentetid) 1 else 17
-                        )
-                    },
-                    forsikringskategori = when (forsikringsvurdering.forsikringskategori) {
-                        is KollektivForsikring -> "Kollektiv"
-                        is NavKjøptForsikring -> "Individuell"
-                        null -> null
-                    }
-                )
+                val response =
+                    SpesialistForsikringsvurderingResponse(
+                        identitetsnummer = identitetsnummer,
+                        harForsikring = forsikringsvurdering.harForsikring,
+                        dekning =
+                            forsikringsvurdering.dekning?.let { dekning ->
+                                SpesialistDekningResponse(
+                                    grad = dekning.grad,
+                                    fraDag = if (dekning.iVentetid) 1 else 17,
+                                )
+                            },
+                        forsikringskategori =
+                            when (forsikringsvurdering.forsikringskategori) {
+                                is KollektivForsikring -> "Kollektiv"
+                                is NavKjøptForsikring -> "Individuell"
+                                null -> null
+                            },
+                    )
 
                 loggInfo("Svarer på GET /forsikringsvurderinger/$id", "response" to response)
 
@@ -179,13 +183,16 @@ fun Application.forsikringsvurderingApi(
 
                 val replikabaseDao = ReplikabaseDao(dataSource = replikabaseDataSource)
 
-                val forsikringer = replikabaseDao.hentIfVedfrivt10Rader(
-                    fødselsnummer = request.identitetsnummer
-                ).map { it.mapTilRåNavKjøptForsikring(skjæringstidspunkt = request.skjæringstidspunkt) }
+                val forsikringer =
+                    replikabaseDao
+                        .hentIfVedfrivt10Rader(
+                            fødselsnummer = request.identitetsnummer,
+                        ).map { it.mapTilRåNavKjøptForsikring(skjæringstidspunkt = request.skjæringstidspunkt) }
 
-                val aktuelleForsikringer = forsikringer.filter {
-                    it.harVirkningPå(dato = request.skjæringstidspunkt) && !it.erOpphørtPå(dato = request.skjæringstidspunkt)
-                }
+                val aktuelleForsikringer =
+                    forsikringer.filter {
+                        it.harVirkningPå(dato = request.skjæringstidspunkt) && !it.erOpphørtPå(dato = request.skjæringstidspunkt)
+                    }
 
                 val harDekningIVentetid = aktuelleForsikringer.any { it.dekningFraDag() == 1 }
 

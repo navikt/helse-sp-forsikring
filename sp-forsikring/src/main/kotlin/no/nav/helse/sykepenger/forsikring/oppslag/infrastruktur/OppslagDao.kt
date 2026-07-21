@@ -1,7 +1,5 @@
 package no.nav.helse.sykepenger.forsikring.oppslag.infrastruktur
 
-import java.sql.Timestamp
-import java.time.Instant
 import kotliquery.Row
 import kotliquery.TransactionalSession
 import kotliquery.queryOf
@@ -13,9 +11,15 @@ import no.nav.helse.sykepenger.forsikring.oppslag.domain.OppslagIfFkonto12Id
 import no.nav.helse.sykepenger.forsikring.oppslag.domain.OppslagIfVedrift10Id
 import no.nav.helse.sykepenger.forsikring.shared.util.toLocalDate
 import org.intellij.lang.annotations.Language
+import java.sql.Timestamp
+import java.time.Instant
 
-class OppslagDao() {
-    fun lagreOppslag(oppslagId: OppslagId, oppslagTidspunkt: Instant, session: TransactionalSession) {
+class OppslagDao {
+    fun lagreOppslag(
+        oppslagId: OppslagId,
+        oppslagTidspunkt: Instant,
+        session: TransactionalSession,
+    ) {
         @Language("PostgreSQL")
         val statement = """
             INSERT INTO oppslag (id, oppslag_tidspunkt)
@@ -27,8 +31,8 @@ class OppslagDao() {
                 mapOf(
                     "id" to oppslagId.value,
                     "oppslag_tidspunkt" to Timestamp.from(oppslagTidspunkt),
-                )
-            ).asUpdate
+                ),
+            ).asUpdate,
         )
     }
 
@@ -113,8 +117,8 @@ class OppslagDao() {
                     "KILDE_IF" to rad.KILDE_IF,
                     "ID_VED" to rad.ID_VED,
                     "OPPDATERT" to rad.OPPDATERT?.let { Timestamp.from(it) },
-                )
-            ).asUpdate
+                ),
+            ).asUpdate,
         )
     }
 
@@ -161,12 +165,15 @@ class OppslagDao() {
                     "KILDE_IF" to rad.KILDE_IF,
                     "ID_KONT" to rad.ID_KONT,
                     "OPPDATERT" to rad.OPPDATERT?.let { Timestamp.from(it) },
-                )
-            ).asUpdate
+                ),
+            ).asUpdate,
         )
     }
 
-    fun hentOppslag(oppslagId: OppslagId, session: TransactionalSession): Oppslag {
+    fun hentOppslag(
+        oppslagId: OppslagId,
+        session: TransactionalSession,
+    ): Oppslag {
         @Language("PostgreSQL")
         val statement = """
             SELECT
@@ -186,31 +193,31 @@ class OppslagDao() {
             FROM oppslag_IF_VEDFRIVT_10 v
             WHERE v.oppslag_id = :oppslag_id
         """
-        val navKjøpteForsikringer = session.run(
-            queryOf(statement, mapOf("oppslag_id" to oppslagId.value))
-                .map { row ->
-                    NavKjøptForsikring(
-                        id = OppslagIfVedrift10Id(row.uuid("id")),
-                        type = when (val type = row.string("IF10_TYPE")) {
-                            "1" -> AbstractNavKjøptForsikring.Type.SELVSTENDIG_80_PROSENT_FRA_DAG_1
-                            "2" -> AbstractNavKjøptForsikring.Type.SELVSTENDIG_100_PROSENT_FRA_DAG_17
-                            "3" -> AbstractNavKjøptForsikring.Type.SELVSTENDIG_100_PROSENT_FRA_DAG_1
-                            "4" -> AbstractNavKjøptForsikring.Type.SELVSTENDIG_JORDBRUKER_100_PROSENT_FRA_DAG_1
-                            "5" -> AbstractNavKjøptForsikring.Type.FRILANSER_100_PROSENT_FRA_DAG_1
-                            else -> error("Ukjent forsikringstype: $type")
-                        },
-                        virkningsdato = row.intToLocalDate("IF10_VIRKDATO")!!,
-                        opphørsdato = row.intToLocalDate("IF10_FORSTOM"),
-                        opphørsgrunn = row.string("IF10_OPPHGR").takeIf { it.isNotBlank() },
-                        erBetaltNoenGang = row.boolean("er_betalt_noen_gang"),
-                        premiegrunnlag = row.bigDecimal("IF10_PREMGRL"),
-                    )
-                }
-                .asList
-        )
+        val navKjøpteForsikringer =
+            session.run(
+                queryOf(statement, mapOf("oppslag_id" to oppslagId.value))
+                    .map { row ->
+                        NavKjøptForsikring(
+                            id = OppslagIfVedrift10Id(row.uuid("id")),
+                            type =
+                                when (val type = row.string("IF10_TYPE")) {
+                                    "1" -> AbstractNavKjøptForsikring.Type.SELVSTENDIG_80_PROSENT_FRA_DAG_1
+                                    "2" -> AbstractNavKjøptForsikring.Type.SELVSTENDIG_100_PROSENT_FRA_DAG_17
+                                    "3" -> AbstractNavKjøptForsikring.Type.SELVSTENDIG_100_PROSENT_FRA_DAG_1
+                                    "4" -> AbstractNavKjøptForsikring.Type.SELVSTENDIG_JORDBRUKER_100_PROSENT_FRA_DAG_1
+                                    "5" -> AbstractNavKjøptForsikring.Type.FRILANSER_100_PROSENT_FRA_DAG_1
+                                    else -> error("Ukjent forsikringstype: $type")
+                                },
+                            virkningsdato = row.intToLocalDate("IF10_VIRKDATO")!!,
+                            opphørsdato = row.intToLocalDate("IF10_FORSTOM"),
+                            opphørsgrunn = row.string("IF10_OPPHGR").takeIf { it.isNotBlank() },
+                            erBetaltNoenGang = row.boolean("er_betalt_noen_gang"),
+                            premiegrunnlag = row.bigDecimal("IF10_PREMGRL"),
+                        )
+                    }.asList,
+            )
         return Oppslag(id = oppslagId, navKjøpteForsikringer = navKjøpteForsikringer)
     }
 
     private fun Row.intToLocalDate(label: String) = int(label).toLocalDate()
-
 }

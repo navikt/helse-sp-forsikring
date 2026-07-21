@@ -1,17 +1,16 @@
 package no.nav.helse.sykepenger.forsikring.telling.infrastruktur
 
+import kotliquery.queryOf
+import kotliquery.sessionOf
+import no.nav.helse.sykepenger.forsikring.shared.testsupport.TestcontainersSpForsikringDatabase
+import org.junit.jupiter.api.BeforeEach
 import java.time.Instant
 import java.util.*
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
-import kotliquery.queryOf
-import kotliquery.sessionOf
-import no.nav.helse.sykepenger.forsikring.shared.testsupport.TestcontainersSpForsikringDatabase
-import org.junit.jupiter.api.BeforeEach
 
 class TellingDaoTest {
-
     private val tellingDao = TellingDao(TestcontainersSpForsikringDatabase.dataSource)
 
     @BeforeEach
@@ -82,14 +81,15 @@ class TellingDaoTest {
             json = """{"@event_name":"vedtak_fattet","utbetalingsdager":[]}""",
         )
 
-        val antall = sessionOf(TestcontainersSpForsikringDatabase.dataSource).use { session ->
-            session.run(
-                queryOf(
-                    "SELECT COUNT(*) FROM tell_utbetaling WHERE id = ?",
-                    id
-                ).map { it.int(1) }.asSingle
-            )!!
-        }
+        val antall =
+            sessionOf(TestcontainersSpForsikringDatabase.dataSource).use { session ->
+                session.run(
+                    queryOf(
+                        "SELECT COUNT(*) FROM tell_utbetaling WHERE id = ?",
+                        id,
+                    ).map { it.int(1) }.asSingle,
+                )!!
+            }
         assertEquals(1, antall)
     }
 }

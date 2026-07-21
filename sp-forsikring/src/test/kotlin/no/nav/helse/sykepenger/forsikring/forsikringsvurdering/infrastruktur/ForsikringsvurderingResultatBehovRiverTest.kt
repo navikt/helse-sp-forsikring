@@ -6,9 +6,6 @@ import com.fasterxml.jackson.databind.node.ObjectNode
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.github.navikt.tbd_libs.rapids_and_rivers.test_support.TestRapid
-import java.util.*
-import kotlin.test.assertEquals
-import kotlin.test.assertNotNull
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.ForsikringsvurderingService
 import no.nav.helse.sykepenger.forsikring.oppslag.OppslagService
 import no.nav.helse.sykepenger.forsikring.oppslag.infrastruktur.ReplikabaseDao
@@ -20,25 +17,29 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertDoesNotThrow
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.CsvSource
+import java.util.*
+import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
 
 internal class ForsikringsvurderingResultatBehovRiverTest {
     private val objectMapper = jacksonObjectMapper().registerModule(JavaTimeModule())
 
-    private val rapid = TestRapid().apply {
-        val forsikringsvurderingRepository = PgForsikringsvurderingRepository(TestcontainersSpForsikringDatabase.dataSource)
-        val replikabaseDao = ReplikabaseDao(TestcontainersReplikadatabase.dataSource)
-        val oppslagService = OppslagService(replikabaseDao)
-        val forsikringsvurderingService = ForsikringsvurderingService(forsikringsvurderingRepository, oppslagService)
-        ForsikringsvurderingBehovRiver(
-            rapidsConnection = this,
-            spForsikringDataSource = TestcontainersSpForsikringDatabase.dataSource,
-            forsikringsvurderingService = forsikringsvurderingService,
-        )
-        ForsikringsvurderingResultatBehovRiver(
-            rapidsConnection = this,
-            forsikringsvurderingRepository = forsikringsvurderingRepository,
-        )
-    }
+    private val rapid =
+        TestRapid().apply {
+            val forsikringsvurderingRepository = PgForsikringsvurderingRepository(TestcontainersSpForsikringDatabase.dataSource)
+            val replikabaseDao = ReplikabaseDao(TestcontainersReplikadatabase.dataSource)
+            val oppslagService = OppslagService(replikabaseDao)
+            val forsikringsvurderingService = ForsikringsvurderingService(forsikringsvurderingRepository, oppslagService)
+            ForsikringsvurderingBehovRiver(
+                rapidsConnection = this,
+                spForsikringDataSource = TestcontainersSpForsikringDatabase.dataSource,
+                forsikringsvurderingService = forsikringsvurderingService,
+            )
+            ForsikringsvurderingResultatBehovRiver(
+                rapidsConnection = this,
+                forsikringsvurderingRepository = forsikringsvurderingRepository,
+            )
+        }
 
     @BeforeEach
     fun beforeEach() {
@@ -58,14 +59,15 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
         assertJsonEquals(
             expectedJson = testmelding,
             actualJsonNode = rapid.inspektør.message(0),
-            bortsettFraProperties = setOf(
-                "@løsning",
-                "@id",
-                "@opprettet",
-                "system_read_count",
-                "system_participating_services",
-                "@forårsaket_av"
-            )
+            bortsettFraProperties =
+                setOf(
+                    "@løsning",
+                    "@id",
+                    "@opprettet",
+                    "system_read_count",
+                    "system_participating_services",
+                    "@forårsaket_av",
+                ),
         )
     }
 
@@ -75,13 +77,13 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
             IF01_AGNR_FNR = 3020112345L,
             IF10_FORSFOM_SEQ = 0,
             IF10_TYPE = '2',
-            IF10_VIRKDATO = 20260101
+            IF10_VIRKDATO = 20260101,
         )
         TestcontainersReplikadatabase.insertFkonto12(
             IF01_AGNR_FNR = 3020112345L,
             IF10_FORSFOM_SEQ = 0,
             IF12_BETDATO_SEQ = 1,
-            IF12_BETDATO = 20260101
+            IF12_BETDATO = 20260101,
         )
 
         val forsikringsvurderingId = opprettVurdering(yrkesaktivitetstype = "SELVSTENDIG")
@@ -100,7 +102,7 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
                 "opphørsdato": null,
                 "forsikringskategori": "NAVKJØPT"
             }
-            """.trimIndent()
+            """.trimIndent(),
         )
     }
 
@@ -111,19 +113,18 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
             IF10_FORSFOM_SEQ = 0,
             IF10_TYPE = '2',
             IF10_VIRKDATO = 20260101,
-            IF10_FORSTOM = 20260531
+            IF10_FORSTOM = 20260531,
         )
         TestcontainersReplikadatabase.insertFkonto12(
             IF01_AGNR_FNR = 3020112345L,
             IF10_FORSFOM_SEQ = 0,
             IF12_BETDATO_SEQ = 1,
-            IF12_BETDATO = 20260101
+            IF12_BETDATO = 20260101,
         )
 
         val forsikringsvurderingId = opprettVurdering(yrkesaktivitetstype = "SELVSTENDIG")
 
         sendForsikringsvurderingResultatBehov(forsikringsvurderingId)
-
 
         forventLøsning(
             """
@@ -137,7 +138,7 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
                 "opphørsdato": "2026-05-31",
                 "forsikringskategori": "NAVKJØPT"
             }
-            """.trimIndent()
+            """.trimIndent(),
         )
     }
 
@@ -146,7 +147,6 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
         val forsikringsvurderingId = opprettVurdering(yrkesaktivitetstype = "SELVSTENDIG")
 
         sendForsikringsvurderingResultatBehov(forsikringsvurderingId)
-
 
         forventLøsning(
             """
@@ -157,7 +157,7 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
                 "opphørsdato": null,
                 "forsikringskategori": null
             }
-            """.trimIndent()
+            """.trimIndent(),
         )
     }
 
@@ -175,10 +175,11 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
 
     @Test
     fun `returnerer løsning med KOLLEKTIV forsikringskategori for JORDBRUKER`() {
-        val forsikringsvurderingId = opprettVurdering(
-            yrkesaktivitetstype = "SELVSTENDIG",
-            spesielleYrkesgrupper = listOf("JORDBRUKER")
-        )
+        val forsikringsvurderingId =
+            opprettVurdering(
+                yrkesaktivitetstype = "SELVSTENDIG",
+                spesielleYrkesgrupper = listOf("JORDBRUKER"),
+            )
 
         sendForsikringsvurderingResultatBehov(forsikringsvurderingId)
 
@@ -194,7 +195,7 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
                 "opphørsdato": null,
                 "forsikringskategori": "KOLLEKTIV"
             }
-            """.trimIndent()
+            """.trimIndent(),
         )
     }
 
@@ -222,7 +223,7 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
                     "forsikringsvurderingId": "$forsikringsvurderingId"
                 }
             }
-            """.trimIndent()
+            """.trimIndent(),
         )
 
         assertEquals(0, rapid.inspektør.size)
@@ -238,7 +239,7 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
                     "forsikringsvurderingId": "${UUID.randomUUID()}"
                 }
             }
-            """.trimIndent()
+            """.trimIndent(),
         )
 
         assertEquals(0, rapid.inspektør.size)
@@ -258,31 +259,38 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
         "ARBEIDSTAKER, FISKER_BLAD_B, , 100, true, KOLLEKTIV",
         "SELVSTENDIG, FISKER_BLAD_B, , 100, true, KOLLEKTIV",
     )
-    fun `gir løsning med forsikring`(yrkesaktivitetstype: String, særskiltGruppe: String?, IF10_TYPE: Char?, grad: Int, iVentetid: Boolean, forsikringskategori: String) {
+    fun `gir løsning med forsikring`(
+        yrkesaktivitetstype: String,
+        særskiltGruppe: String?,
+        IF10_TYPE: Char?,
+        grad: Int,
+        iVentetid: Boolean,
+        forsikringskategori: String,
+    ) {
         IF10_TYPE?.let { insertBetaltVedfrivt(IF01_AGNR_FNR = 3020112345L, IF10_TYPE = it) }
 
         testForsikringsvurderingOgForventResultat(
             """
-                {
-                    "@behov": [ "Forsikringsvurdering" ],
-                    "fødselsnummer": "01020312345",
-                    "yrkesaktivitetstype": "$yrkesaktivitetstype",
-                    "Forsikringsvurdering" : {
-                        "spesielleYrkesgrupper": [ ${særskiltGruppe?.let { "\"$it\"" }.orEmpty()} ],
-                        "skjæringstidspunkt": "2026-01-01"
-                    }
+            {
+                "@behov": [ "Forsikringsvurdering" ],
+                "fødselsnummer": "01020312345",
+                "yrkesaktivitetstype": "$yrkesaktivitetstype",
+                "Forsikringsvurdering" : {
+                    "spesielleYrkesgrupper": [ ${særskiltGruppe?.let { "\"$it\"" }.orEmpty()} ],
+                    "skjæringstidspunkt": "2026-01-01"
                 }
-            """.trimIndent()
+            }
+            """.trimIndent(),
         ) { forsikringsvurderingId: String ->
             // language=json
             """
-                {
-                    "forsikringsvurderingId": "$forsikringsvurderingId",
-                    "harForsikring": true,
-                    "dekning": { "grad": $grad, "iVentetid": $iVentetid },
-                    "opphørsdato": null,
-                    "forsikringskategori": "$forsikringskategori"
-                }
+            {
+                "forsikringsvurderingId": "$forsikringsvurderingId",
+                "harForsikring": true,
+                "dekning": { "grad": $grad, "iVentetid": $iVentetid },
+                "opphørsdato": null,
+                "forsikringskategori": "$forsikringskategori"
+            }
             """.trimIndent()
         }
     }
@@ -293,31 +301,35 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
         "SELVSTENDIG, , ",
         "FRILANS, , ",
     )
-    fun `gir løsning uten forsikring`(yrkesaktivitetstype: String, særskiltGruppe: String?, IF10_TYPE: Char?) {
+    fun `gir løsning uten forsikring`(
+        yrkesaktivitetstype: String,
+        særskiltGruppe: String?,
+        IF10_TYPE: Char?,
+    ) {
         IF10_TYPE?.let { insertBetaltVedfrivt(IF01_AGNR_FNR = 3020112345L, IF10_TYPE = it) }
 
         testForsikringsvurderingOgForventResultat(
             """
-                {
-                    "@behov": [ "Forsikringsvurdering" ],
-                    "fødselsnummer": "01020312345",
-                    "yrkesaktivitetstype": "$yrkesaktivitetstype",
-                    "Forsikringsvurdering" : {
-                        "spesielleYrkesgrupper": [ ${særskiltGruppe?.let { "\"$it\"" }.orEmpty()} ],
-                        "skjæringstidspunkt": "2026-01-01"
-                    }
+            {
+                "@behov": [ "Forsikringsvurdering" ],
+                "fødselsnummer": "01020312345",
+                "yrkesaktivitetstype": "$yrkesaktivitetstype",
+                "Forsikringsvurdering" : {
+                    "spesielleYrkesgrupper": [ ${særskiltGruppe?.let { "\"$it\"" }.orEmpty()} ],
+                    "skjæringstidspunkt": "2026-01-01"
                 }
-            """.trimIndent()
+            }
+            """.trimIndent(),
         ) { forsikringsvurderingId: String ->
             // language=json
             """
-                {
-                    "forsikringsvurderingId": "$forsikringsvurderingId",
-                    "harForsikring": false,
-                    "dekning": null,
-                    "opphørsdato": null,
-                    "forsikringskategori": null
-                }
+            {
+                "forsikringsvurderingId": "$forsikringsvurderingId",
+                "harForsikring": false,
+                "dekning": null,
+                "opphørsdato": null,
+                "forsikringskategori": null
+            }
             """.trimIndent()
         }
     }
@@ -328,26 +340,26 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
 
         testForsikringsvurderingOgForventResultat(
             """
-                {
-                    "@behov": [ "Forsikringsvurdering" ],
-                    "fødselsnummer": "01020312345",
-                    "yrkesaktivitetstype": "SELVSTENDIG",
-                    "Forsikringsvurdering" : {
-                        "spesielleYrkesgrupper": [],
-                        "skjæringstidspunkt": "2026-01-01"
-                    }
+            {
+                "@behov": [ "Forsikringsvurdering" ],
+                "fødselsnummer": "01020312345",
+                "yrkesaktivitetstype": "SELVSTENDIG",
+                "Forsikringsvurdering" : {
+                    "spesielleYrkesgrupper": [],
+                    "skjæringstidspunkt": "2026-01-01"
                 }
-            """.trimIndent()
+            }
+            """.trimIndent(),
         ) { forsikringsvurderingId: String ->
             // language=json
             """
-                {
-                    "forsikringsvurderingId": "$forsikringsvurderingId",
-                    "harForsikring": false,
-                    "dekning": null,
-                    "opphørsdato": null,
-                    "forsikringskategori": null
-                }
+            {
+                "forsikringsvurderingId": "$forsikringsvurderingId",
+                "harForsikring": false,
+                "dekning": null,
+                "opphørsdato": null,
+                "forsikringskategori": null
+            }
             """.trimIndent()
         }
     }
@@ -359,26 +371,26 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
 
         testForsikringsvurderingOgForventResultat(
             """
-                {
-                    "@behov": [ "Forsikringsvurdering" ],
-                    "fødselsnummer": "01020312345",
-                    "yrkesaktivitetstype": "SELVSTENDIG",
-                    "Forsikringsvurdering" : {
-                        "spesielleYrkesgrupper": [],
-                        "skjæringstidspunkt": "2026-01-01"
-                    }
+            {
+                "@behov": [ "Forsikringsvurdering" ],
+                "fødselsnummer": "01020312345",
+                "yrkesaktivitetstype": "SELVSTENDIG",
+                "Forsikringsvurdering" : {
+                    "spesielleYrkesgrupper": [],
+                    "skjæringstidspunkt": "2026-01-01"
                 }
-            """.trimIndent()
+            }
+            """.trimIndent(),
         ) { forsikringsvurderingId: String ->
             // language=json
             """
-                {
-                    "forsikringsvurderingId": "$forsikringsvurderingId",
-                    "harForsikring": true,
-                    "dekning": { "grad": 100, "iVentetid": true },
-                    "opphørsdato": null,
-                    "forsikringskategori": "NAVKJØPT"
-                }
+            {
+                "forsikringsvurderingId": "$forsikringsvurderingId",
+                "harForsikring": true,
+                "dekning": { "grad": 100, "iVentetid": true },
+                "opphørsdato": null,
+                "forsikringskategori": "NAVKJØPT"
+            }
             """.trimIndent()
         }
     }
@@ -388,31 +400,31 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
         insertBetaltVedfrivt(
             IF01_AGNR_FNR = 3020112345L,
             IF10_TYPE = '2',
-            IF10_FORSTOM = 20251231
+            IF10_FORSTOM = 20251231,
         )
 
         testForsikringsvurderingOgForventResultat(
             """
-                {
-                    "@behov": [ "Forsikringsvurdering" ],
-                    "fødselsnummer": "01020312345",
-                    "yrkesaktivitetstype": "SELVSTENDIG",
-                    "Forsikringsvurdering" : {
-                        "spesielleYrkesgrupper": [],
-                        "skjæringstidspunkt": "2026-01-01"
-                    }
+            {
+                "@behov": [ "Forsikringsvurdering" ],
+                "fødselsnummer": "01020312345",
+                "yrkesaktivitetstype": "SELVSTENDIG",
+                "Forsikringsvurdering" : {
+                    "spesielleYrkesgrupper": [],
+                    "skjæringstidspunkt": "2026-01-01"
                 }
-            """.trimIndent()
+            }
+            """.trimIndent(),
         ) { forsikringsvurderingId: String ->
             // language=json
             """
-                {
-                    "forsikringsvurderingId": "$forsikringsvurderingId",
-                    "harForsikring": false,
-                    "dekning": null,
-                    "opphørsdato": null,
-                    "forsikringskategori": null
-                }
+            {
+                "forsikringsvurderingId": "$forsikringsvurderingId",
+                "harForsikring": false,
+                "dekning": null,
+                "opphørsdato": null,
+                "forsikringskategori": null
+            }
             """.trimIndent()
         }
     }
@@ -422,31 +434,31 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
         insertBetaltVedfrivt(
             IF01_AGNR_FNR = 3020112345L,
             IF10_TYPE = '2',
-            IF10_FORSTOM = 20260101
+            IF10_FORSTOM = 20260101,
         )
 
         testForsikringsvurderingOgForventResultat(
             """
-                {
-                    "@behov": [ "Forsikringsvurdering" ],
-                    "fødselsnummer": "01020312345",
-                    "yrkesaktivitetstype": "SELVSTENDIG",
-                    "Forsikringsvurdering" : {
-                        "spesielleYrkesgrupper": [],
-                        "skjæringstidspunkt": "2026-01-01"
-                    }
+            {
+                "@behov": [ "Forsikringsvurdering" ],
+                "fødselsnummer": "01020312345",
+                "yrkesaktivitetstype": "SELVSTENDIG",
+                "Forsikringsvurdering" : {
+                    "spesielleYrkesgrupper": [],
+                    "skjæringstidspunkt": "2026-01-01"
                 }
-            """.trimIndent()
+            }
+            """.trimIndent(),
         ) { forsikringsvurderingId: String ->
             // language=json
             """
-                {
-                    "forsikringsvurderingId": "$forsikringsvurderingId",
-                    "harForsikring": true,
-                    "dekning": { "grad": 100, "iVentetid": false },
-                    "opphørsdato": "2026-01-01",
-                    "forsikringskategori": "NAVKJØPT"
-                }
+            {
+                "forsikringsvurderingId": "$forsikringsvurderingId",
+                "harForsikring": true,
+                "dekning": { "grad": 100, "iVentetid": false },
+                "opphørsdato": "2026-01-01",
+                "forsikringskategori": "NAVKJØPT"
+            }
             """.trimIndent()
         }
     }
@@ -456,31 +468,31 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
         insertBetaltVedfrivt(
             IF01_AGNR_FNR = 3020112345L,
             IF10_TYPE = '2',
-            IF10_FORSTOM = 20260102
+            IF10_FORSTOM = 20260102,
         )
 
         testForsikringsvurderingOgForventResultat(
             """
-                {
-                    "@behov": [ "Forsikringsvurdering" ],
-                    "fødselsnummer": "01020312345",
-                    "yrkesaktivitetstype": "SELVSTENDIG",
-                    "Forsikringsvurdering" : {
-                        "spesielleYrkesgrupper": [],
-                        "skjæringstidspunkt": "2026-01-01"
-                    }
+            {
+                "@behov": [ "Forsikringsvurdering" ],
+                "fødselsnummer": "01020312345",
+                "yrkesaktivitetstype": "SELVSTENDIG",
+                "Forsikringsvurdering" : {
+                    "spesielleYrkesgrupper": [],
+                    "skjæringstidspunkt": "2026-01-01"
                 }
-            """.trimIndent()
+            }
+            """.trimIndent(),
         ) { forsikringsvurderingId: String ->
             // language=json
             """
-                {
-                    "forsikringsvurderingId": "$forsikringsvurderingId",
-                    "harForsikring": true,
-                    "dekning": { "grad": 100, "iVentetid": false },
-                    "opphørsdato": "2026-01-02",
-                    "forsikringskategori": "NAVKJØPT"
-                }
+            {
+                "forsikringsvurderingId": "$forsikringsvurderingId",
+                "harForsikring": true,
+                "dekning": { "grad": 100, "iVentetid": false },
+                "opphørsdato": "2026-01-02",
+                "forsikringskategori": "NAVKJØPT"
+            }
             """.trimIndent()
         }
     }
@@ -490,31 +502,31 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
         insertBetaltVedfrivt(
             IF01_AGNR_FNR = 3020112345L,
             IF10_TYPE = '2',
-            IF10_FORSTOM = 0
+            IF10_FORSTOM = 0,
         )
 
         testForsikringsvurderingOgForventResultat(
             """
-                {
-                    "@behov": [ "Forsikringsvurdering" ],
-                    "fødselsnummer": "01020312345",
-                    "yrkesaktivitetstype": "SELVSTENDIG",
-                    "Forsikringsvurdering" : {
-                        "spesielleYrkesgrupper": [],
-                        "skjæringstidspunkt": "2026-01-01"
-                    }
+            {
+                "@behov": [ "Forsikringsvurdering" ],
+                "fødselsnummer": "01020312345",
+                "yrkesaktivitetstype": "SELVSTENDIG",
+                "Forsikringsvurdering" : {
+                    "spesielleYrkesgrupper": [],
+                    "skjæringstidspunkt": "2026-01-01"
                 }
-            """.trimIndent()
+            }
+            """.trimIndent(),
         ) { forsikringsvurderingId: String ->
             // language=json
             """
-                {
-                    "forsikringsvurderingId": "$forsikringsvurderingId",
-                    "harForsikring": true,
-                    "dekning": { "grad": 100, "iVentetid": false },
-                    "opphørsdato": null,
-                    "forsikringskategori": "NAVKJØPT"
-                }
+            {
+                "forsikringsvurderingId": "$forsikringsvurderingId",
+                "harForsikring": true,
+                "dekning": { "grad": 100, "iVentetid": false },
+                "opphørsdato": null,
+                "forsikringskategori": "NAVKJØPT"
+            }
             """.trimIndent()
         }
     }
@@ -524,31 +536,31 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
         insertBetaltVedfrivt(
             IF01_AGNR_FNR = 3020112345L,
             IF10_TYPE = '2',
-            IF10_VIRKDATO = 20260102
+            IF10_VIRKDATO = 20260102,
         )
 
         testForsikringsvurderingOgForventResultat(
             """
-                {
-                    "@behov": [ "Forsikringsvurdering" ],
-                    "fødselsnummer": "01020312345",
-                    "yrkesaktivitetstype": "SELVSTENDIG",
-                    "Forsikringsvurdering" : {
-                        "spesielleYrkesgrupper": [],
-                        "skjæringstidspunkt": "2026-01-01"
-                    }
+            {
+                "@behov": [ "Forsikringsvurdering" ],
+                "fødselsnummer": "01020312345",
+                "yrkesaktivitetstype": "SELVSTENDIG",
+                "Forsikringsvurdering" : {
+                    "spesielleYrkesgrupper": [],
+                    "skjæringstidspunkt": "2026-01-01"
                 }
-            """.trimIndent()
+            }
+            """.trimIndent(),
         ) { forsikringsvurderingId: String ->
             // language=json
             """
-                {
-                    "forsikringsvurderingId": "$forsikringsvurderingId",
-                    "harForsikring": false,
-                    "dekning": null,
-                    "opphørsdato": null,
-                    "forsikringskategori": null
-                }
+            {
+                "forsikringsvurderingId": "$forsikringsvurderingId",
+                "harForsikring": false,
+                "dekning": null,
+                "opphørsdato": null,
+                "forsikringskategori": null
+            }
             """.trimIndent()
         }
     }
@@ -558,31 +570,31 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
         insertBetaltVedfrivt(
             IF01_AGNR_FNR = 3020112345L,
             IF10_TYPE = '2',
-            IF10_VIRKDATO = 20260101
+            IF10_VIRKDATO = 20260101,
         )
 
         testForsikringsvurderingOgForventResultat(
             """
-                {
-                    "@behov": [ "Forsikringsvurdering" ],
-                    "fødselsnummer": "01020312345",
-                    "yrkesaktivitetstype": "SELVSTENDIG",
-                    "Forsikringsvurdering" : {
-                        "spesielleYrkesgrupper": [],
-                        "skjæringstidspunkt": "2026-01-01"
-                    }
+            {
+                "@behov": [ "Forsikringsvurdering" ],
+                "fødselsnummer": "01020312345",
+                "yrkesaktivitetstype": "SELVSTENDIG",
+                "Forsikringsvurdering" : {
+                    "spesielleYrkesgrupper": [],
+                    "skjæringstidspunkt": "2026-01-01"
                 }
-            """.trimIndent()
+            }
+            """.trimIndent(),
         ) { forsikringsvurderingId: String ->
             // language=json
             """
-                {
-                    "forsikringsvurderingId": "$forsikringsvurderingId",
-                    "harForsikring": true,
-                    "dekning": { "grad": 100, "iVentetid": false },
-                    "opphørsdato": null,
-                    "forsikringskategori": "NAVKJØPT"
-                }
+            {
+                "forsikringsvurderingId": "$forsikringsvurderingId",
+                "harForsikring": true,
+                "dekning": { "grad": 100, "iVentetid": false },
+                "opphørsdato": null,
+                "forsikringskategori": "NAVKJØPT"
+            }
             """.trimIndent()
         }
     }
@@ -592,31 +604,31 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
         insertBetaltVedfrivt(
             IF01_AGNR_FNR = 3020112345L,
             IF10_TYPE = '2',
-            IF10_VIRKDATO = 20251231
+            IF10_VIRKDATO = 20251231,
         )
 
         testForsikringsvurderingOgForventResultat(
             """
-                {
-                    "@behov": [ "Forsikringsvurdering" ],
-                    "fødselsnummer": "01020312345",
-                    "yrkesaktivitetstype": "SELVSTENDIG",
-                    "Forsikringsvurdering" : {
-                        "spesielleYrkesgrupper": [],
-                        "skjæringstidspunkt": "2026-01-01"
-                    }
+            {
+                "@behov": [ "Forsikringsvurdering" ],
+                "fødselsnummer": "01020312345",
+                "yrkesaktivitetstype": "SELVSTENDIG",
+                "Forsikringsvurdering" : {
+                    "spesielleYrkesgrupper": [],
+                    "skjæringstidspunkt": "2026-01-01"
                 }
-            """.trimIndent()
+            }
+            """.trimIndent(),
         ) { forsikringsvurderingId: String ->
             // language=json
             """
-                {
-                    "forsikringsvurderingId": "$forsikringsvurderingId",
-                    "harForsikring": true,
-                    "dekning": { "grad": 100, "iVentetid": false },
-                    "opphørsdato": null,
-                    "forsikringskategori": "NAVKJØPT"
-                }
+            {
+                "forsikringsvurderingId": "$forsikringsvurderingId",
+                "harForsikring": true,
+                "dekning": { "grad": 100, "iVentetid": false },
+                "opphørsdato": null,
+                "forsikringskategori": "NAVKJØPT"
+            }
             """.trimIndent()
         }
     }
@@ -627,26 +639,26 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
 
         testForsikringsvurderingOgForventResultat(
             """
-                {
-                    "@behov": [ "Forsikringsvurdering" ],
-                    "fødselsnummer": "01020312345",
-                    "yrkesaktivitetstype": "SELVSTENDIG",
-                    "Forsikringsvurdering" : {
-                        "spesielleYrkesgrupper": [],
-                        "skjæringstidspunkt": "2026-01-01"
-                    }
+            {
+                "@behov": [ "Forsikringsvurdering" ],
+                "fødselsnummer": "01020312345",
+                "yrkesaktivitetstype": "SELVSTENDIG",
+                "Forsikringsvurdering" : {
+                    "spesielleYrkesgrupper": [],
+                    "skjæringstidspunkt": "2026-01-01"
                 }
-            """.trimIndent()
+            }
+            """.trimIndent(),
         ) { forsikringsvurderingId: String ->
             // language=json
             """
-                {
-                    "forsikringsvurderingId": "$forsikringsvurderingId",
-                    "harForsikring": false,
-                    "dekning": null,
-                    "opphørsdato": null,
-                    "forsikringskategori": null
-                }
+            {
+                "forsikringsvurderingId": "$forsikringsvurderingId",
+                "harForsikring": false,
+                "dekning": null,
+                "opphørsdato": null,
+                "forsikringskategori": null
+            }
             """.trimIndent()
         }
     }
@@ -658,26 +670,26 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
 
         testForsikringsvurderingOgForventResultat(
             """
-                {
-                    "@behov": [ "Forsikringsvurdering" ],
-                    "fødselsnummer": "01020312345",
-                    "yrkesaktivitetstype": "SELVSTENDIG",
-                    "Forsikringsvurdering" : {
-                        "spesielleYrkesgrupper": [],
-                        "skjæringstidspunkt": "2026-01-01"
-                    }
+            {
+                "@behov": [ "Forsikringsvurdering" ],
+                "fødselsnummer": "01020312345",
+                "yrkesaktivitetstype": "SELVSTENDIG",
+                "Forsikringsvurdering" : {
+                    "spesielleYrkesgrupper": [],
+                    "skjæringstidspunkt": "2026-01-01"
                 }
-            """.trimIndent()
+            }
+            """.trimIndent(),
         ) { forsikringsvurderingId: String ->
             // language=json
             """
-                {
-                    "forsikringsvurderingId": "$forsikringsvurderingId",
-                    "harForsikring": false,
-                    "dekning": null,
-                    "opphørsdato": null,
-                    "forsikringskategori": null
-                }
+            {
+                "forsikringsvurderingId": "$forsikringsvurderingId",
+                "harForsikring": false,
+                "dekning": null,
+                "opphørsdato": null,
+                "forsikringskategori": null
+            }
             """.trimIndent()
         }
     }
@@ -689,26 +701,26 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
 
         testForsikringsvurderingOgForventResultat(
             """
-                {
-                    "@behov": [ "Forsikringsvurdering" ],
-                    "fødselsnummer": "01020312345",
-                    "yrkesaktivitetstype": "SELVSTENDIG",
-                    "Forsikringsvurdering" : {
-                        "spesielleYrkesgrupper": [],
-                        "skjæringstidspunkt": "2026-01-01"
-                    }
+            {
+                "@behov": [ "Forsikringsvurdering" ],
+                "fødselsnummer": "01020312345",
+                "yrkesaktivitetstype": "SELVSTENDIG",
+                "Forsikringsvurdering" : {
+                    "spesielleYrkesgrupper": [],
+                    "skjæringstidspunkt": "2026-01-01"
                 }
-            """.trimIndent()
+            }
+            """.trimIndent(),
         ) { forsikringsvurderingId: String ->
             // language=json
             """
-                {
-                    "forsikringsvurderingId": "$forsikringsvurderingId",
-                    "harForsikring": false,
-                    "dekning": null,
-                    "opphørsdato": null,
-                    "forsikringskategori": null
-                }
+            {
+                "forsikringsvurderingId": "$forsikringsvurderingId",
+                "harForsikring": false,
+                "dekning": null,
+                "opphørsdato": null,
+                "forsikringskategori": null
+            }
             """.trimIndent()
         }
     }
@@ -719,31 +731,31 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
             IF01_AGNR_FNR = 3020112345L,
             IF10_TYPE = '2',
             IF10_FORSFOM = 20251201,
-            IF10_VIRKDATO = 20260201
+            IF10_VIRKDATO = 20260201,
         )
 
         testForsikringsvurderingOgForventResultat(
             """
-                {
-                    "@behov": [ "Forsikringsvurdering" ],
-                    "fødselsnummer": "01020312345",
-                    "yrkesaktivitetstype": "SELVSTENDIG",
-                    "Forsikringsvurdering" : {
-                        "spesielleYrkesgrupper": [],
-                        "skjæringstidspunkt": "2026-01-01"
-                    }
+            {
+                "@behov": [ "Forsikringsvurdering" ],
+                "fødselsnummer": "01020312345",
+                "yrkesaktivitetstype": "SELVSTENDIG",
+                "Forsikringsvurdering" : {
+                    "spesielleYrkesgrupper": [],
+                    "skjæringstidspunkt": "2026-01-01"
                 }
-            """.trimIndent()
+            }
+            """.trimIndent(),
         ) { forsikringsvurderingId: String ->
             // language=json
             """
-                {
-                    "forsikringsvurderingId": "$forsikringsvurderingId",
-                    "harForsikring": false,
-                    "dekning": null,
-                    "opphørsdato": null,
-                    "forsikringskategori": null
-                }
+            {
+                "forsikringsvurderingId": "$forsikringsvurderingId",
+                "harForsikring": false,
+                "dekning": null,
+                "opphørsdato": null,
+                "forsikringskategori": null
+            }
             """.trimIndent()
         }
     }
@@ -754,31 +766,31 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
             IF01_AGNR_FNR = 3020112345L,
             IF10_TYPE = '2',
             IF10_FORSFOM = 20260101,
-            IF10_VIRKDATO = 20260201
+            IF10_VIRKDATO = 20260201,
         )
 
         testForsikringsvurderingOgForventResultat(
             """
-                {
-                    "@behov": [ "Forsikringsvurdering" ],
-                    "fødselsnummer": "01020312345",
-                    "yrkesaktivitetstype": "SELVSTENDIG",
-                    "Forsikringsvurdering" : {
-                        "spesielleYrkesgrupper": [],
-                        "skjæringstidspunkt": "2026-01-01"
-                    }
+            {
+                "@behov": [ "Forsikringsvurdering" ],
+                "fødselsnummer": "01020312345",
+                "yrkesaktivitetstype": "SELVSTENDIG",
+                "Forsikringsvurdering" : {
+                    "spesielleYrkesgrupper": [],
+                    "skjæringstidspunkt": "2026-01-01"
                 }
-            """.trimIndent()
+            }
+            """.trimIndent(),
         ) { forsikringsvurderingId: String ->
             // language=json
             """
-                {
-                    "forsikringsvurderingId": "$forsikringsvurderingId",
-                    "harForsikring": false,
-                    "dekning": null,
-                    "opphørsdato": null,
-                    "forsikringskategori": null
-                }
+            {
+                "forsikringsvurderingId": "$forsikringsvurderingId",
+                "harForsikring": false,
+                "dekning": null,
+                "opphørsdato": null,
+                "forsikringskategori": null
+            }
             """.trimIndent()
         }
     }
@@ -789,31 +801,31 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
             IF01_AGNR_FNR = 3020112345L,
             IF10_TYPE = '2',
             IF10_FORSFOM = 20251201,
-            IF10_VIRKDATO = 20260101
+            IF10_VIRKDATO = 20260101,
         )
 
         testForsikringsvurderingOgForventResultat(
             """
-                {
-                    "@behov": [ "Forsikringsvurdering" ],
-                    "fødselsnummer": "01020312345",
-                    "yrkesaktivitetstype": "SELVSTENDIG",
-                    "Forsikringsvurdering" : {
-                        "spesielleYrkesgrupper": [],
-                        "skjæringstidspunkt": "2026-01-01"
-                    }
+            {
+                "@behov": [ "Forsikringsvurdering" ],
+                "fødselsnummer": "01020312345",
+                "yrkesaktivitetstype": "SELVSTENDIG",
+                "Forsikringsvurdering" : {
+                    "spesielleYrkesgrupper": [],
+                    "skjæringstidspunkt": "2026-01-01"
                 }
-            """.trimIndent()
+            }
+            """.trimIndent(),
         ) { forsikringsvurderingId: String ->
             // language=json
             """
-                {
-                    "forsikringsvurderingId": "$forsikringsvurderingId",
-                    "harForsikring": true,
-                    "dekning": { "grad": 100, "iVentetid": false },
-                    "opphørsdato": null,
-                    "forsikringskategori": "NAVKJØPT"
-                }
+            {
+                "forsikringsvurderingId": "$forsikringsvurderingId",
+                "harForsikring": true,
+                "dekning": { "grad": 100, "iVentetid": false },
+                "opphørsdato": null,
+                "forsikringskategori": "NAVKJØPT"
+            }
             """.trimIndent()
         }
     }
@@ -824,36 +836,39 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
             IF01_AGNR_FNR = 3020112345L,
             IF10_TYPE = '2',
             IF10_FORSFOM = 0,
-            IF10_VIRKDATO = 20260101
+            IF10_VIRKDATO = 20260101,
         )
 
         testForsikringsvurderingOgForventResultat(
             """
-                {
-                    "@behov": [ "Forsikringsvurdering" ],
-                    "fødselsnummer": "01020312345",
-                    "yrkesaktivitetstype": "SELVSTENDIG",
-                    "Forsikringsvurdering" : {
-                        "spesielleYrkesgrupper": [],
-                        "skjæringstidspunkt": "2026-01-01"
-                    }
+            {
+                "@behov": [ "Forsikringsvurdering" ],
+                "fødselsnummer": "01020312345",
+                "yrkesaktivitetstype": "SELVSTENDIG",
+                "Forsikringsvurdering" : {
+                    "spesielleYrkesgrupper": [],
+                    "skjæringstidspunkt": "2026-01-01"
                 }
-            """.trimIndent()
+            }
+            """.trimIndent(),
         ) { forsikringsvurderingId: String ->
             // language=json
             """
-                {
-                    "forsikringsvurderingId": "$forsikringsvurderingId",
-                    "harForsikring": true,
-                    "dekning": { "grad": 100, "iVentetid": false },
-                    "opphørsdato": null,
-                    "forsikringskategori": "NAVKJØPT"
-                }
+            {
+                "forsikringsvurderingId": "$forsikringsvurderingId",
+                "harForsikring": true,
+                "dekning": { "grad": 100, "iVentetid": false },
+                "opphørsdato": null,
+                "forsikringskategori": "NAVKJØPT"
+            }
             """.trimIndent()
         }
     }
 
-    private fun opprettVurdering(yrkesaktivitetstype: String, spesielleYrkesgrupper: List<String> = emptyList()): String {
+    private fun opprettVurdering(
+        yrkesaktivitetstype: String,
+        spesielleYrkesgrupper: List<String> = emptyList(),
+    ): String {
         rapid.sendTestMessage(
             """
             {
@@ -865,7 +880,7 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
                     "skjæringstidspunkt": "2026-01-01"
                 }
             }
-            """.trimIndent()
+            """.trimIndent(),
         )
 
         return popForsikringsvurderingIdFraLøsning()
@@ -873,7 +888,7 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
 
     private fun testForsikringsvurderingOgForventResultat(
         @Language("JSON") forsikringsvurderingBehovJson: String,
-        forventetForsikringsvurderingResultatLøsning: (String) -> String
+        forventetForsikringsvurderingResultatLøsning: (String) -> String,
     ) {
         rapid.sendTestMessage(forsikringsvurderingBehovJson)
         val forsikringsvurderingId = popForsikringsvurderingIdFraLøsning()
@@ -908,22 +923,27 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
         val løsningMelding = rapid.inspektør.message(0)
         assertJsonEquals(
             expectedJson = forventetLøsning,
-            actualJsonNode = løsningMelding["@løsning"]["ForsikringsvurderingResultat"]
+            actualJsonNode = løsningMelding["@løsning"]["ForsikringsvurderingResultat"],
         )
     }
 
     private fun assertJsonEquals(
         expectedJson: String,
         actualJsonNode: JsonNode,
-        bortsettFraProperties: Set<String> = emptySet()
+        bortsettFraProperties: Set<String> = emptySet(),
     ) {
-        val expected = objectMapper.readTree(expectedJson).deepSortedObjectNodeCopy()
-            .apply { bortsettFraProperties.forEach { remove(it) } }
-        val actual = actualJsonNode.deepSortedObjectNodeCopy()
-            .apply { bortsettFraProperties.forEach { remove(it) } }
+        val expected =
+            objectMapper
+                .readTree(expectedJson)
+                .deepSortedObjectNodeCopy()
+                .apply { bortsettFraProperties.forEach { remove(it) } }
+        val actual =
+            actualJsonNode
+                .deepSortedObjectNodeCopy()
+                .apply { bortsettFraProperties.forEach { remove(it) } }
         assertEquals(
             objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(expected),
-            objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(actual)
+            objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(actual),
         )
     }
 
@@ -931,7 +951,8 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
         when (this) {
             is ObjectNode ->
                 objectMapper.createObjectNode().also { sorted ->
-                    properties().asSequence()
+                    properties()
+                        .asSequence()
                         .sortedBy { (name, _) -> name }
                         .forEach { (name, value) -> sorted.set<JsonNode>(name, value.sortedDeep()) }
                 }
@@ -953,7 +974,7 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
         IF10_FORSFOM: Int = 0,
         IF10_VIRKDATO: Int = 20260101,
         IF10_FORSTOM: Int = 0,
-        IF10_GODKJ: Char = 'J'
+        IF10_GODKJ: Char = 'J',
     ) {
         TestcontainersReplikadatabase.insertVedfrivt(
             IF01_AGNR_FNR = IF01_AGNR_FNR,

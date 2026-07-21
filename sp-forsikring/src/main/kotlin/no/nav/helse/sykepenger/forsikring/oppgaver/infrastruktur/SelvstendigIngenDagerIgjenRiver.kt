@@ -7,7 +7,6 @@ import com.github.navikt.tbd_libs.rapids_and_rivers_api.MessageContext
 import com.github.navikt.tbd_libs.rapids_and_rivers_api.MessageMetadata
 import com.github.navikt.tbd_libs.rapids_and_rivers_api.RapidsConnection
 import io.micrometer.core.instrument.MeterRegistry
-import java.util.*
 import kotlinx.coroutines.runBlocking
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.ForsikringsvurderingRepository
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.domain.ForsikringsvurderingId
@@ -16,6 +15,7 @@ import no.nav.helse.sykepenger.forsikring.oppgaver.domain.Årsak
 import no.nav.helse.sykepenger.forsikring.shared.logging.MdcKey
 import no.nav.helse.sykepenger.forsikring.shared.logging.loggInfo
 import no.nav.helse.sykepenger.forsikring.shared.logging.medMdc
+import java.util.*
 
 private const val EVENT_NAME = "selvstendig_ingen_dager_igjen"
 
@@ -45,7 +45,7 @@ class SelvstendigIngenDagerIgjenRiver(
         packet: JsonMessage,
         context: MessageContext,
         metadata: MessageMetadata,
-        meterRegistry: MeterRegistry
+        meterRegistry: MeterRegistry,
     ) {
         val fødselsnummer = packet["fødselsnummer"].asString()
         val skjæringstidspunkt = packet["skjæringstidspunkt"].asLocalDate()
@@ -55,8 +55,9 @@ class SelvstendigIngenDagerIgjenRiver(
         medMdc(MdcKey.MELDING_ID to meldingId.toString(), MdcKey.FORSIKRINGSVURDERING_ID to forsikringsvurderingId.toString()) {
             loggInfo("Mottok SelvstendigIngenDagerIgjen-melding", "behov" to packet.toJson())
 
-            val forsikringsvurdering = forsikringsvurderingRepository.hent(forsikringsvurderingId)
-                ?: error("Fant ikke vurdering for forsikringsvurderingId=$forsikringsvurderingId")
+            val forsikringsvurdering =
+                forsikringsvurderingRepository.hent(forsikringsvurderingId)
+                    ?: error("Fant ikke vurdering for forsikringsvurderingId=$forsikringsvurderingId")
             if (!forsikringsvurdering.harForsikring) return@medMdc
 
             runBlocking {
@@ -64,7 +65,7 @@ class SelvstendigIngenDagerIgjenRiver(
                     meldingId,
                     fødselsnummer,
                     Årsak.SykepengerettOpphørtPåGrunnAvMaksdatoAlderEllerDød,
-                    skjæringstidspunkt
+                    skjæringstidspunkt,
                 )
             }
         }

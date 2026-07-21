@@ -1,11 +1,11 @@
 package no.nav.helse.sykepenger.forsikring.oppslag.infrastruktur
 
-import java.math.BigDecimal
-import java.time.Instant
-import java.time.LocalDate
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.domain.AbstractNavKjøptForsikring
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.domain.RåNavKjøptForsikring
 import no.nav.helse.sykepenger.forsikring.shared.util.toLocalDate
+import java.math.BigDecimal
+import java.time.Instant
+import java.time.LocalDate
 
 data class IF_VEDFRIVT_10_Rad(
     val IF01_KODE: Char,
@@ -42,21 +42,24 @@ data class IF_VEDFRIVT_10_Rad(
     val IF_FKONTO_12_rader: List<IF_FKONTO_12_Rad>,
 )
 
-fun IF_VEDFRIVT_10_Rad.mapTilRåNavKjøptForsikring(skjæringstidspunkt: LocalDate) = RåNavKjøptForsikring(
-    type = when (val type = this.IF10_TYPE) {
-        '1' -> AbstractNavKjøptForsikring.Type.SELVSTENDIG_80_PROSENT_FRA_DAG_1
-        '2' -> AbstractNavKjøptForsikring.Type.SELVSTENDIG_100_PROSENT_FRA_DAG_17
-        '3' -> AbstractNavKjøptForsikring.Type.SELVSTENDIG_100_PROSENT_FRA_DAG_1
-        '4' -> AbstractNavKjøptForsikring.Type.SELVSTENDIG_JORDBRUKER_100_PROSENT_FRA_DAG_1
-        '5' -> AbstractNavKjøptForsikring.Type.FRILANSER_100_PROSENT_FRA_DAG_1
-        else -> error("Ukjent forsikringstype: $type")
-    },
-    virkningsdato = IF10_VIRKDATO.toLocalDate()!!,
-    opphørsdato = IF10_FORSTOM.toLocalDate(),
-    opphørsgrunn = IF10_OPPHGR.takeIf { it.isNotBlank() },
-    erBetalt = this.IF_FKONTO_12_rader.any { konto ->
-        konto.IF12_FOM?.toLocalDate()?.isBefore(skjæringstidspunkt) ?: false
-            && konto.IF12_TOM?.toLocalDate()?.isAfter(skjæringstidspunkt) ?: false
-            && (konto.IF12_BETDATO ?: 0) > 0
-    }
-)
+fun IF_VEDFRIVT_10_Rad.mapTilRåNavKjøptForsikring(skjæringstidspunkt: LocalDate) =
+    RåNavKjøptForsikring(
+        type =
+            when (val type = this.IF10_TYPE) {
+                '1' -> AbstractNavKjøptForsikring.Type.SELVSTENDIG_80_PROSENT_FRA_DAG_1
+                '2' -> AbstractNavKjøptForsikring.Type.SELVSTENDIG_100_PROSENT_FRA_DAG_17
+                '3' -> AbstractNavKjøptForsikring.Type.SELVSTENDIG_100_PROSENT_FRA_DAG_1
+                '4' -> AbstractNavKjøptForsikring.Type.SELVSTENDIG_JORDBRUKER_100_PROSENT_FRA_DAG_1
+                '5' -> AbstractNavKjøptForsikring.Type.FRILANSER_100_PROSENT_FRA_DAG_1
+                else -> error("Ukjent forsikringstype: $type")
+            },
+        virkningsdato = IF10_VIRKDATO.toLocalDate()!!,
+        opphørsdato = IF10_FORSTOM.toLocalDate(),
+        opphørsgrunn = IF10_OPPHGR.takeIf { it.isNotBlank() },
+        erBetalt =
+            this.IF_FKONTO_12_rader.any { konto ->
+                konto.IF12_FOM?.toLocalDate()?.isBefore(skjæringstidspunkt) ?: false &&
+                    konto.IF12_TOM?.toLocalDate()?.isAfter(skjæringstidspunkt) ?: false &&
+                    (konto.IF12_BETDATO ?: 0) > 0
+            },
+    )

@@ -11,7 +11,9 @@ fun main() {
     val consumerProducerFactory = ConsumerProducerFactory(kafkaConfig)
     val dataSource = DataSourceBuilder(env).getDataSource()
 
-    RapidApplication.create(env, consumerProducerFactory = consumerProducerFactory).apply {
-        SlettPersonRiver(this, dataSource)
-    }.start()
+    RapidApplication
+        .create(env, consumerProducerFactory = consumerProducerFactory)
+        .apply {
+            SlettPersonRiver(this, dataSource)
+        }.start()
 }

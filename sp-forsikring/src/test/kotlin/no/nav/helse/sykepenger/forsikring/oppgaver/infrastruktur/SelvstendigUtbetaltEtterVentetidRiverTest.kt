@@ -1,13 +1,6 @@
 package no.nav.helse.sykepenger.forsikring.oppgaver.infrastruktur
 
 import com.github.navikt.tbd_libs.rapids_and_rivers.test_support.TestRapid
-import java.math.BigDecimal
-import java.time.LocalDate
-import java.util.*
-import kotlin.test.Test
-import kotlin.test.assertEquals
-import kotlin.test.assertNotNull
-import kotlin.test.assertNull
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.domain.AbstractNavKjøptForsikring
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.domain.Forsikringskategori
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.domain.Forsikringsvurdering
@@ -19,6 +12,13 @@ import no.nav.helse.sykepenger.forsikring.oppslag.domain.OppslagId
 import no.nav.helse.sykepenger.forsikring.oppslag.domain.OppslagIfVedrift10Id
 import org.intellij.lang.annotations.Language
 import org.junit.jupiter.api.assertThrows
+import java.math.BigDecimal
+import java.time.LocalDate
+import java.util.*
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
+import kotlin.test.assertNull
 
 class SelvstendigUtbetaltEtterVentetidRiverTest {
     private val testRapid = TestRapid()
@@ -39,34 +39,37 @@ class SelvstendigUtbetaltEtterVentetidRiverTest {
 
     @Test
     fun `oppretter gosysoppgave på 80 % fra dag 1`() {
-
         // given
         val forsikringsvurderingId = ForsikringsvurderingId.ny()
         val oppslagId = OppslagId.ny()
         val oppslagIfVedrift10Id = OppslagIfVedrift10Id.ny()
-        val navKjøptForsikring = NavKjøptForsikring(
-            id = oppslagIfVedrift10Id,
-            type = AbstractNavKjøptForsikring.Type.SELVSTENDIG_80_PROSENT_FRA_DAG_1,
-            virkningsdato = LocalDate.of(2024, 1, 1),
-            opphørsdato = null,
-            opphørsgrunn = null,
-            premiegrunnlag = BigDecimal("200000.0"),
-            erBetaltNoenGang = true
-        )
+        val navKjøptForsikring =
+            NavKjøptForsikring(
+                id = oppslagIfVedrift10Id,
+                type = AbstractNavKjøptForsikring.Type.SELVSTENDIG_80_PROSENT_FRA_DAG_1,
+                virkningsdato = LocalDate.of(2024, 1, 1),
+                opphørsdato = null,
+                opphørsgrunn = null,
+                premiegrunnlag = BigDecimal("200000.0"),
+                erBetaltNoenGang = true,
+            )
 
-        forsikringsvurderingRepository.seed(Forsikringsvurdering.fraLagring(
-            id = forsikringsvurderingId,
-            oppslagId = oppslagId,
-            behovJson = "{}",
-            ekskluderinger = emptyList(),
-            harForsikring = true,
-            dekning = Forsikringsvurdering.Dekning(
-                iVentetid = true,
-                grad = 80
+        forsikringsvurderingRepository.seed(
+            Forsikringsvurdering.fraLagring(
+                id = forsikringsvurderingId,
+                oppslagId = oppslagId,
+                behovJson = "{}",
+                ekskluderinger = emptyList(),
+                harForsikring = true,
+                dekning =
+                    Forsikringsvurdering.Dekning(
+                        iVentetid = true,
+                        grad = 80,
+                    ),
+                opphørsdato = null,
+                forsikringskategori = Forsikringskategori.NavKjøptForsikring(oppslagIfVedrift10Id),
             ),
-            opphørsdato = null,
-            forsikringskategori = Forsikringskategori.NavKjøptForsikring(oppslagIfVedrift10Id)
-        ))
+        )
 
         oppslagRepository.lagre(Oppslag(oppslagId, listOf(navKjøptForsikring)))
 
@@ -86,29 +89,33 @@ class SelvstendigUtbetaltEtterVentetidRiverTest {
         val forsikringsvurderingId = ForsikringsvurderingId.ny()
         val oppslagId = OppslagId.ny()
         val oppslagIfVedrift10Id = OppslagIfVedrift10Id.ny()
-        val navKjøptForsikring = NavKjøptForsikring(
-            id = oppslagIfVedrift10Id,
-            type = AbstractNavKjøptForsikring.Type.SELVSTENDIG_JORDBRUKER_100_PROSENT_FRA_DAG_1,
-            virkningsdato = LocalDate.of(2024, 1, 1),
-            opphørsdato = null,
-            opphørsgrunn = null,
-            premiegrunnlag = BigDecimal("200000.0"),
-            erBetaltNoenGang = true
-        )
+        val navKjøptForsikring =
+            NavKjøptForsikring(
+                id = oppslagIfVedrift10Id,
+                type = AbstractNavKjøptForsikring.Type.SELVSTENDIG_JORDBRUKER_100_PROSENT_FRA_DAG_1,
+                virkningsdato = LocalDate.of(2024, 1, 1),
+                opphørsdato = null,
+                opphørsgrunn = null,
+                premiegrunnlag = BigDecimal("200000.0"),
+                erBetaltNoenGang = true,
+            )
 
-        forsikringsvurderingRepository.seed(Forsikringsvurdering.fraLagring(
-            id = forsikringsvurderingId,
-            oppslagId = oppslagId,
-            behovJson = "{}",
-            ekskluderinger = emptyList(),
-            harForsikring = true,
-            dekning = Forsikringsvurdering.Dekning(
-                iVentetid = true,
-                grad = 100
+        forsikringsvurderingRepository.seed(
+            Forsikringsvurdering.fraLagring(
+                id = forsikringsvurderingId,
+                oppslagId = oppslagId,
+                behovJson = "{}",
+                ekskluderinger = emptyList(),
+                harForsikring = true,
+                dekning =
+                    Forsikringsvurdering.Dekning(
+                        iVentetid = true,
+                        grad = 100,
+                    ),
+                opphørsdato = null,
+                forsikringskategori = Forsikringskategori.NavKjøptForsikring(oppslagIfVedrift10Id),
             ),
-            opphørsdato = null,
-            forsikringskategori = Forsikringskategori.NavKjøptForsikring(oppslagIfVedrift10Id)
-        ))
+        )
 
         oppslagRepository.lagre(Oppslag(oppslagId, listOf(navKjøptForsikring)))
 
@@ -139,29 +146,33 @@ class SelvstendigUtbetaltEtterVentetidRiverTest {
         val forsikringsvurderingId = ForsikringsvurderingId.ny()
         val oppslagId = OppslagId.ny()
         val oppslagIfVedrift10Id = OppslagIfVedrift10Id.ny()
-        val navKjøptForsikring = NavKjøptForsikring(
-            id = oppslagIfVedrift10Id,
-            type = AbstractNavKjøptForsikring.Type.SELVSTENDIG_100_PROSENT_FRA_DAG_17,
-            virkningsdato = LocalDate.of(2024, 1, 1),
-            opphørsdato = null,
-            opphørsgrunn = null,
-            premiegrunnlag = BigDecimal("200000.0"),
-            erBetaltNoenGang = true
-        )
+        val navKjøptForsikring =
+            NavKjøptForsikring(
+                id = oppslagIfVedrift10Id,
+                type = AbstractNavKjøptForsikring.Type.SELVSTENDIG_100_PROSENT_FRA_DAG_17,
+                virkningsdato = LocalDate.of(2024, 1, 1),
+                opphørsdato = null,
+                opphørsgrunn = null,
+                premiegrunnlag = BigDecimal("200000.0"),
+                erBetaltNoenGang = true,
+            )
 
-        forsikringsvurderingRepository.seed(Forsikringsvurdering.fraLagring(
-            id = forsikringsvurderingId,
-            oppslagId = oppslagId,
-            behovJson = "{}",
-            ekskluderinger = emptyList(),
-            harForsikring = true,
-            dekning = Forsikringsvurdering.Dekning(
-                iVentetid = false,
-                grad = 100
+        forsikringsvurderingRepository.seed(
+            Forsikringsvurdering.fraLagring(
+                id = forsikringsvurderingId,
+                oppslagId = oppslagId,
+                behovJson = "{}",
+                ekskluderinger = emptyList(),
+                harForsikring = true,
+                dekning =
+                    Forsikringsvurdering.Dekning(
+                        iVentetid = false,
+                        grad = 100,
+                    ),
+                opphørsdato = null,
+                forsikringskategori = Forsikringskategori.NavKjøptForsikring(oppslagIfVedrift10Id),
             ),
-            opphørsdato = null,
-            forsikringskategori = Forsikringskategori.NavKjøptForsikring(oppslagIfVedrift10Id)
-        ))
+        )
         oppslagRepository.lagre(Oppslag(oppslagId, listOf(navKjøptForsikring)))
 
         // when
@@ -173,33 +184,37 @@ class SelvstendigUtbetaltEtterVentetidRiverTest {
 
     @Test
     fun `ikke forsikret med 80 prosent dekningsgrad`() {
-        /// given
+        // / given
         val forsikringsvurderingId = ForsikringsvurderingId.ny()
         val oppslagId = OppslagId.ny()
         val oppslagIfVedrift10Id = OppslagIfVedrift10Id.ny()
-        val navKjøptForsikring = NavKjøptForsikring(
-            id = oppslagIfVedrift10Id,
-            type = AbstractNavKjøptForsikring.Type.SELVSTENDIG_100_PROSENT_FRA_DAG_1,
-            virkningsdato = LocalDate.of(2024, 1, 1),
-            opphørsdato = null,
-            opphørsgrunn = null,
-            premiegrunnlag = BigDecimal("200000.0"),
-            erBetaltNoenGang = true
-        )
+        val navKjøptForsikring =
+            NavKjøptForsikring(
+                id = oppslagIfVedrift10Id,
+                type = AbstractNavKjøptForsikring.Type.SELVSTENDIG_100_PROSENT_FRA_DAG_1,
+                virkningsdato = LocalDate.of(2024, 1, 1),
+                opphørsdato = null,
+                opphørsgrunn = null,
+                premiegrunnlag = BigDecimal("200000.0"),
+                erBetaltNoenGang = true,
+            )
 
-        forsikringsvurderingRepository.seed(Forsikringsvurdering.fraLagring(
-            id = forsikringsvurderingId,
-            oppslagId = oppslagId,
-            behovJson = "{}",
-            ekskluderinger = emptyList(),
-            harForsikring = true,
-            dekning = Forsikringsvurdering.Dekning(
-                iVentetid = true,
-                grad = 100
+        forsikringsvurderingRepository.seed(
+            Forsikringsvurdering.fraLagring(
+                id = forsikringsvurderingId,
+                oppslagId = oppslagId,
+                behovJson = "{}",
+                ekskluderinger = emptyList(),
+                harForsikring = true,
+                dekning =
+                    Forsikringsvurdering.Dekning(
+                        iVentetid = true,
+                        grad = 100,
+                    ),
+                opphørsdato = null,
+                forsikringskategori = Forsikringskategori.NavKjøptForsikring(oppslagIfVedrift10Id),
             ),
-            opphørsdato = null,
-            forsikringskategori = Forsikringskategori.NavKjøptForsikring(oppslagIfVedrift10Id)
-        ))
+        )
         oppslagRepository.lagre(Oppslag(oppslagId, listOf(navKjøptForsikring)))
 
         // when
@@ -210,14 +225,15 @@ class SelvstendigUtbetaltEtterVentetidRiverTest {
     }
 
     @Language("JSON")
-    private fun event(forsikringsvurderingId: ForsikringsvurderingId) = """
-            {
-                "@event_name": "selvstendig_utbetalt_etter_ventetid",
-                "@id": "${UUID.randomUUID()}",
-                "fødselsnummer": "$fødselsnummer",
-                "skjæringstidspunkt": "2018-01-01",
-                "behandlingId": "${UUID.randomUUID()}",
-                "forsikringsvurderingId": "${forsikringsvurderingId.value}"
-            }
+    private fun event(forsikringsvurderingId: ForsikringsvurderingId) =
+        """
+        {
+            "@event_name": "selvstendig_utbetalt_etter_ventetid",
+            "@id": "${UUID.randomUUID()}",
+            "fødselsnummer": "$fødselsnummer",
+            "skjæringstidspunkt": "2018-01-01",
+            "behandlingId": "${UUID.randomUUID()}",
+            "forsikringsvurderingId": "${forsikringsvurderingId.value}"
+        }
         """.trimIndent()
 }

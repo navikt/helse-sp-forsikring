@@ -1,8 +1,8 @@
 package no.nav.helse.sykepenger.forsikring.forsikringsvurdering.domain
 
+import no.nav.helse.sykepenger.forsikring.oppslag.domain.OppslagIfVedrift10Id
 import java.math.BigDecimal
 import java.time.LocalDate
-import no.nav.helse.sykepenger.forsikring.oppslag.domain.OppslagIfVedrift10Id
 
 class RåNavKjøptForsikring(
     type: Type,
@@ -10,12 +10,12 @@ class RåNavKjøptForsikring(
     opphørsdato: LocalDate?,
     opphørsgrunn: String?,
     val erBetalt: Boolean,
-): AbstractNavKjøptForsikring (
-    type = type,
-    virkningsdato = virkningsdato,
-    opphørsdato = opphørsdato,
-    opphørsgrunn = opphørsgrunn,
-)
+) : AbstractNavKjøptForsikring(
+        type = type,
+        virkningsdato = virkningsdato,
+        opphørsdato = opphørsdato,
+        opphørsgrunn = opphørsgrunn,
+    )
 
 class NavKjøptForsikring(
     val id: OppslagIfVedrift10Id,
@@ -25,20 +25,23 @@ class NavKjøptForsikring(
     opphørsgrunn: String?,
     val premiegrunnlag: BigDecimal,
     val erBetaltNoenGang: Boolean,
-): AbstractNavKjøptForsikring (
-    type = type,
-    virkningsdato = virkningsdato,
-    opphørsdato = opphørsdato,
-    opphørsgrunn = opphørsgrunn,
-)
+) : AbstractNavKjøptForsikring(
+        type = type,
+        virkningsdato = virkningsdato,
+        opphørsdato = opphørsdato,
+        opphørsgrunn = opphørsgrunn,
+    )
 
 sealed class AbstractNavKjøptForsikring(
     val type: Type,
     val virkningsdato: LocalDate,
     val opphørsdato: LocalDate?,
     val opphørsgrunn: String?,
-): Forsikring {
-    enum class Type(val dekningGrad: Int, val dekningFraDag: Int) {
+) : Forsikring {
+    enum class Type(
+        val dekningGrad: Int,
+        val dekningFraDag: Int,
+    ) {
         SELVSTENDIG_80_PROSENT_FRA_DAG_1(80, 1),
         SELVSTENDIG_100_PROSENT_FRA_DAG_17(100, 17),
         SELVSTENDIG_100_PROSENT_FRA_DAG_1(100, 1),
@@ -46,14 +49,11 @@ sealed class AbstractNavKjøptForsikring(
         FRILANSER_100_PROSENT_FRA_DAG_1(100, 1),
     }
 
-    fun erInnen28DagerFørVirkningsdato(dato: LocalDate) =
-        dato in virkningsdato.minusDays(28)..<virkningsdato
+    fun erInnen28DagerFørVirkningsdato(dato: LocalDate) = dato in virkningsdato.minusDays(28)..<virkningsdato
 
-    fun harVirkningPå(dato: LocalDate) =
-        virkningsdato <= dato
+    fun harVirkningPå(dato: LocalDate) = virkningsdato <= dato
 
-    fun erOpphørtPå(dato: LocalDate) =
-        (opphørsdato != null && dato > opphørsdato) || (opphørsgrunn != null && opphørsdato == null)
+    fun erOpphørtPå(dato: LocalDate) = (opphørsdato != null && dato > opphørsdato) || (opphørsgrunn != null && opphørsdato == null)
 
     override fun dekningGrad(): Int = type.dekningGrad
 
@@ -61,7 +61,10 @@ sealed class AbstractNavKjøptForsikring(
 
     override fun opphørsdato(): LocalDate? = opphørsdato
 
-    fun validerType(yrkesaktivitetstype: Yrkesaktivitetstype, spesielleYrkesgrupper: Set<SpesiellYrkesgruppe>) {
+    fun validerType(
+        yrkesaktivitetstype: Yrkesaktivitetstype,
+        spesielleYrkesgrupper: Set<SpesiellYrkesgruppe>,
+    ) {
         when (type) {
             Type.SELVSTENDIG_80_PROSENT_FRA_DAG_1 ->
                 valider(Yrkesaktivitetstype.SELVSTENDIG, yrkesaktivitetstype, type)
@@ -89,7 +92,9 @@ sealed class AbstractNavKjøptForsikring(
         ALDRI_BETALT,
     }
 
-    class Valideringsfeil(message: String) : Exception(message)
+    class Valideringsfeil(
+        message: String,
+    ) : Exception(message)
 
     private fun valider(
         forventetYrkesaktivitetstype: Yrkesaktivitetstype,
@@ -100,7 +105,7 @@ sealed class AbstractNavKjøptForsikring(
             throw Valideringsfeil(
                 "Nav-kjøpt forsikring er av type $type, " +
                     "der forventet yrkesaktivitetstype er $forventetYrkesaktivitetstype, " +
-                    "men yrkesaktivitetstypen var $faktiskYrkesaktivitetstype"
+                    "men yrkesaktivitetstypen var $faktiskYrkesaktivitetstype",
             )
         }
     }
@@ -113,7 +118,7 @@ sealed class AbstractNavKjøptForsikring(
             throw Valideringsfeil(
                 "Nav-kjøpt forsikring er av type $type, " +
                     "der det var forventet at spesielle yrkesgrupper inneholdt en av ${forventetEnAvSpesielleYrkesgrupper.toSet()}, " +
-                    "men spesielle yrkesgrupper var $faktiskeSpesielleYrkesgrupper"
+                    "men spesielle yrkesgrupper var $faktiskeSpesielleYrkesgrupper",
             )
         }
     }

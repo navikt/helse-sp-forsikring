@@ -6,18 +6,18 @@ import io.mockk.confirmVerified
 import io.mockk.mockk
 import io.mockk.slot
 import io.mockk.verify
-import java.time.Instant
-import java.time.LocalDateTime
-import java.time.ZoneId
-import java.util.*
-import kotlin.test.Test
-import kotlin.test.assertEquals
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.domain.Forsikringskategori
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.domain.Forsikringsvurdering
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.domain.ForsikringsvurderingId
 import no.nav.helse.sykepenger.forsikring.oppgaver.infrastruktur.FakeForsikringsvurderingRepository
 import no.nav.helse.sykepenger.forsikring.oppslag.domain.OppslagId
 import org.junit.jupiter.api.assertThrows
+import java.time.Instant
+import java.time.LocalDateTime
+import java.time.ZoneId
+import java.util.*
+import kotlin.test.Test
+import kotlin.test.assertEquals
 
 class VedtakFattetTellerRiverTest {
     private val testRapid = TestRapid()
@@ -40,9 +40,11 @@ class VedtakFattetTellerRiverTest {
         val expectedMeldingId = UUID.randomUUID()
         val expectedVedtaksperiodeId = UUID.fromString("231585ae-93a9-46ea-8613-d5c73173d684")
         val expectedVedtakFattetTidspunktFraEvent = "2026-07-01T14:51:09.553706732"
-        val expectedVedtakFattetTidspunkt = LocalDateTime.parse(expectedVedtakFattetTidspunktFraEvent)
-            .atZone(ZoneId.of("Europe/Oslo"))
-            .toInstant()
+        val expectedVedtakFattetTidspunkt =
+            LocalDateTime
+                .parse(expectedVedtakFattetTidspunktFraEvent)
+                .atZone(ZoneId.of("Europe/Oslo"))
+                .toInstant()
         val expectedDekningsgrad = 80
         val expectedHarDekningIVentetid = true
         val ventetidsBeløp = 100
@@ -50,11 +52,12 @@ class VedtakFattetTellerRiverTest {
         val expectedUtbetaltIVentetid = ventetidsBeløp
         val expectedUtbetaltUtenomVentetid = navDagBeløp.sum()
 
-        val forsikringsvurderingId = seedForsikringsvurdering(
-            harForsikring = true,
-            dekning = Forsikringsvurdering.Dekning(iVentetid = expectedHarDekningIVentetid, grad = expectedDekningsgrad),
-            forsikringskategori = null
-        )
+        val forsikringsvurderingId =
+            seedForsikringsvurdering(
+                harForsikring = true,
+                dekning = Forsikringsvurdering.Dekning(iVentetid = expectedHarDekningIVentetid, grad = expectedDekningsgrad),
+                forsikringskategori = null,
+            )
         val lagretFødselsnummer = slot<String>()
         val lagretMeldingId = slot<UUID>()
         val lagretVedtaksperiodeId = slot<UUID>()
@@ -73,7 +76,7 @@ class VedtakFattetTellerRiverTest {
                 ventetidsBeløp = ventetidsBeløp,
                 navDagBeløp = navDagBeløp,
                 meldingId = expectedMeldingId,
-            )
+            ),
         )
 
         verify(exactly = 1) {
@@ -113,11 +116,12 @@ class VedtakFattetTellerRiverTest {
 
     @Test
     fun `lagrer ikke når vurderingen ikke har forsikring`() {
-        val forsikringsvurderingId = seedForsikringsvurdering(
-            harForsikring = false,
-            dekning = null,
-            forsikringskategori = null
-        )
+        val forsikringsvurderingId =
+            seedForsikringsvurdering(
+                harForsikring = false,
+                dekning = null,
+                forsikringskategori = null,
+            )
 
         testRapid.sendTestMessage(event(forsikringsvurderingId))
 
@@ -126,11 +130,12 @@ class VedtakFattetTellerRiverTest {
 
     @Test
     fun `lagrer ikke når vurderingen mangler dekning`() {
-        val forsikringsvurderingId = seedForsikringsvurdering(
-            harForsikring = true,
-            dekning = null,
-            forsikringskategori = null
-        )
+        val forsikringsvurderingId =
+            seedForsikringsvurdering(
+                harForsikring = true,
+                dekning = null,
+                forsikringskategori = null,
+            )
 
         testRapid.sendTestMessage(event(forsikringsvurderingId))
 
@@ -139,11 +144,12 @@ class VedtakFattetTellerRiverTest {
 
     @Test
     fun `lagrer ikke når vurderingen er kollektiv forsikring`() {
-        val forsikringsvurderingId = seedForsikringsvurdering(
-            harForsikring = true,
-            dekning = Forsikringsvurdering.Dekning(iVentetid = true, grad = 100),
-            forsikringskategori = Forsikringskategori.KollektivForsikring
-        )
+        val forsikringsvurderingId =
+            seedForsikringsvurdering(
+                harForsikring = true,
+                dekning = Forsikringsvurdering.Dekning(iVentetid = true, grad = 100),
+                forsikringskategori = Forsikringskategori.KollektivForsikring,
+            )
 
         testRapid.sendTestMessage(event(forsikringsvurderingId))
 
@@ -163,16 +169,16 @@ class VedtakFattetTellerRiverTest {
     fun `ignorerer melding uten forsikringsvurderingId`() {
         testRapid.sendTestMessage(
             """
-                {
-                  "@event_name": "vedtak_fattet",
-                  "@id": "${UUID.randomUUID()}",
-                  "fødselsnummer": "$fødselsnummer",
-                  "yrkesaktivitetstype": "SELVSTENDIG",
-                  "vedtaksperiodeId": "231585ae-93a9-46ea-8613-d5c73173d684",
-                  "vedtakFattetTidspunkt": "2026-07-01T14:51:09.553706732",
-                  "utbetalingsdager": []
-                }
-            """.trimIndent()
+            {
+              "@event_name": "vedtak_fattet",
+              "@id": "${UUID.randomUUID()}",
+              "fødselsnummer": "$fødselsnummer",
+              "yrkesaktivitetstype": "SELVSTENDIG",
+              "vedtaksperiodeId": "231585ae-93a9-46ea-8613-d5c73173d684",
+              "vedtakFattetTidspunkt": "2026-07-01T14:51:09.553706732",
+              "utbetalingsdager": []
+            }
+            """.trimIndent(),
         )
 
         verify(exactly = 0) { tellingDao.lagre(any(), any(), any(), any(), any(), any(), any(), any(), any()) }
@@ -194,7 +200,7 @@ class VedtakFattetTellerRiverTest {
                 dekning = dekning,
                 opphørsdato = null,
                 forsikringskategori = forsikringskategori,
-            )
+            ),
         )
         return forsikringsvurderingId
     }
@@ -253,5 +259,5 @@ class VedtakFattetTellerRiverTest {
           ],
           "@id": "$meldingId"
         }
-    """.trimIndent()
+        """.trimIndent()
 }

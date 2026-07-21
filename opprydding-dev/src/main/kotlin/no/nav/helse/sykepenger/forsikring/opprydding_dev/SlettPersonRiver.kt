@@ -6,27 +6,33 @@ import com.github.navikt.tbd_libs.rapids_and_rivers_api.MessageContext
 import com.github.navikt.tbd_libs.rapids_and_rivers_api.MessageMetadata
 import com.github.navikt.tbd_libs.rapids_and_rivers_api.RapidsConnection
 import io.micrometer.core.instrument.MeterRegistry
-import java.util.UUID
-import javax.sql.DataSource
 import kotliquery.TransactionalSession
 import kotliquery.queryOf
 import kotliquery.sessionOf
 import org.intellij.lang.annotations.Language
+import java.util.UUID
+import javax.sql.DataSource
 
 internal class SlettPersonRiver(
     rapidsConnection: RapidsConnection,
     private val dataSource: DataSource,
 ) : River.PacketListener {
     init {
-        River(rapidsConnection).apply {
-            precondition { it.requireValue("@event_name", "slett_person") }
-            validate {
-                it.requireKey("@id", "fødselsnummer")
-            }
-        }.register(this)
+        River(rapidsConnection)
+            .apply {
+                precondition { it.requireValue("@event_name", "slett_person") }
+                validate {
+                    it.requireKey("@id", "fødselsnummer")
+                }
+            }.register(this)
     }
 
-    override fun onPacket(packet: JsonMessage, context: MessageContext, metadata: MessageMetadata, meterRegistry: MeterRegistry) {
+    override fun onPacket(
+        packet: JsonMessage,
+        context: MessageContext,
+        metadata: MessageMetadata,
+        meterRegistry: MeterRegistry,
+    ) {
         val fødselsnummer = packet["fødselsnummer"].asString()
 
         sessionOf(dataSource).use { session ->
@@ -35,21 +41,25 @@ internal class SlettPersonRiver(
         context.publish(fødselsnummer, lagPersonSlettet(fødselsnummer))
     }
 
-    private fun slettPerson(tx: TransactionalSession, fødselsnummer: String) {
+    private fun slettPerson(
+        tx: TransactionalSession,
+        fødselsnummer: String,
+    ) {
         // Konverter fra ddMMyy til yyMMdd-format før toLong()
         val fnrLong = (fødselsnummer.substring(4, 6) + fødselsnummer.substring(2, 4) + fødselsnummer.substring(0, 2) + fødselsnummer.substring(6)).toLong()
 
         // Samle oppslag-IDer for personen fra begge mulige veier (med og uten forsikringsdata)
-        val oppslagIds: List<UUID> = tx.run(
-            queryOf(
-                """
+        val oppslagIds: List<UUID> =
+            tx.run(
+                queryOf(
+                    """
                 SELECT DISTINCT oppslag_id FROM oppslag_IF_VEDFRIVT_10 WHERE IF01_AGNR_FNR = :fnr
                 UNION
                 SELECT oppslag_id FROM forsikringsvurdering WHERE behov->>'fødselsnummer' = :fnrStr
                 """,
-                mapOf("fnr" to fnrLong, "fnrStr" to fødselsnummer)
-            ).map { it.uuid("oppslag_id") }.asList
-        )
+                    mapOf("fnr" to fnrLong, "fnrStr" to fødselsnummer),
+                ).map { it.uuid("oppslag_id") }.asList,
+            )
 
         if (oppslagIds.isEmpty()) return
 
@@ -69,8 +79,8 @@ internal class SlettPersonRiver(
             tx.run(
                 queryOf(
                     "DELETE FROM forsikringsvurdering WHERE oppslag_id IN ($placeholders)",
-                    *oppslagIds.toTypedArray()
-                ).asUpdate
+                    *oppslagIds.toTypedArray(),
+                ).asUpdate,
             )
         }
 
@@ -92,19 +102,18 @@ internal class SlettPersonRiver(
             tx.run(
                 queryOf(
                     "DELETE FROM oppslag WHERE id IN ($placeholders)",
-                    *oppslagIds.toTypedArray()
-                ).asUpdate
+                    *oppslagIds.toTypedArray(),
+                ).asUpdate,
             )
         }
     }
 
     @Language("JSON")
-    private fun lagPersonSlettet(fødselsnummer: String): String {
-        return """
-            {
-                "@event_name": "person_slettet",
-                "fødselsnummer": "$fødselsnummer"
-            }
+    private fun lagPersonSlettet(fødselsnummer: String): String =
+        """
+        {
+            "@event_name": "person_slettet",
+            "fødselsnummer": "$fødselsnummer"
+        }
         """.trimIndent()
-    }
 }

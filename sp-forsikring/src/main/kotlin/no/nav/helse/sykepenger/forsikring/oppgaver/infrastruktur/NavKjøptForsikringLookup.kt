@@ -9,10 +9,11 @@ import no.nav.helse.sykepenger.forsikring.oppslag.OppslagRepository
 internal fun hentNavKjøptForsikring(
     forsikringsvurdering: Forsikringsvurdering,
     oppslagRepository: OppslagRepository,
-    forsikringsvurderingId: ForsikringsvurderingId
+    forsikringsvurderingId: ForsikringsvurderingId,
 ): NavKjøptForsikring {
-    val navKjøptForsikringId = (forsikringsvurdering.forsikringskategori as? Forsikringskategori.NavKjøptForsikring)?.id
-        ?: error("Forventet NavKjøptForsikring, men fikk ${forsikringsvurdering.forsikringskategori}")
+    val navKjøptForsikringId =
+        (forsikringsvurdering.forsikringskategori as? Forsikringskategori.NavKjøptForsikring)?.id
+            ?: error("Forventet NavKjøptForsikring, men fikk ${forsikringsvurdering.forsikringskategori}")
 
     val oppslag = oppslagRepository.hent(forsikringsvurdering.oppslagId)
     return oppslag.navKjøpteForsikringer.find { it.id == navKjøptForsikringId }

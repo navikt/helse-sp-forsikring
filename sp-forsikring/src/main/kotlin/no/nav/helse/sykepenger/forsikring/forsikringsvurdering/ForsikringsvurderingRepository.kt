@@ -5,6 +5,10 @@ import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.domain.Forsikring
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.domain.ForsikringsvurderingId
 
 interface ForsikringsvurderingRepository {
-    fun lagre(forsikringsvurdering: Forsikringsvurdering, session: TransactionalSession)
+    fun lagre(
+        forsikringsvurdering: Forsikringsvurdering,
+        session: TransactionalSession,
+    )
+
     fun hent(id: ForsikringsvurderingId): Forsikringsvurdering?
 }

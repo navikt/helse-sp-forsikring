@@ -1,8 +1,5 @@
 package no.nav.helse.sykepenger.forsikring.forsikringsvurdering
 
-import java.time.LocalDate
-import kotlin.test.assertEquals
-import kotlin.test.assertIs
 import kotliquery.TransactionalSession
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.domain.AbstractNavKjøptForsikring
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.domain.Forsikringskategori
@@ -22,6 +19,9 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.CsvSource
+import java.time.LocalDate
+import kotlin.test.assertEquals
+import kotlin.test.assertIs
 
 internal class ForsikringsvurderingTest {
     @BeforeEach
@@ -34,16 +34,17 @@ internal class ForsikringsvurderingTest {
     fun `gjørVurdering returnerer løsning med forsikring uten TestRapid`() {
         insertBetaltVedfrivt(IF10_TYPE = '2')
 
-        val vurdering = medService { session ->
-            gjørVurdering(
-                session = session,
-                behovJson = """{"@behov":["Forsikringsvurdering"]}""",
-                skjæringstidspunkt = SKJÆRINGSTIDSPUNKT,
-                fødselsnummer = FØDSELSNUMMER,
-                spesielleYrkesgrupper = emptySet(),
-                yrkesaktivitetstype = Yrkesaktivitetstype.SELVSTENDIG
-            )
-        }
+        val vurdering =
+            medService { session ->
+                gjørVurdering(
+                    session = session,
+                    behovJson = """{"@behov":["Forsikringsvurdering"]}""",
+                    skjæringstidspunkt = SKJÆRINGSTIDSPUNKT,
+                    fødselsnummer = FØDSELSNUMMER,
+                    spesielleYrkesgrupper = emptySet(),
+                    yrkesaktivitetstype = Yrkesaktivitetstype.SELVSTENDIG,
+                )
+            }
 
         val dekning = assertIs<Forsikringsvurdering.Dekning>(vurdering.dekning)
         val valgtType = assertIs<Forsikringskategori.NavKjøptForsikring>(vurdering.forsikringskategori)
@@ -59,16 +60,17 @@ internal class ForsikringsvurderingTest {
 
     @Test
     fun `gjørVurdering lagrer kollektiv forsikringstype`() {
-        val vurdering = medService { session ->
-            gjørVurdering(
-                session = session,
-                behovJson = """{"@behov":["Forsikringsvurdering"]}""",
-                skjæringstidspunkt = SKJÆRINGSTIDSPUNKT,
-                fødselsnummer = FØDSELSNUMMER,
-                spesielleYrkesgrupper = setOf(SpesiellYrkesgruppe.Fisker(SpesiellYrkesgruppe.Fisker.Blad.B)),
-                yrkesaktivitetstype = Yrkesaktivitetstype.SELVSTENDIG
-            )
-        }
+        val vurdering =
+            medService { session ->
+                gjørVurdering(
+                    session = session,
+                    behovJson = """{"@behov":["Forsikringsvurdering"]}""",
+                    skjæringstidspunkt = SKJÆRINGSTIDSPUNKT,
+                    fødselsnummer = FØDSELSNUMMER,
+                    spesielleYrkesgrupper = setOf(SpesiellYrkesgruppe.Fisker(SpesiellYrkesgruppe.Fisker.Blad.B)),
+                    yrkesaktivitetstype = Yrkesaktivitetstype.SELVSTENDIG,
+                )
+            }
 
         val hentet = PgForsikringsvurderingRepository(TestcontainersSpForsikringDatabase.dataSource).hent(vurdering.id)
         assertEquals(Forsikringskategori.KollektivForsikring, hentet?.forsikringskategori)
@@ -77,16 +79,17 @@ internal class ForsikringsvurderingTest {
     @Test
     fun `gjørVurdering inneholder opphørsdato når den er satt`() {
         insertBetaltVedfrivt(IF10_TYPE = '2', IF10_FORSTOM = 20260331)
-        val vurdering = medService { session ->
-            gjørVurdering(
-                session = session,
-                behovJson = """{"@behov":["Forsikringsvurdering"]}""",
-                skjæringstidspunkt = SKJÆRINGSTIDSPUNKT,
-                fødselsnummer = FØDSELSNUMMER,
-                spesielleYrkesgrupper = emptySet(),
-                yrkesaktivitetstype = Yrkesaktivitetstype.SELVSTENDIG
-            )
-        }
+        val vurdering =
+            medService { session ->
+                gjørVurdering(
+                    session = session,
+                    behovJson = """{"@behov":["Forsikringsvurdering"]}""",
+                    skjæringstidspunkt = SKJÆRINGSTIDSPUNKT,
+                    fødselsnummer = FØDSELSNUMMER,
+                    spesielleYrkesgrupper = emptySet(),
+                    yrkesaktivitetstype = Yrkesaktivitetstype.SELVSTENDIG,
+                )
+            }
         val dekning = assertIs<Forsikringsvurdering.Dekning>(vurdering.dekning)
         assertTrue(vurdering.harForsikring)
         assertEquals(LocalDate.of(2026, 3, 31), vurdering.opphørsdato)
@@ -106,9 +109,13 @@ internal class ForsikringsvurderingTest {
         "FRILANS, , 1",
         "FRILANS, , 2",
         "FRILANS, , 3",
-        "FRILANS, , 4"
+        "FRILANS, , 4",
     )
-    fun `gjørVurdering feiler ved ugyldig kombinasjon`(yrkesaktivitetstype: String, særskiltGruppe: String?, IF10_TYPE: Char?) {
+    fun `gjørVurdering feiler ved ugyldig kombinasjon`(
+        yrkesaktivitetstype: String,
+        særskiltGruppe: String?,
+        IF10_TYPE: Char?,
+    ) {
         IF10_TYPE?.let { insertBetaltVedfrivt(IF10_TYPE = it) }
 
         assertThrows<AbstractNavKjøptForsikring.Valideringsfeil> {
@@ -118,17 +125,18 @@ internal class ForsikringsvurderingTest {
                     behovJson = """{"@behov":["Forsikringsvurdering"]}""",
                     skjæringstidspunkt = SKJÆRINGSTIDSPUNKT,
                     fødselsnummer = FØDSELSNUMMER,
-                    spesielleYrkesgrupper = særskiltGruppe?.let {
-                        setOf(
-                            when (it) {
-                                "JORDBRUKER" -> SpesiellYrkesgruppe.Jordbruker
-                                "REINDRIFTER" -> SpesiellYrkesgruppe.Reindrifter
-                                "FISKER_BLAD_B" -> SpesiellYrkesgruppe.Fisker(SpesiellYrkesgruppe.Fisker.Blad.B)
-                                else -> SpesiellYrkesgruppe.Ukjent(it)
-                            }
-                        )
-                    } ?: emptySet(),
-                    yrkesaktivitetstype = enumValueOf(yrkesaktivitetstype)
+                    spesielleYrkesgrupper =
+                        særskiltGruppe?.let {
+                            setOf(
+                                when (it) {
+                                    "JORDBRUKER" -> SpesiellYrkesgruppe.Jordbruker
+                                    "REINDRIFTER" -> SpesiellYrkesgruppe.Reindrifter
+                                    "FISKER_BLAD_B" -> SpesiellYrkesgruppe.Fisker(SpesiellYrkesgruppe.Fisker.Blad.B)
+                                    else -> SpesiellYrkesgruppe.Ukjent(it)
+                                },
+                            )
+                        } ?: emptySet(),
+                    yrkesaktivitetstype = enumValueOf(yrkesaktivitetstype),
                 )
             }
         }
@@ -147,7 +155,7 @@ internal class ForsikringsvurderingTest {
                     skjæringstidspunkt = SKJÆRINGSTIDSPUNKT,
                     fødselsnummer = FØDSELSNUMMER,
                     spesielleYrkesgrupper = emptySet(),
-                    yrkesaktivitetstype = Yrkesaktivitetstype.SELVSTENDIG
+                    yrkesaktivitetstype = Yrkesaktivitetstype.SELVSTENDIG,
                 )
             }
         }
@@ -159,54 +167,55 @@ internal class ForsikringsvurderingTest {
             IF01_AGNR_FNR = INFOTRYGD_FØDSELSNUMMER,
             IF10_FORSFOM_SEQ = 1,
             IF10_TYPE = '2',
-            IF10_VIRKDATO = 20260102
+            IF10_VIRKDATO = 20260102,
         )
         TestcontainersReplikadatabase.insertFkonto12(
             IF01_AGNR_FNR = INFOTRYGD_FØDSELSNUMMER,
             IF10_FORSFOM_SEQ = 1,
             IF12_BETDATO_SEQ = 1,
-            IF12_BETDATO = 20260101
+            IF12_BETDATO = 20260101,
         )
         TestcontainersReplikadatabase.insertVedfrivt(
             IF01_AGNR_FNR = INFOTRYGD_FØDSELSNUMMER,
             IF10_FORSFOM_SEQ = 2,
             IF10_TYPE = '2',
-            IF10_FORSTOM = 20251231
+            IF10_FORSTOM = 20251231,
         )
         TestcontainersReplikadatabase.insertFkonto12(
             IF01_AGNR_FNR = INFOTRYGD_FØDSELSNUMMER,
             IF10_FORSFOM_SEQ = 2,
             IF12_BETDATO_SEQ = 1,
-            IF12_BETDATO = 20260101
+            IF12_BETDATO = 20260101,
         )
         TestcontainersReplikadatabase.insertVedfrivt(
             IF01_AGNR_FNR = INFOTRYGD_FØDSELSNUMMER,
             IF10_FORSFOM_SEQ = 3,
-            IF10_TYPE = '2'
+            IF10_TYPE = '2',
         )
         TestcontainersReplikadatabase.insertVedfrivt(
             IF01_AGNR_FNR = INFOTRYGD_FØDSELSNUMMER,
             IF10_FORSFOM_SEQ = 4,
             IF10_TYPE = '2',
-            IF10_VIRKDATO = 20260601
+            IF10_VIRKDATO = 20260601,
         )
         TestcontainersReplikadatabase.insertFkonto12(
             IF01_AGNR_FNR = INFOTRYGD_FØDSELSNUMMER,
             IF10_FORSFOM_SEQ = 4,
             IF12_BETDATO_SEQ = 1,
-            IF12_BETDATO = 20260101
+            IF12_BETDATO = 20260101,
         )
 
-        val vurdering = medService { session ->
-            gjørVurdering(
-                session = session,
-                behovJson = """{"@behov":["Forsikringsvurdering"]}""",
-                skjæringstidspunkt = SKJÆRINGSTIDSPUNKT,
-                fødselsnummer = FØDSELSNUMMER,
-                spesielleYrkesgrupper = emptySet(),
-                yrkesaktivitetstype = Yrkesaktivitetstype.SELVSTENDIG
-            )
-        }
+        val vurdering =
+            medService { session ->
+                gjørVurdering(
+                    session = session,
+                    behovJson = """{"@behov":["Forsikringsvurdering"]}""",
+                    skjæringstidspunkt = SKJÆRINGSTIDSPUNKT,
+                    fødselsnummer = FØDSELSNUMMER,
+                    spesielleYrkesgrupper = emptySet(),
+                    yrkesaktivitetstype = Yrkesaktivitetstype.SELVSTENDIG,
+                )
+            }
 
         val ekskluderinger = TestcontainersSpForsikringDatabase.hentEkskluderinger(vurdering.id.value)
         assertEquals(
@@ -214,9 +223,9 @@ internal class ForsikringsvurderingTest {
                 1 to "SKJÆRINGSTIDSPUNKT_INNEN_28_DAGER_FØR_VIRKNINGSDATO",
                 2 to "OPPHØRT_PÅ_SKJÆRINGSTIDSPUNKT",
                 3 to "ALDRI_BETALT",
-                4 to "SKJÆRINGSTIDSPUNKT_MER_ENN_28_DAGER_FØR_VIRKNINGSDATO"
+                4 to "SKJÆRINGSTIDSPUNKT_MER_ENN_28_DAGER_FØR_VIRKNINGSDATO",
             ),
-            ekskluderinger
+            ekskluderinger,
         )
     }
 

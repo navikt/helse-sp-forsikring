@@ -12,10 +12,12 @@ class FakeForsikringsvurderingRepository : ForsikringsvurderingRepository {
         vurderinger.add(forsikringsvurdering)
     }
 
-    override fun lagre(forsikringsvurdering: Forsikringsvurdering, session: TransactionalSession) {
+    override fun lagre(
+        forsikringsvurdering: Forsikringsvurdering,
+        session: TransactionalSession,
+    ) {
         vurderinger.add(forsikringsvurdering)
     }
 
-    override fun hent(id: ForsikringsvurderingId): Forsikringsvurdering? =
-        vurderinger.firstOrNull { it.id == id }
+    override fun hent(id: ForsikringsvurderingId): Forsikringsvurdering? = vurderinger.firstOrNull { it.id == id }
 }

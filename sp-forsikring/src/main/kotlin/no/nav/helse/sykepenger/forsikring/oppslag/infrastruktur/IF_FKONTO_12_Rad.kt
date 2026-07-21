@@ -15,5 +15,5 @@ data class IF_FKONTO_12_Rad(
     val ENDRET_I_KILDE: Instant,
     val KILDE_IF: String,
     val ID_KONT: BigDecimal,
-    val OPPDATERT: Instant?
+    val OPPDATERT: Instant?,
 )

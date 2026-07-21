@@ -2,15 +2,15 @@ package no.nav.helse.sykepenger.forsikring.oppslag.infrastruktur
 
 import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
-import java.math.BigDecimal
-import java.sql.Timestamp
-import java.time.Instant
 import kotliquery.Parameter
 import kotliquery.queryOf
 import kotliquery.sessionOf
 import org.flywaydb.core.Flyway
 import org.intellij.lang.annotations.Language
 import org.testcontainers.oracle.OracleContainer
+import java.math.BigDecimal
+import java.sql.Timestamp
+import java.time.Instant
 
 object TestcontainersReplikadatabase {
     private val oracleContainer: OracleContainer =
@@ -18,18 +18,22 @@ object TestcontainersReplikadatabase {
             .also { it.start() }
 
     val dataSource: HikariDataSource =
-        HikariDataSource(HikariConfig().apply {
-            jdbcUrl = oracleContainer.jdbcUrl
-            username = oracleContainer.username
-            password = oracleContainer.password
-        })
+        HikariDataSource(
+            HikariConfig().apply {
+                jdbcUrl = oracleContainer.jdbcUrl
+                username = oracleContainer.username
+                password = oracleContainer.password
+            },
+        )
 
-    private val flyway = Flyway.configure()
-        .dataSource(dataSource)
-        .cleanDisabled(false)
-        .locations("classpath:replikabase/db/migration")
-        .load()
-        .also { it.migrate() }
+    private val flyway =
+        Flyway
+            .configure()
+            .dataSource(dataSource)
+            .cleanDisabled(false)
+            .locations("classpath:replikabase/db/migration")
+            .load()
+            .also { it.migrate() }
 
     fun reset() {
         flyway.clean()
@@ -129,8 +133,8 @@ object TestcontainersReplikadatabase {
                         "KILDE_IF" to KILDE_IF,
                         "ID_VED" to ID_VED,
                         "OPPDATERT" to Parameter(OPPDATERT?.let { Timestamp.from(it) }, Timestamp::class.java),
-                    )
-                ).asUpdate
+                    ),
+                ).asUpdate,
             )
         }
     }
@@ -184,8 +188,8 @@ object TestcontainersReplikadatabase {
                         "KILDE_IF" to KILDE_IF,
                         "ID_KONT" to ID_KONT,
                         "OPPDATERT" to Parameter(OPPDATERT?.let { Timestamp.from(it) }, Timestamp::class.java),
-                    )
-                ).asUpdate
+                    ),
+                ).asUpdate,
             )
         }
     }

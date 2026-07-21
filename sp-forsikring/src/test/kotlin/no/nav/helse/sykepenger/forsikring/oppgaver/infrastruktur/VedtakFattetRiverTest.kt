@@ -1,14 +1,6 @@
 package no.nav.helse.sykepenger.forsikring.oppgaver.infrastruktur
 
 import com.github.navikt.tbd_libs.rapids_and_rivers.test_support.TestRapid
-import java.math.BigDecimal
-import java.time.LocalDate
-import java.util.*
-import kotlin.test.Test
-import kotlin.test.assertEquals
-import kotlin.test.assertIs
-import kotlin.test.assertNotNull
-import kotlin.test.assertNull
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.domain.AbstractNavKjøptForsikring
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.domain.Forsikringskategori
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.domain.Forsikringsvurdering
@@ -20,6 +12,14 @@ import no.nav.helse.sykepenger.forsikring.oppslag.domain.OppslagId
 import no.nav.helse.sykepenger.forsikring.oppslag.domain.OppslagIfVedrift10Id
 import org.intellij.lang.annotations.Language
 import org.junit.jupiter.api.assertThrows
+import java.math.BigDecimal
+import java.time.LocalDate
+import java.util.*
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertIs
+import kotlin.test.assertNotNull
+import kotlin.test.assertNull
 
 class VedtakFattetRiverTest {
     private val testRapid = TestRapid()
@@ -34,7 +34,7 @@ class VedtakFattetRiverTest {
             rapidsConnection = testRapid,
             oppgaveClient = oppgaveClient,
             forsikringsvurderingRepository = forsikringsvurderingRepository,
-            oppslagRepository = oppslagRepository
+            oppslagRepository = oppslagRepository,
         )
     }
 
@@ -45,15 +45,16 @@ class VedtakFattetRiverTest {
         val oppslagId = OppslagId.ny()
         val oppslagIfVedrift10Id = OppslagIfVedrift10Id.ny()
         val premiegrunnlag = BigDecimal("200000.0")
-        val navKjøptForsikring = NavKjøptForsikring(
-            id = oppslagIfVedrift10Id,
-            type = AbstractNavKjøptForsikring.Type.SELVSTENDIG_100_PROSENT_FRA_DAG_1,
-            virkningsdato = LocalDate.of(2024, 1, 1),
-            opphørsdato = null,
-            opphørsgrunn = null,
-            premiegrunnlag = premiegrunnlag,
-            erBetaltNoenGang = true
-        )
+        val navKjøptForsikring =
+            NavKjøptForsikring(
+                id = oppslagIfVedrift10Id,
+                type = AbstractNavKjøptForsikring.Type.SELVSTENDIG_100_PROSENT_FRA_DAG_1,
+                virkningsdato = LocalDate.of(2024, 1, 1),
+                opphørsdato = null,
+                opphørsgrunn = null,
+                premiegrunnlag = premiegrunnlag,
+                erBetaltNoenGang = true,
+            )
 
         forsikringsvurderingRepository.seed(
             Forsikringsvurdering.fraLagring(
@@ -62,13 +63,14 @@ class VedtakFattetRiverTest {
                 behovJson = "{}",
                 ekskluderinger = emptyList(),
                 harForsikring = true,
-                dekning = Forsikringsvurdering.Dekning(
-                    iVentetid = true,
-                    grad = 100
-                ),
+                dekning =
+                    Forsikringsvurdering.Dekning(
+                        iVentetid = true,
+                        grad = 100,
+                    ),
                 opphørsdato = null,
-                forsikringskategori = (Forsikringskategori.NavKjøptForsikring(oppslagIfVedrift10Id))
-            )
+                forsikringskategori = (Forsikringskategori.NavKjøptForsikring(oppslagIfVedrift10Id)),
+            ),
         )
 
         oppslagRepository.lagre(Oppslag(oppslagId, listOf(navKjøptForsikring)))
@@ -93,15 +95,16 @@ class VedtakFattetRiverTest {
         val oppslagId = OppslagId.ny()
         val oppslagIfVedrift10Id = OppslagIfVedrift10Id.ny()
         val premiegrunnlag = BigDecimal("400000.0")
-        val navKjøptForsikring = NavKjøptForsikring(
-            id = oppslagIfVedrift10Id,
-            type = AbstractNavKjøptForsikring.Type.SELVSTENDIG_100_PROSENT_FRA_DAG_1,
-            virkningsdato = LocalDate.of(2024, 1, 1),
-            opphørsdato = null,
-            opphørsgrunn = null,
-            premiegrunnlag = premiegrunnlag,
-            erBetaltNoenGang = true
-        )
+        val navKjøptForsikring =
+            NavKjøptForsikring(
+                id = oppslagIfVedrift10Id,
+                type = AbstractNavKjøptForsikring.Type.SELVSTENDIG_100_PROSENT_FRA_DAG_1,
+                virkningsdato = LocalDate.of(2024, 1, 1),
+                opphørsdato = null,
+                opphørsgrunn = null,
+                premiegrunnlag = premiegrunnlag,
+                erBetaltNoenGang = true,
+            )
 
         forsikringsvurderingRepository.seed(
             Forsikringsvurdering.fraLagring(
@@ -110,13 +113,14 @@ class VedtakFattetRiverTest {
                 behovJson = "{}",
                 ekskluderinger = emptyList(),
                 harForsikring = true,
-                dekning = Forsikringsvurdering.Dekning(
-                    iVentetid = true,
-                    grad = 100
-                ),
+                dekning =
+                    Forsikringsvurdering.Dekning(
+                        iVentetid = true,
+                        grad = 100,
+                    ),
                 opphørsdato = null,
-                forsikringskategori = (Forsikringskategori.NavKjøptForsikring(oppslagIfVedrift10Id))
-            )
+                forsikringskategori = (Forsikringskategori.NavKjøptForsikring(oppslagIfVedrift10Id)),
+            ),
         )
 
         oppslagRepository.lagre(Oppslag(oppslagId, listOf(navKjøptForsikring)))
@@ -142,13 +146,14 @@ class VedtakFattetRiverTest {
                 behovJson = "{}",
                 ekskluderinger = emptyList(),
                 harForsikring = true,
-                dekning = Forsikringsvurdering.Dekning(
-                    iVentetid = false,
-                    grad = 100
-                ),
+                dekning =
+                    Forsikringsvurdering.Dekning(
+                        iVentetid = false,
+                        grad = 100,
+                    ),
                 opphørsdato = null,
-                forsikringskategori = (Forsikringskategori.KollektivForsikring)
-            )
+                forsikringskategori = (Forsikringskategori.KollektivForsikring),
+            ),
         )
 
         oppslagRepository.lagre(Oppslag(oppslagId, emptyList()))
@@ -176,8 +181,8 @@ class VedtakFattetRiverTest {
                 harForsikring = false,
                 dekning = null,
                 opphørsdato = null,
-                forsikringskategori = null
-            )
+                forsikringskategori = null,
+            ),
         )
         oppslagRepository.lagre(Oppslag(oppslagId, emptyList()))
 
@@ -199,16 +204,17 @@ class VedtakFattetRiverTest {
     }
 
     @Language("JSON")
-    private fun event(forsikringsvurderingId: UUID) = """
-            {
-                "@event_name": "vedtak_fattet",
-                "@id": "${UUID.randomUUID()}",
-                "yrkesaktivitetstype": "SELVSTENDIG",
-                "tags": ["Førstegangsbehandling"],
-                "skjæringstidspunkt": "2024-01-01",
-                "sykepengegrunnlag": 400000,
-                "fødselsnummer": "$fødselsnummer",
-                "forsikringsvurderingId": "$forsikringsvurderingId"
-            }
+    private fun event(forsikringsvurderingId: UUID) =
+        """
+        {
+            "@event_name": "vedtak_fattet",
+            "@id": "${UUID.randomUUID()}",
+            "yrkesaktivitetstype": "SELVSTENDIG",
+            "tags": ["Førstegangsbehandling"],
+            "skjæringstidspunkt": "2024-01-01",
+            "sykepengegrunnlag": 400000,
+            "fødselsnummer": "$fødselsnummer",
+            "forsikringsvurderingId": "$forsikringsvurderingId"
+        }
         """.trimIndent()
 }

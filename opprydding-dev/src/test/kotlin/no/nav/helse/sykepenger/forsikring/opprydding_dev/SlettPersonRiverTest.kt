@@ -1,19 +1,19 @@
 package no.nav.helse.sykepenger.forsikring.opprydding_dev
 
 import com.github.navikt.tbd_libs.rapids_and_rivers.test_support.TestRapid
+import org.junit.jupiter.api.AfterAll
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Test
 import java.sql.Timestamp
 import java.time.Instant
 import java.util.UUID
 import kotlin.test.assertEquals
-import org.junit.jupiter.api.AfterAll
-import org.junit.jupiter.api.BeforeEach
-import org.junit.jupiter.api.Test
 
 internal class SlettPersonRiverTest {
-
-    private val rapid = TestRapid().apply {
-        SlettPersonRiver(this, Database.dataSource)
-    }
+    private val rapid =
+        TestRapid().apply {
+            SlettPersonRiver(this, Database.dataSource)
+        }
 
     @BeforeEach
     fun beforeEach() {
@@ -90,8 +90,6 @@ internal class SlettPersonRiverTest {
         val fnrLong1 = (fødselsnummer1.substring(4, 6) + fødselsnummer1.substring(2, 4) + fødselsnummer1.substring(0, 2) + fødselsnummer1.substring(6)).toLong()
         val fnrLong2 = (fødselsnummer2.substring(4, 6) + fødselsnummer2.substring(2, 4) + fødselsnummer2.substring(0, 2) + fødselsnummer2.substring(6)).toLong()
 
-
-
         val oppslagId1 = UUID.randomUUID()
         val vedfrivt10Id1 = UUID.randomUUID()
         insertOppslag(oppslagId1)
@@ -123,11 +121,16 @@ internal class SlettPersonRiverTest {
         }
     }
 
-    private fun insertVedfrivt10(id: UUID, oppslagId: UUID, fnr: Long) {
+    private fun insertVedfrivt10(
+        id: UUID,
+        oppslagId: UUID,
+        fnr: Long,
+    ) {
         val now = Timestamp.from(Instant.now())
         Database.dataSource.connection.use { conn ->
-            conn.prepareStatement(
-                """
+            conn
+                .prepareStatement(
+                    """
                 INSERT INTO oppslag_IF_VEDFRIVT_10 (
                     id, oppslag_id,
                     IF01_KODE, IF01_AGNR_FNR, IF10_FORSFOM_SEQ,
@@ -139,71 +142,85 @@ internal class SlettPersonRiverTest {
                     IF10_PURR, IF10_TKNR_BOST, IF10_TKNR_BEH,
                     OPPRETTET, ENDRET_I_KILDE, KILDE_IF, ID_VED
                 ) VALUES (?, ?, '1', ?, 0, 'J', 0, 20260101, '1', ' ', ' ', 0, 0, 0, 0, 0, 0, 0, 0, ' ', 0, ' ', ' ', 0, 0, 0, 0, 0, ?, ?, ' ', 0)
-                """
-            ).use { stmt ->
-                stmt.setObject(1, id)
-                stmt.setObject(2, oppslagId)
-                stmt.setLong(3, fnr)
-                stmt.setTimestamp(4, now)
-                stmt.setTimestamp(5, now)
-                stmt.executeUpdate()
-            }
+                """,
+                ).use { stmt ->
+                    stmt.setObject(1, id)
+                    stmt.setObject(2, oppslagId)
+                    stmt.setLong(3, fnr)
+                    stmt.setTimestamp(4, now)
+                    stmt.setTimestamp(5, now)
+                    stmt.executeUpdate()
+                }
         }
     }
 
-    private fun insertFkonto12(id: UUID, vedfrivt10Id: UUID) {
+    private fun insertFkonto12(
+        id: UUID,
+        vedfrivt10Id: UUID,
+    ) {
         val now = Timestamp.from(Instant.now())
         Database.dataSource.connection.use { conn ->
-            conn.prepareStatement(
-                """
+            conn
+                .prepareStatement(
+                    """
                 INSERT INTO oppslag_IF_FKONTO_12 (id, oppslag_IF_VEDFRIVT_10_id, OPPRETTET, ENDRET_I_KILDE, KILDE_IF, ID_KONT)
                 VALUES (?, ?, ?, ?, ' ', 0)
-                """
-            ).use { stmt ->
-                stmt.setObject(1, id)
-                stmt.setObject(2, vedfrivt10Id)
-                stmt.setTimestamp(3, now)
-                stmt.setTimestamp(4, now)
-                stmt.executeUpdate()
-            }
+                """,
+                ).use { stmt ->
+                    stmt.setObject(1, id)
+                    stmt.setObject(2, vedfrivt10Id)
+                    stmt.setTimestamp(3, now)
+                    stmt.setTimestamp(4, now)
+                    stmt.executeUpdate()
+                }
         }
     }
 
-    private fun insertForsikringsvurdering(id: UUID, oppslagId: UUID, fødselsnummer: String) {
+    private fun insertForsikringsvurdering(
+        id: UUID,
+        oppslagId: UUID,
+        fødselsnummer: String,
+    ) {
         Database.dataSource.connection.use { conn ->
-            conn.prepareStatement(
-                "INSERT INTO forsikringsvurdering (id, oppslag_id, behov, har_forsikring) VALUES (?, ?, ?::jsonb, ?)"
-            ).use { stmt ->
-                stmt.setObject(1, id)
-                stmt.setObject(2, oppslagId)
-                stmt.setString(3, """{"fødselsnummer": "$fødselsnummer", "@behov": ["Forsikringsvurdering"]}""")
-                stmt.setBoolean(4, false)
-                stmt.executeUpdate()
-            }
+            conn
+                .prepareStatement(
+                    "INSERT INTO forsikringsvurdering (id, oppslag_id, behov, har_forsikring) VALUES (?, ?, ?::jsonb, ?)",
+                ).use { stmt ->
+                    stmt.setObject(1, id)
+                    stmt.setObject(2, oppslagId)
+                    stmt.setString(3, """{"fødselsnummer": "$fødselsnummer", "@behov": ["Forsikringsvurdering"]}""")
+                    stmt.setBoolean(4, false)
+                    stmt.executeUpdate()
+                }
         }
     }
 
-    private fun insertEkskludering(forsikringsvurderingId: UUID, vedfrivt10Id: UUID) {
+    private fun insertEkskludering(
+        forsikringsvurderingId: UUID,
+        vedfrivt10Id: UUID,
+    ) {
         Database.dataSource.connection.use { conn ->
-            conn.prepareStatement(
-                """
+            conn
+                .prepareStatement(
+                    """
                 INSERT INTO forsikringsvurdering_ekskludering_navkjopt_forsikring
                     (forsikringsvurdering_id, oppslag_IF_VEDFRIVT_10_id, ekskluderingsaarsak)
                 VALUES (?, ?, 'ALDRI_BETALT')
-                """
-            ).use { stmt ->
-                stmt.setObject(1, forsikringsvurderingId)
-                stmt.setObject(2, vedfrivt10Id)
-                stmt.executeUpdate()
-            }
+                """,
+                ).use { stmt ->
+                    stmt.setObject(1, forsikringsvurderingId)
+                    stmt.setObject(2, vedfrivt10Id)
+                    stmt.executeUpdate()
+                }
         }
     }
 
-    private fun slettPersonMelding(fødselsnummer: String) = """
+    private fun slettPersonMelding(fødselsnummer: String) =
+        """
         {
             "@event_name": "slett_person",
             "@id": "${UUID.randomUUID()}",
             "fødselsnummer": "$fødselsnummer"
         }
-    """.trimIndent()
+        """.trimIndent()
 }

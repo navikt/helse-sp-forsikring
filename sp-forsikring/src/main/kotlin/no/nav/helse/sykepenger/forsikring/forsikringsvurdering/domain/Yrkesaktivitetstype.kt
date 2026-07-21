@@ -8,11 +8,17 @@ enum class Yrkesaktivitetstype {
 }
 
 sealed interface SpesiellYrkesgruppe {
-    data class Fisker(val blad: Blad) : SpesiellYrkesgruppe {
+    data class Fisker(
+        val blad: Blad,
+    ) : SpesiellYrkesgruppe {
         enum class Blad { A, B }
     }
+
     data object Jordbruker : SpesiellYrkesgruppe
+
     data object Reindrifter : SpesiellYrkesgruppe
 
-    data class Ukjent(val value: String): SpesiellYrkesgruppe
+    data class Ukjent(
+        val value: String,
+    ) : SpesiellYrkesgruppe
 }

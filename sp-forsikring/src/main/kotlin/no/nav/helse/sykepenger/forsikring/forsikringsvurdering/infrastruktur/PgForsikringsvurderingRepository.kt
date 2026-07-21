@@ -1,6 +1,5 @@
 package no.nav.helse.sykepenger.forsikring.forsikringsvurdering.infrastruktur
 
-import javax.sql.DataSource
 import kotliquery.Session
 import kotliquery.TransactionalSession
 import kotliquery.queryOf
@@ -12,18 +11,23 @@ import no.nav.helse.sykepenger.forsikring.oppslag.domain.OppslagId
 import no.nav.helse.sykepenger.forsikring.oppslag.domain.OppslagIfVedrift10Id
 import no.nav.helse.sykepenger.forsikring.shared.util.withSession
 import org.intellij.lang.annotations.Language
+import javax.sql.DataSource
 
-class PgForsikringsvurderingRepository(private val dataSource: DataSource) : ForsikringsvurderingRepository {
-
-    override fun lagre(forsikringsvurdering: Forsikringsvurdering, session: TransactionalSession) {
+class PgForsikringsvurderingRepository(
+    private val dataSource: DataSource,
+) : ForsikringsvurderingRepository {
+    override fun lagre(
+        forsikringsvurdering: Forsikringsvurdering,
+        session: TransactionalSession,
+    ) {
         lagreForsikringsvurdering(forsikringsvurdering, session)
         forsikringsvurdering.ekskluderinger.forEach { ekskludering ->
             lagreEkskludering(forsikringsvurdering.id, ekskludering, session)
         }
     }
 
-    override fun hent(id: ForsikringsvurderingId): Forsikringsvurdering? {
-        return dataSource.withSession { session ->
+    override fun hent(id: ForsikringsvurderingId): Forsikringsvurdering? =
+        dataSource.withSession { session ->
             @Language("PostgreSQL")
             val statement = "SELECT * FROM forsikringsvurdering WHERE id = :id"
             session.run(
@@ -35,27 +39,28 @@ class PgForsikringsvurderingRepository(private val dataSource: DataSource) : For
                             behovJson = row.string("behov"),
                             ekskluderinger = hentEkskluderinger(id, session),
                             harForsikring = row.boolean("har_forsikring"),
-                            dekning = row.intOrNull("dekning_grad")?.let { grad ->
-                                Forsikringsvurdering.Dekning(
-                                    iVentetid = row.anyOrNull("dekning_i_ventetid") as Boolean,
-                                    grad = grad,
-                                )
-                            },
+                            dekning =
+                                row.intOrNull("dekning_grad")?.let { grad ->
+                                    Forsikringsvurdering.Dekning(
+                                        iVentetid = row.anyOrNull("dekning_i_ventetid") as Boolean,
+                                        grad = grad,
+                                    )
+                                },
                             opphørsdato = row.localDateOrNull("opphørsdato"),
-                            forsikringskategori = when (row.stringOrNull("forsikringskategori")) {
-                                Forsikringskategori.Kategori.KOLLEKTIV.name -> Forsikringskategori.KollektivForsikring
-                                Forsikringskategori.Kategori.NAVKJØPT.name -> Forsikringskategori.NavKjøptForsikring(
-                                    OppslagIfVedrift10Id(row.uuid("oppslag_IF_VEDFRIVT_10_id"))
-                                )
+                            forsikringskategori =
+                                when (row.stringOrNull("forsikringskategori")) {
+                                    Forsikringskategori.Kategori.KOLLEKTIV.name -> Forsikringskategori.KollektivForsikring
+                                    Forsikringskategori.Kategori.NAVKJØPT.name ->
+                                        Forsikringskategori.NavKjøptForsikring(
+                                            OppslagIfVedrift10Id(row.uuid("oppslag_IF_VEDFRIVT_10_id")),
+                                        )
 
-                                else -> null
-                            }
+                                    else -> null
+                                },
                         )
-                    }
-                    .asSingle
+                    }.asSingle,
             )
         }
-    }
 
     private fun hentEkskluderinger(
         forsikringsvurderingId: ForsikringsvurderingId,
@@ -74,8 +79,7 @@ class PgForsikringsvurderingRepository(private val dataSource: DataSource) : For
                         oppslagIfVedfrivt10Id = OppslagIfVedrift10Id(row.uuid("oppslag_IF_VEDFRIVT_10_id")),
                         ekskluderingsårsak = enumValueOf(row.string("ekskluderingsaarsak")),
                     )
-                }
-                .asList
+                }.asList,
         )
     }
 
@@ -100,9 +104,9 @@ class PgForsikringsvurderingRepository(private val dataSource: DataSource) : For
                     "dekning_grad" to forsikringsvurdering.dekning?.grad,
                     "opphorsdato" to forsikringsvurdering.opphørsdato,
                     "oppslag_IF_VEDFRIVT_10_id" to (forsikringsvurdering.forsikringskategori as? Forsikringskategori.NavKjøptForsikring)?.id?.value,
-                    "forsikringskategori" to forsikringsvurdering.forsikringskategori?.navn()
-                )
-            ).asUpdate
+                    "forsikringskategori" to forsikringsvurdering.forsikringskategori?.navn(),
+                ),
+            ).asUpdate,
         )
     }
 
@@ -125,8 +129,8 @@ class PgForsikringsvurderingRepository(private val dataSource: DataSource) : For
                     "forsikringsvurdering_id" to forsikringsvurderingId.value,
                     "oppslag_IF_VEDFRIVT_10_id" to ekskludering.oppslagIfVedfrivt10Id.value,
                     "ekskluderingsaarsak" to ekskludering.ekskluderingsårsak.name,
-                )
-            ).asUpdate
+                ),
+            ).asUpdate,
         )
     }
 }

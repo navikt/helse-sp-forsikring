@@ -6,9 +6,6 @@ import com.fasterxml.jackson.databind.node.ObjectNode
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.github.navikt.tbd_libs.rapids_and_rivers.test_support.TestRapid
-import java.util.*
-import kotlin.test.assertEquals
-import kotlin.test.assertNotNull
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.ForsikringsvurderingService
 import no.nav.helse.sykepenger.forsikring.oppslag.OppslagService
 import no.nav.helse.sykepenger.forsikring.oppslag.infrastruktur.ReplikabaseDao
@@ -19,21 +16,25 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertDoesNotThrow
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.CsvSource
+import java.util.*
+import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
 
 internal class ForsikringsvurderingBehovRiverTest {
     private val objectMapper = jacksonObjectMapper().registerModule(JavaTimeModule())
 
-    private val rapid = TestRapid().apply {
-        val forsikringsvurderingRepository = PgForsikringsvurderingRepository(TestcontainersSpForsikringDatabase.dataSource)
-        val replikabaseDao = ReplikabaseDao(TestcontainersReplikadatabase.dataSource)
-        val oppslagService = OppslagService(replikabaseDao)
-        val forsikringsvurderingService = ForsikringsvurderingService(forsikringsvurderingRepository, oppslagService)
-        ForsikringsvurderingBehovRiver(
-            rapidsConnection = this,
-            spForsikringDataSource = TestcontainersSpForsikringDatabase.dataSource,
-            forsikringsvurderingService = forsikringsvurderingService,
-        )
-    }
+    private val rapid =
+        TestRapid().apply {
+            val forsikringsvurderingRepository = PgForsikringsvurderingRepository(TestcontainersSpForsikringDatabase.dataSource)
+            val replikabaseDao = ReplikabaseDao(TestcontainersReplikadatabase.dataSource)
+            val oppslagService = OppslagService(replikabaseDao)
+            val forsikringsvurderingService = ForsikringsvurderingService(forsikringsvurderingRepository, oppslagService)
+            ForsikringsvurderingBehovRiver(
+                rapidsConnection = this,
+                spForsikringDataSource = TestcontainersSpForsikringDatabase.dataSource,
+                forsikringsvurderingService = forsikringsvurderingService,
+            )
+        }
 
     @BeforeEach
     fun beforeEach() {
@@ -44,7 +45,8 @@ internal class ForsikringsvurderingBehovRiverTest {
 
     @Test
     fun `løsningmelding er lik behovsmeldingen, sett bort fra løsning-feltet og rapids and rivers-genererte felter`() {
-        val testmelding = """
+        val testmelding =
+            """
             {
                 "@behov": [ "Forsikringsvurdering" ],
                 "fødselsnummer": "01020312345",
@@ -54,7 +56,7 @@ internal class ForsikringsvurderingBehovRiverTest {
                     "skjæringstidspunkt": "2026-01-01"
                 }
             }
-        """.trimIndent()
+            """.trimIndent()
 
         rapid.sendTestMessage(testmelding)
 
@@ -62,14 +64,15 @@ internal class ForsikringsvurderingBehovRiverTest {
         assertJsonEquals(
             expectedJson = testmelding,
             actualJsonNode = rapid.inspektør.message(0),
-            bortsettFraProperties = setOf(
-                "@løsning",
-                "@id",
-                "@opprettet",
-                "system_read_count",
-                "system_participating_services",
-                "@forårsaket_av"
-            )
+            bortsettFraProperties =
+                setOf(
+                    "@løsning",
+                    "@id",
+                    "@opprettet",
+                    "system_read_count",
+                    "system_participating_services",
+                    "@forårsaket_av",
+                ),
         )
     }
 
@@ -77,16 +80,16 @@ internal class ForsikringsvurderingBehovRiverTest {
     fun `løsning har en forsikringsvurderingId som er en UUID`() {
         rapid.sendTestMessage(
             """
-                {
-                    "@behov": [ "Forsikringsvurdering" ],
-                    "fødselsnummer": "01020312345",
-                    "yrkesaktivitetstype": "SELVSTENDIG",
-                    "Forsikringsvurdering" : {
-                        "spesielleYrkesgrupper": [],
-                        "skjæringstidspunkt": "2026-01-01"
-                    }
+            {
+                "@behov": [ "Forsikringsvurdering" ],
+                "fødselsnummer": "01020312345",
+                "yrkesaktivitetstype": "SELVSTENDIG",
+                "Forsikringsvurdering" : {
+                    "spesielleYrkesgrupper": [],
+                    "skjæringstidspunkt": "2026-01-01"
                 }
-            """.trimIndent()
+            }
+            """.trimIndent(),
         )
 
         assertEquals(1, rapid.inspektør.size)
@@ -109,9 +112,13 @@ internal class ForsikringsvurderingBehovRiverTest {
         "FRILANS, , 1",
         "FRILANS, , 2",
         "FRILANS, , 3",
-        "FRILANS, , 4"
+        "FRILANS, , 4",
     )
-    fun `Når vurderingen feiler så sendes det ikke ut noe svar`(yrkesaktivitetstype: String, særskiltGruppe: String?, IF10_TYPE: Char?) {
+    fun `Når vurderingen feiler så sendes det ikke ut noe svar`(
+        yrkesaktivitetstype: String,
+        særskiltGruppe: String?,
+        IF10_TYPE: Char?,
+    ) {
         IF10_TYPE?.let { insertBetaltVedfrivt(IF01_AGNR_FNR = 3020112345L, IF10_TYPE = it) }
         val antallOppslagFør = TestcontainersSpForsikringDatabase.countAlleOppslag()
         val antallForsikringsvurderingerFør = TestcontainersSpForsikringDatabase.countAlleForsikringsvurderinger()
@@ -128,7 +135,7 @@ internal class ForsikringsvurderingBehovRiverTest {
                         "skjæringstidspunkt": "2026-01-01"
                     }
                 }
-            """.trimIndent()
+                """.trimIndent(),
             )
         }
 
@@ -156,7 +163,7 @@ internal class ForsikringsvurderingBehovRiverTest {
                         "skjæringstidspunkt": "2026-01-01"
                     }
                 }
-            """.trimIndent()
+                """.trimIndent(),
             )
         }
 
@@ -170,46 +177,46 @@ internal class ForsikringsvurderingBehovRiverTest {
         TestcontainersReplikadatabase.insertVedfrivt(
             IF01_AGNR_FNR = 3020112345L,
             IF10_FORSFOM_SEQ = 123,
-            IF10_TYPE = '2'
+            IF10_TYPE = '2',
         )
         TestcontainersReplikadatabase.insertVedfrivt(
             IF01_AGNR_FNR = 3020112345L,
             IF10_FORSFOM_SEQ = 456,
-            IF10_TYPE = '3'
+            IF10_TYPE = '3',
         )
         TestcontainersReplikadatabase.insertFkonto12(
             IF01_AGNR_FNR = 3020112345L,
             IF10_FORSFOM_SEQ = 123,
-            IF12_BETDATO_SEQ = 111
+            IF12_BETDATO_SEQ = 111,
         )
         TestcontainersReplikadatabase.insertFkonto12(
             IF01_AGNR_FNR = 3020112345L,
             IF10_FORSFOM_SEQ = 123,
-            IF12_BETDATO_SEQ = 222
+            IF12_BETDATO_SEQ = 222,
         )
         TestcontainersReplikadatabase.insertFkonto12(
             IF01_AGNR_FNR = 3020112345L,
             IF10_FORSFOM_SEQ = 456,
-            IF12_BETDATO_SEQ = 333
+            IF12_BETDATO_SEQ = 333,
         )
         TestcontainersReplikadatabase.insertFkonto12(
             IF01_AGNR_FNR = 3020112345L,
             IF10_FORSFOM_SEQ = 456,
-            IF12_BETDATO_SEQ = 444
+            IF12_BETDATO_SEQ = 444,
         )
 
         rapid.sendTestMessage(
             """
-                {
-                    "@behov": [ "Forsikringsvurdering" ],
-                    "fødselsnummer": "01020312345",
-                    "yrkesaktivitetstype": "SELVSTENDIG",
-                    "Forsikringsvurdering" : {
-                        "spesielleYrkesgrupper": [],
-                        "skjæringstidspunkt": "2026-01-01"
-                    }
+            {
+                "@behov": [ "Forsikringsvurdering" ],
+                "fødselsnummer": "01020312345",
+                "yrkesaktivitetstype": "SELVSTENDIG",
+                "Forsikringsvurdering" : {
+                    "spesielleYrkesgrupper": [],
+                    "skjæringstidspunkt": "2026-01-01"
                 }
-            """.trimIndent()
+            }
+            """.trimIndent(),
         )
 
         assertEquals(1, rapid.inspektør.size)
@@ -237,16 +244,16 @@ internal class ForsikringsvurderingBehovRiverTest {
 
         rapid.sendTestMessage(
             """
-                {
-                    "@behov": [ "Forsikringsvurdering" ],
-                    "fødselsnummer": "01020312345",
-                    "yrkesaktivitetstype": "SELVSTENDIG",
-                    "Forsikringsvurdering" : {
-                        "spesielleYrkesgrupper": [],
-                        "skjæringstidspunkt": "2026-01-01"
-                    }
+            {
+                "@behov": [ "Forsikringsvurdering" ],
+                "fødselsnummer": "01020312345",
+                "yrkesaktivitetstype": "SELVSTENDIG",
+                "Forsikringsvurdering" : {
+                    "spesielleYrkesgrupper": [],
+                    "skjæringstidspunkt": "2026-01-01"
                 }
-            """.trimIndent()
+            }
+            """.trimIndent(),
         )
 
         assertEquals(1, rapid.inspektør.size)
@@ -266,7 +273,7 @@ internal class ForsikringsvurderingBehovRiverTest {
         IF10_FORSFOM: Int = 0,
         IF10_VIRKDATO: Int = 20260101,
         IF10_FORSTOM: Int = 0,
-        IF10_GODKJ: Char = 'J'
+        IF10_GODKJ: Char = 'J',
     ) {
         TestcontainersReplikadatabase.insertVedfrivt(
             IF01_AGNR_FNR = IF01_AGNR_FNR,
@@ -288,15 +295,20 @@ internal class ForsikringsvurderingBehovRiverTest {
     private fun assertJsonEquals(
         expectedJson: String,
         actualJsonNode: JsonNode,
-        bortsettFraProperties: Set<String> = emptySet()
+        bortsettFraProperties: Set<String> = emptySet(),
     ) {
-        val expected = objectMapper.readTree(expectedJson).deepSortedObjectNodeCopy()
-            .apply { bortsettFraProperties.forEach { remove(it) } }
-        val actual = actualJsonNode.deepSortedObjectNodeCopy()
-            .apply { bortsettFraProperties.forEach { remove(it) } }
+        val expected =
+            objectMapper
+                .readTree(expectedJson)
+                .deepSortedObjectNodeCopy()
+                .apply { bortsettFraProperties.forEach { remove(it) } }
+        val actual =
+            actualJsonNode
+                .deepSortedObjectNodeCopy()
+                .apply { bortsettFraProperties.forEach { remove(it) } }
         assertEquals(
             objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(expected),
-            objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(actual)
+            objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(actual),
         )
     }
 
@@ -304,7 +316,8 @@ internal class ForsikringsvurderingBehovRiverTest {
         when (this) {
             is ObjectNode ->
                 objectMapper.createObjectNode().also { sorted ->
-                    properties().asSequence()
+                    properties()
+                        .asSequence()
                         .sortedBy { (name, _) -> name }
                         .forEach { (name, value) -> sorted.set<JsonNode>(name, value.sortedDeep()) }
                 }

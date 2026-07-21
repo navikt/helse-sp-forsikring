@@ -14,21 +14,21 @@ import io.ktor.http.*
 import io.ktor.serialization.jackson.*
 import io.mockk.every
 import io.mockk.mockk
+import kotlinx.coroutines.runBlocking
+import no.nav.helse.sykepenger.forsikring.oppgaver.domain.Årsak
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertTrue
 import java.math.BigDecimal
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.util.*
 import kotlin.test.Test
-import kotlinx.coroutines.runBlocking
-import no.nav.helse.sykepenger.forsikring.oppgaver.domain.Årsak
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertTrue
 
 class GosysOppgaveClientTest {
-
-    private val objectMapper = jacksonObjectMapper()
-        .registerModule(JavaTimeModule())
-        .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
+    private val objectMapper =
+        jacksonObjectMapper()
+            .registerModule(JavaTimeModule())
+            .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
 
     @Test
     fun `oppretter oppgave med riktig payload for utbetalt fra dag én med 80 prosent dekningsgrad`() {
@@ -45,7 +45,7 @@ class GosysOppgaveClientTest {
                 duplikatkontrollId = duplikatkontrollId,
                 fødselsnummer = fødselsnummer,
                 årsak = Årsak.UtbetaltFraDagÉnOgDekningsgrad80Prosent,
-                skjæringstidspunkt = skjæringstidspunkt
+                skjæringstidspunkt = skjæringstidspunkt,
             )
         }
 
@@ -82,7 +82,7 @@ class GosysOppgaveClientTest {
                 duplikatkontrollId = duplikatkontrollId,
                 fødselsnummer = fødselsnummer,
                 årsak = Årsak.SykepengerettOpphørtPåGrunnAvMaksdatoAlderEllerDød,
-                skjæringstidspunkt = skjæringstidspunkt
+                skjæringstidspunkt = skjæringstidspunkt,
             )
         }
 
@@ -108,12 +108,13 @@ class GosysOppgaveClientTest {
             client.lagOppgave(
                 duplikatkontrollId = duplikatkontrollId,
                 fødselsnummer = fødselsnummer,
-                årsak = Årsak.ForStortAvvikMellomSykepengegrunnlagOgPremiegrunnlag(
-                    sykepengegrunnlag = sykepengegrunnlag,
-                    premiegrunnlag = premiegrunnlag,
-                    avviksprosent = BigDecimal("66.67")
-                ),
-                skjæringstidspunkt = skjæringstidspunkt
+                årsak =
+                    Årsak.ForStortAvvikMellomSykepengegrunnlagOgPremiegrunnlag(
+                        sykepengegrunnlag = sykepengegrunnlag,
+                        premiegrunnlag = premiegrunnlag,
+                        avviksprosent = BigDecimal("66.67"),
+                    ),
+                skjæringstidspunkt = skjæringstidspunkt,
             )
         }
 
@@ -137,7 +138,7 @@ class GosysOppgaveClientTest {
                 duplikatkontrollId = duplikatkontrollId,
                 fødselsnummer = "12345678901",
                 årsak = Årsak.UtbetaltFraDagÉnOgDekningsgrad80Prosent,
-                skjæringstidspunkt = LocalDate.of(2024, 1, 1)
+                skjæringstidspunkt = LocalDate.of(2024, 1, 1),
             )
         }
 
@@ -155,7 +156,7 @@ class GosysOppgaveClientTest {
                 duplikatkontrollId = UUID.randomUUID(),
                 fødselsnummer = "12345678901",
                 årsak = Årsak.UtbetaltFraDagÉnOgDekningsgrad80Prosent,
-                skjæringstidspunkt = LocalDate.of(2024, 1, 1)
+                skjæringstidspunkt = LocalDate.of(2024, 1, 1),
             )
         }
 
@@ -175,7 +176,7 @@ class GosysOppgaveClientTest {
                 duplikatkontrollId = UUID.randomUUID(),
                 fødselsnummer = "12345678901",
                 årsak = Årsak.UtbetaltFraDagÉnOgDekningsgrad80Prosent,
-                skjæringstidspunkt = LocalDate.of(2024, 1, 1)
+                skjæringstidspunkt = LocalDate.of(2024, 1, 1),
             )
         }
 
@@ -188,42 +189,44 @@ class GosysOppgaveClientTest {
 
     private fun createMockEngine(
         capturedRequests: MutableList<HttpRequestData>,
-        responseStatus: HttpStatusCode
-    ): MockEngine {
-        return MockEngine { request ->
+        responseStatus: HttpStatusCode,
+    ): MockEngine =
+        MockEngine { request ->
             capturedRequests.add(request)
             respond(
                 content = """{"id": 12345}""",
                 status = responseStatus,
-                headers = headersOf(HttpHeaders.ContentType, ContentType.Application.Json.toString())
+                headers = headersOf(HttpHeaders.ContentType, ContentType.Application.Json.toString()),
             )
         }
-    }
 
     private fun createGosysOppgaveClient(mockEngine: MockEngine): GosysOppgaveClient {
-        val httpClient = HttpClient(mockEngine) {
-            install(ContentNegotiation) {
-                jackson {
-                    registerModule(JavaTimeModule())
-                    disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
+        val httpClient =
+            HttpClient(mockEngine) {
+                install(ContentNegotiation) {
+                    jackson {
+                        registerModule(JavaTimeModule())
+                        disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
+                    }
                 }
             }
-        }
 
-        val azureTokenProvider: AzureTokenProvider = mockk {
-            every { bearerToken(any()) } returns AzureToken("test-token-123", LocalDateTime.MAX).ok()
-        }
+        val azureTokenProvider: AzureTokenProvider =
+            mockk {
+                every { bearerToken(any()) } returns AzureToken("test-token-123", LocalDateTime.MAX).ok()
+            }
 
         return GosysOppgaveClient(
             baseUrl = "http://test.no",
             tokenClient = azureTokenProvider,
             httpClient = httpClient,
-            gosysScope = "test-scope"
+            gosysScope = "test-scope",
         )
     }
 
-    private fun parseRequestBody(request: HttpRequestData): OpprettOppgaveRequest = runBlocking {
-        val bodyBytes = request.body.toByteArray()
-        objectMapper.readValue(bodyBytes, OpprettOppgaveRequest::class.java)
-    }
+    private fun parseRequestBody(request: HttpRequestData): OpprettOppgaveRequest =
+        runBlocking {
+            val bodyBytes = request.body.toByteArray()
+            objectMapper.readValue(bodyBytes, OpprettOppgaveRequest::class.java)
+        }
 }

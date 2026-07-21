@@ -10,7 +10,6 @@ import io.ktor.client.engine.cio.*
 import io.ktor.client.plugins.contentnegotiation.*
 import io.ktor.serialization.jackson.*
 import io.ktor.server.application.*
-import java.time.Duration
 import no.nav.helse.rapids_rivers.RapidApplication
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.ForsikringsvurderingService
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.infrastruktur.ForsikringsvurderingBehovRiver
@@ -28,30 +27,33 @@ import no.nav.helse.sykepenger.forsikring.shared.logging.loggInfo
 import no.nav.helse.sykepenger.forsikring.telling.infrastruktur.TellingDao
 import no.nav.helse.sykepenger.forsikring.telling.infrastruktur.VedtakFattetTellerRiver
 import org.flywaydb.core.Flyway
+import java.time.Duration
 
 fun main() {
     launchApplication(System.getenv())
 }
 
 fun launchApplication(env: Map<String, String>) {
-    val spForsikringDataSource = HikariDataSource(
-        HikariConfig().apply {
-            jdbcUrl = env.getValue("DATABASE_JDBC_URL")
-            maximumPoolSize = 10
-        }
-    )
+    val spForsikringDataSource =
+        HikariDataSource(
+            HikariConfig().apply {
+                jdbcUrl = env.getValue("DATABASE_JDBC_URL")
+                maximumPoolSize = 10
+            },
+        )
 
-    val replikabaseDataSource = HikariDataSource(
-        HikariConfig().apply {
-            jdbcUrl = env.getValue("ORACLE_URL")
-            username = env.getValue("ORACLE_USERNAME")
-            password = env.getValue("ORACLE_PASSWORD")
-            schema = env.getValue("ORACLE_DATABASE")
-            connectionTimeout = Duration.ofSeconds(20).toMillis()
-            maxLifetime = Duration.ofMinutes(30).toMillis()
-            initializationFailTimeout = Duration.ofMinutes(1).toMillis()
-        }
-    )
+    val replikabaseDataSource =
+        HikariDataSource(
+            HikariConfig().apply {
+                jdbcUrl = env.getValue("ORACLE_URL")
+                username = env.getValue("ORACLE_USERNAME")
+                password = env.getValue("ORACLE_PASSWORD")
+                schema = env.getValue("ORACLE_DATABASE")
+                connectionTimeout = Duration.ofSeconds(20).toMillis()
+                maxLifetime = Duration.ofMinutes(30).toMillis()
+                initializationFailTimeout = Duration.ofMinutes(1).toMillis()
+            },
+        )
 
     val forsikringsvurderingRepository = PgForsikringsvurderingRepository(spForsikringDataSource)
     val oppslagRepository = PgOppslagRepository(spForsikringDataSource)
@@ -61,21 +63,23 @@ fun launchApplication(env: Map<String, String>) {
 
     val tellingDao = TellingDao(dataSource = spForsikringDataSource)
 
-    val httpClient = HttpClient(CIO) {
-        install(ContentNegotiation) {
-            jackson {
-                registerModule(JavaTimeModule())
-                disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
+    val httpClient =
+        HttpClient(CIO) {
+            install(ContentNegotiation) {
+                jackson {
+                    registerModule(JavaTimeModule())
+                    disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
+                }
             }
         }
-    }
 
-    val gosysOppgaveClient = GosysOppgaveClient(
-        baseUrl = env.getValue("GOSYS_BASE_URL"),
-        tokenClient = createAzureTokenClientFromEnvironment(env),
-        httpClient = httpClient,
-        gosysScope = env.getValue("GOSYS_SCOPE")
-    )
+    val gosysOppgaveClient =
+        GosysOppgaveClient(
+            baseUrl = env.getValue("GOSYS_BASE_URL"),
+            tokenClient = createAzureTokenClientFromEnvironment(env),
+            httpClient = httpClient,
+            gosysScope = env.getValue("GOSYS_SCOPE"),
+        )
 
     RapidApplication
         .create(System.getenv(), builder = {
@@ -85,12 +89,13 @@ fun launchApplication(env: Map<String, String>) {
                     forsikringsvurderingRepository = forsikringsvurderingRepository,
                     clientId = env.getValue("AZURE_APP_CLIENT_ID"),
                     issuerUrl = env.getValue("AZURE_OPENID_CONFIG_ISSUER"),
-                    jwkProviderUri = env.getValue("AZURE_OPENID_CONFIG_JWKS_URI")
+                    jwkProviderUri = env.getValue("AZURE_OPENID_CONFIG_JWKS_URI"),
                 )
 
                 monitor.subscribe(ApplicationStarted) {
                     loggInfo("Migrerer database")
-                    Flyway.configure()
+                    Flyway
+                        .configure()
                         .dataSource(spForsikringDataSource)
                         .cleanDisabled(true)
                         .lockRetryCount(-1)
