@@ -1,4 +1,4 @@
-name: Bygg PR
+name: Bygg og test PR
 
 on: [ pull_request ]
 
@@ -6,14 +6,28 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
   cancel-in-progress: true
 
-permissions:
-  contents: read
-  id-token: write
-  packages: read
-
 jobs:
   bygg-og-test:
-    uses: ./.github/workflows/bygg-og-test.yml
-    secrets: inherit
-    with:
-      push_image: false
+    name: Bygg og test
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+      packages: read
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-java@03ad4de0992f5dab5e18fcb136590ce7c4a0ac95 # v5.6.0
+        with:
+          distribution: temurin
+          java-version: 25
+
+      - uses: gradle/actions/setup-gradle@3f131e8634966bd73d06cc69884922b02e6faf92 # v6.2.0
+
+      - name: gradlew clean build jibDockerBuild
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          ./gradlew clean build jibDockerBuild
