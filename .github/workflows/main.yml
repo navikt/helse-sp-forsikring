@@ -50,7 +50,7 @@ jobs:
         run: |
           ./gradlew jib --build-cache \
             -Pimage.registry='${{ steps.login.outputs.registry }}' \
-            -Pimage.tag=$(date -u +%Y.%m.%d-%H.%M)-$(git rev-parse --short=12 HEAD)
+            -Pimage.tag=$(date -u +%Y.%m.%d-%H.%M)-$(git rev-parse --short=12 HEAD) \
             -Djib.console=plain
 
       - name: Last opp jib-metadata
