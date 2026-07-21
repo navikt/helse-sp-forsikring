@@ -39,13 +39,19 @@ jobs:
         with:
           team: tbd
 
-      - name: gradlew clean build jib
+      - name: gradlew clean build
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: ./gradlew clean build --build-cache
+
+      - name: gradlew jib
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          ./gradlew clean build jib \
+          ./gradlew jib --build-cache \
             -Pimage.registry='${{ steps.login.outputs.registry }}' \
             -Pimage.tag=$(date -u +%Y.%m.%d-%H.%M)-$(git rev-parse --short=12 HEAD)
+            -Djib.console=plain
 
       - name: Last opp jib-metadata
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
@@ -57,6 +63,8 @@ jobs:
 
       - name: Generate and submit dependency graph
         uses: gradle/actions/dependency-submission@3f131e8634966bd73d06cc69884922b02e6faf92 # v6.2.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   signer-og-deploy:
     name: Deploy ${{ matrix.module }}
