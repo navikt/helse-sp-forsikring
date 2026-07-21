@@ -136,7 +136,7 @@ jobs:
         uses: nais/deploy/actions/deploy@2d18f050f07b6a007864c6a57070ed915d571beb # v2
         env:
           CLUSTER: dev-gcp
-          RESOURCE: ${{ matrix.resource }}
+          RESOURCE: ${{ matrix.dev.resource }}
           VARS: ${{ matrix.dev.vars || '/dev/null' }}
           WORKLOAD_IMAGE: ${{ steps.image.outputs.ref }}
 
@@ -145,6 +145,6 @@ jobs:
         uses: nais/deploy/actions/deploy@2d18f050f07b6a007864c6a57070ed915d571beb # v2
         env:
           CLUSTER: prod-gcp
-          RESOURCE: ${{ matrix.resource }}
+          RESOURCE: ${{ matrix.prod.resource }}
           VARS: ${{ matrix.prod.vars || '/dev/null' }}
           WORKLOAD_IMAGE: ${{ steps.image.outputs.ref }}

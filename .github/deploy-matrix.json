@@ -2,17 +2,20 @@
   "include": [
     {
       "module": "sp-forsikring",
-      "resource": ".nais/sp-forsikring.yaml",
       "dev": {
+        "resource": ".nais/sp-forsikring.yaml",
         "vars": ".nais/sp-forsikring-vars-dev.yaml"
       },
       "prod": {
+        "resource": ".nais/sp-forsikring.yaml",
         "vars": ".nais/sp-forsikring-vars-prod.yaml"
       }
     },
     {
       "module": "opprydding-dev",
-      "resource": ".nais/opprydding-dev.yaml, .nais/dev-db-policy.yaml",
+      "dev": {
+        "resource": ".nais/opprydding-dev.yaml, .nais/dev-db-policy.yaml"
+      },
       "prod": {
         "disabled": true
       }
