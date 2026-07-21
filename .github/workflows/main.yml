@@ -66,9 +66,22 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+  les-deploy-matrix:
+    name: Les deploy-matrix
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+      - name: Les .github/deploy-matrix.json
+        id: les-deploy-matrix
+        run: echo "deploy-matrix=$(jq -c . .github/deploy-matrix.json)" >> "$GITHUB_OUTPUT"
+    outputs:
+      deploy-matrix: ${{ steps.les-deploy-matrix.outputs.deploy-matrix }}
+
   deploy:
     name: Deploy ${{ matrix.module }}
-    needs: bygg-og-test
+    needs: [bygg-og-test, les-deploy-matrix]
     permissions:
       actions: read # for sarif
       contents: write # for sarif
@@ -77,17 +90,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
-      matrix:
-        include:
-          - module: sp-forsikring
-            resource: .nais/sp-forsikring.yaml
-            dev_vars: .nais/sp-forsikring-vars-dev.yaml
-            prod_vars: .nais/sp-forsikring-vars-prod.yaml
-
-          - module: opprydding-dev
-            resource: '.nais/opprydding-dev.yaml, .nais/dev-db-policy.yaml'
-            dev_vars: /dev/null
-            prod_vars: ''
+      matrix: ${{ fromJSON(needs.les-deploy-matrix.outputs.deploy-matrix) }}
 
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
@@ -129,18 +132,19 @@ jobs:
           sarif_file: 'trivy.sarif'
 
       - name: Deploy til dev
+        if: ${{ !matrix.dev.disabled }}
         uses: nais/deploy/actions/deploy@2d18f050f07b6a007864c6a57070ed915d571beb # v2
         env:
           CLUSTER: dev-gcp
           RESOURCE: ${{ matrix.resource }}
-          VARS: ${{ matrix.dev_vars }}
+          VARS: ${{ matrix.dev.vars || '/dev/null' }}
           WORKLOAD_IMAGE: ${{ steps.image.outputs.ref }}
 
       - name: Deploy til prod
-        if: matrix.prod_vars != ''
+        if: ${{ !matrix.prod.disabled }}
         uses: nais/deploy/actions/deploy@2d18f050f07b6a007864c6a57070ed915d571beb # v2
         env:
           CLUSTER: prod-gcp
           RESOURCE: ${{ matrix.resource }}
-          VARS: ${{ matrix.prod_vars }}
+          VARS: ${{ matrix.prod.vars || '/dev/null' }}
           WORKLOAD_IMAGE: ${{ steps.image.outputs.ref }}
