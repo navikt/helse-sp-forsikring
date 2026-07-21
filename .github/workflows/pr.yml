@@ -1,35 +1,27 @@
-name: Bygg og test PR
+name: Bygg PR
 
 on: [ pull_request ]
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
+permissions:
+  contents: read
+  id-token: write
+  packages: read
+
 jobs:
-  bygg-og-test:
-    name: Bygg og test
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-    steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
-        with:
-          persist-credentials: false
-
-      - uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294 # v5.0.0
-        with:
-          fail-on-severity: high # Fail if introducing high or critical vulnerabilities
-
-      - uses: actions/setup-java@03ad4de0992f5dab5e18fcb136590ce7c4a0ac95 # v5.6.0
-        with:
-          distribution: temurin
-          java-version: 25
-
-      - uses: gradle/actions/setup-gradle@3f131e8634966bd73d06cc69884922b02e6faf92 # v6.2.0
-
-      - name: gradlew clean build jibDockerBuild
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          ./gradlew clean build jibDockerBuild -Djib.console=plain
+  build-sp-forsikring:
+    uses: ./.github/workflows/build.yml
+    secrets: inherit
+    with:
+      push_image: false
+  build-opprydding-dev:
+    uses: ./.github/workflows/build.yml
+    secrets: inherit
+    with:
+      push_image: false
+      gradle_project: ':opprydding-dev'
+      docker_target: 'opprydding-dev'
+      image_suffix: 'opprydding-dev'

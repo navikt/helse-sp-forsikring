@@ -1,17 +1,16 @@
-name: Bygg og deploy main
+name: Bygg og deploy opprydding-dev
 
 on:
   push:
     branches:
       - main
     paths:
-      - 'sp-forsikring/**'
+      - 'opprydding-dev/**'
       - 'migreringer/**'
-      - '.github/workflows/main.yml'
+      - '.github/workflows/opprydding-dev.yml'
       - '.github/workflows/build.yml'
-      - '.nais/sp-forsikring.yaml'
-      - '.nais/sp-forsikring-vars-dev.yaml'
-      - '.nais/sp-forsikring-vars-prod.yaml'
+      - '.nais/opprydding-dev.yaml'
+      - '.nais/dev-db-policy.yaml'
       - 'Dockerfile'
       - 'build.gradle.kts'
       - 'gradle.properties'
@@ -35,29 +34,19 @@ jobs:
   build:
     uses: ./.github/workflows/build.yml
     secrets: inherit
+    with:
+      gradle_project: ':opprydding-dev'
+      docker_target: 'opprydding-dev'
+      image_suffix: 'opprydding-dev'
 
   deployDev:
     name: Deploy to dev
-    needs: [ build ]
+    needs: build
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
       - uses: nais/deploy/actions/deploy@2d18f050f07b6a007864c6a57070ed915d571beb # v2
         env:
           CLUSTER: dev-gcp
-          RESOURCE: .nais/sp-forsikring.yaml
-          VARS: .nais/sp-forsikring-vars-dev.yaml
-          WORKLOAD_IMAGE: ${{ needs.build.outputs.image }}
-
-  deployProd:
-    name: Deploy to prod
-    needs: [ build, deployDev ]
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
-      - uses: nais/deploy/actions/deploy@2d18f050f07b6a007864c6a57070ed915d571beb # v2
-        env:
-          CLUSTER: prod-gcp
-          RESOURCE: .nais/sp-forsikring.yaml
-          VARS: .nais/sp-forsikring-vars-prod.yaml
+          RESOURCE: .nais/opprydding-dev.yaml, .nais/dev-db-policy.yaml
           WORKLOAD_IMAGE: ${{ needs.build.outputs.image }}

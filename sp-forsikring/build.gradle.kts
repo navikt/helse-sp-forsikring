@@ -1,9 +1,11 @@
 plugins {
-    id("no.nav.helse.sas.sas-deployable")
+    id("application")
+    alias(libs.plugins.kotlin.jvm)
 }
 
-sasDeployable {
-    mainClass = "no.nav.helse.sykepenger.forsikring.AppKt"
+application {
+    mainClass.set("no.nav.helse.sykepenger.forsikring.AppKt")
+    applicationName = "app"
 }
 
 dependencies {
@@ -31,4 +33,22 @@ dependencies {
     testImplementation(libs.mockk)
     testImplementation(libs.testcontainers.postgres)
     testImplementation(libs.testcontainers.oracle.free)
+    testImplementation(kotlin("test"))
+    testImplementation(platform(libs.junit.bom))
+    testImplementation(libs.junit.jupiter)
+}
+
+kotlin {
+    jvmToolchain(25)
+}
+
+tasks {
+    named<Test>("test") {
+        useJUnitPlatform()
+        testLogging {
+            events("skipped", "failed")
+            showStackTraces = true
+            exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
+        }
+    }
 }
