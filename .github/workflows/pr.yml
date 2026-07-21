@@ -3,7 +3,7 @@ name: Bygg PR
 on: [ pull_request ]
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
   cancel-in-progress: true
 
 permissions:
@@ -12,16 +12,8 @@ permissions:
   packages: read
 
 jobs:
-  build-sp-forsikring:
-    uses: ./.github/workflows/build.yml
+  bygg-og-test:
+    uses: ./.github/workflows/bygg-og-test.yml
     secrets: inherit
     with:
       push_image: false
-  build-opprydding-dev:
-    uses: ./.github/workflows/build.yml
-    secrets: inherit
-    with:
-      push_image: false
-      gradle_project: ':opprydding-dev'
-      docker_context: 'opprydding-dev'
-      image_suffix: 'opprydding-dev'

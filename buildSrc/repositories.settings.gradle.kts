@@ -17,5 +17,6 @@ dependencyResolutionManagement {
             maven("https://repo.adeo.no/repository/github-package-registry-navikt/")
         }
         mavenCentral()
+        gradlePluginPortal()
     }
 }

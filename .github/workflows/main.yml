@@ -4,26 +4,13 @@ on:
   push:
     branches:
       - main
-    paths:
-      - 'sp-forsikring/**'
-      - 'migreringer/**'
-      - '.github/workflows/main.yml'
-      - '.github/workflows/build.yml'
-      - '.nais/sp-forsikring.yaml'
-      - '.nais/sp-forsikring-vars-dev.yaml'
-      - '.nais/sp-forsikring-vars-prod.yaml'
-      - 'Dockerfile'
-      - 'build.gradle.kts'
-      - 'gradle.properties'
-      - 'settings.gradle.kts'
-      - 'gradle/**'
   schedule:
     - cron: '0 4 * * 3'
       timezone: 'Europe/Oslo'
   workflow_dispatch:
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 permissions:
@@ -32,32 +19,47 @@ permissions:
   packages: read
 
 jobs:
-  build:
-    uses: ./.github/workflows/build.yml
+  bygg-og-test:
+    uses: ./.github/workflows/bygg-og-test.yml
     secrets: inherit
+    with:
+      push_image: true
 
-  deployDev:
-    name: Deploy to dev
-    needs: [ build ]
+  deploy:
+    name: Deploy (${{ matrix.module }})
+    needs: bygg-og-test
+    permissions:
+      contents: read
+      id-token: write
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - module: sp-forsikring
+            resource: .nais/sp-forsikring.yaml
+            dev_vars: .nais/sp-forsikring-vars-dev.yaml
+            prod_vars: .nais/sp-forsikring-vars-prod.yaml
+          - module: opprydding-dev
+            resource: '.nais/opprydding-dev.yaml, .nais/dev-db-policy.yaml'
+            dev_vars: /dev/null
+            prod_vars: ''
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
-      - uses: nais/deploy/actions/deploy@2d18f050f07b6a007864c6a57070ed915d571beb # v2
+
+      - name: Deploy til dev
+        uses: nais/deploy/actions/deploy@2d18f050f07b6a007864c6a57070ed915d571beb # v2
         env:
           CLUSTER: dev-gcp
-          RESOURCE: .nais/sp-forsikring.yaml
-          VARS: .nais/sp-forsikring-vars-dev.yaml
-          WORKLOAD_IMAGE: ${{ needs.build.outputs.image }}
+          RESOURCE: ${{ matrix.resource }}
+          VARS: ${{ matrix.dev_vars }}
+          WORKLOAD_IMAGE: ${{ fromJson(needs.bygg-og-test.outputs.images)[matrix.module] }}
 
-  deployProd:
-    name: Deploy to prod
-    needs: [ build, deployDev ]
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
-      - uses: nais/deploy/actions/deploy@2d18f050f07b6a007864c6a57070ed915d571beb # v2
+      - name: Deploy til prod
+        if: matrix.prod_vars != ''
+        uses: nais/deploy/actions/deploy@2d18f050f07b6a007864c6a57070ed915d571beb # v2
         env:
           CLUSTER: prod-gcp
-          RESOURCE: .nais/sp-forsikring.yaml
-          VARS: .nais/sp-forsikring-vars-prod.yaml
-          WORKLOAD_IMAGE: ${{ needs.build.outputs.image }}
+          RESOURCE: ${{ matrix.resource }}
+          VARS: ${{ matrix.prod_vars }}
+          WORKLOAD_IMAGE: ${{ fromJson(needs.bygg-og-test.outputs.images)[matrix.module] }}

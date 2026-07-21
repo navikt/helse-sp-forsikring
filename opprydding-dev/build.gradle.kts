@@ -1,9 +1,10 @@
 plugins {
-    id("sas-shared-deployable")
+    id("sas-deployable")
 }
 
-application {
+sasDeployable {
     mainClass = "no.nav.helse.sykepenger.forsikring.opprydding_dev.AppKt"
+    imageName = "${rootProject.name}-opprydding-dev"
 }
 
 dependencies {

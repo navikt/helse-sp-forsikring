@@ -1,8 +1,8 @@
 plugins {
-    id("sas-shared-deployable")
+    id("sas-deployable")
 }
 
-application {
+sasDeployable {
     mainClass = "no.nav.helse.sykepenger.forsikring.AppKt"
 }
 

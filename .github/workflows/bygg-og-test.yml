@@ -1,0 +1,109 @@
+name: Bygg og test
+
+on:
+  workflow_call:
+    inputs:
+      push_image:
+        description: 'Om imagene skal pushes til registeret (false for PR)'
+        type: boolean
+        required: true
+    outputs:
+      images:
+        description: 'JSON-map fra modulnavn til pushet image-referanse (image:tag@digest)'
+        value: ${{ jobs.bygg-og-test.outputs.images }}
+
+jobs:
+  bygg-og-test:
+    name: Bygg og test
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+      packages: read
+    outputs:
+      images: ${{ steps.image-refs.outputs.images }}
+      matrix: ${{ steps.image-refs.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      - uses: actions/setup-java@03ad4de0992f5dab5e18fcb136590ce7c4a0ac95 # v5.6.0
+        with:
+          distribution: temurin
+          java-version: 25
+
+      - uses: gradle/actions/setup-gradle@3f131e8634966bd73d06cc69884922b02e6faf92 # v6.2.0
+
+      - name: Beregn image-tag
+        id: meta
+        run: echo "tag=$(date -u +%Y.%m.%d-%H.%M)-$(git rev-parse --short=12 HEAD)" >> "$GITHUB_OUTPUT"
+
+      - name: Gradle bygg og test
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          ./gradlew clean build --build-cache
+
+      - name: Bygg image lokalt med jibDockerBuild
+        if: ${{ !inputs.push_image }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          ./gradlew jibDockerBuild --build-cache
+
+      - name: NAIS login
+        id: login
+        if: ${{ inputs.push_image }}
+        uses: nais/login@bb6c3e1e14e53d40d69d0d092bd2fce2e39ae3bf # v0
+        with:
+          team: tbd
+
+      - name: Bygg og publiser image med jib
+        if: ${{ inputs.push_image }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          ./gradlew jib --build-cache \
+            -Pimage.registry='${{ steps.login.outputs.registry }}' \
+            -Pimage.tag='${{ steps.meta.outputs.tag }}'
+
+      - name: Beregn image-referanser
+        id: image-refs
+        if: inputs.push_image
+        run: |
+          set -euo pipefail
+          images='{}'
+          matrix='[]'
+          while IFS= read -r digest_file; do
+            build_dir="$(dirname "$digest_file")"
+            module="$(basename "$(dirname "$build_dir")")"
+            ref="$(cat "$build_dir/jib-image.name")@$(cat "$digest_file")"
+            images="$(jq -c --arg m "$module" --arg r "$ref" '. + {($m): $r}' <<<"$images")"
+            matrix="$(jq -c --arg m "$module" --arg r "$ref" '. + [{name: $m, ref: $r}]' <<<"$matrix")"
+          done < <(find . -path '*/build/jib-image.digest')
+
+          {
+            echo "images=$images"
+            echo "matrix=$matrix"
+          } >> "$GITHUB_OUTPUT"
+
+  attester:
+    name: Attester og signer
+    needs: bygg-og-test
+    if: inputs.push_image
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    strategy:
+      matrix:
+        image: ${{ fromJSON(needs.bygg-og-test.outputs.matrix) }}
+    steps:
+      - name: NAIS login
+        uses: nais/login@bb6c3e1e14e53d40d69d0d092bd2fce2e39ae3bf # v0
+        with:
+          team: tbd
+
+      - name: Generer SBOM, attester og signer ${{ matrix.image.name }}
+        uses: nais/attest-sign@bb00e4baa4e7acd00b6aff2502b2dfed3d4fad40 # v2
+        with:
+          image_ref: ${{ matrix.image.ref }}
