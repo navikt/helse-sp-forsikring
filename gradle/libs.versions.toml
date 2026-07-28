@@ -32,7 +32,7 @@ tbd-libs-retry = {module = "com.github.navikt.tbd-libs:retry", version.ref = "tb
 logback-classic = "ch.qos.logback:logback-classic:1.5.38"
 logback-logstash-encoder = "net.logstash.logback:logstash-logback-encoder:9.0"
 postgresql = "org.postgresql:postgresql:42.7.13"
-rapids-and-rivers = "com.github.navikt:rapids-and-rivers:2026051812441779101082"
+rapids-and-rivers = "com.github.navikt:rapids-and-rivers:2026071513121784113927"
 ojdbc11 = "com.oracle.database.jdbc:ojdbc11:23.26.2.0.0"
 
 ktor-client-mock = {module = "io.ktor:ktor-client-mock-jvm", version.ref = "ktor"}
