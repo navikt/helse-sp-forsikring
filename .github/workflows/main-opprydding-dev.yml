@@ -12,6 +12,8 @@ on:
       - '!LICENSE'
       - '!docs/**'
       - '!.nais/**'
+      - '!.github/workflows/dependabot-auto-merge.yml'
+      - '!.github/workflows/dependency-submission.yml'
       # Ressursene som deployes av denne workflowen
       - '.nais/opprydding-dev.yaml'
       - '.nais/dev-db-policy.yaml'
