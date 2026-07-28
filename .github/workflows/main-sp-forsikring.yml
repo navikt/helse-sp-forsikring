@@ -70,7 +70,7 @@ jobs:
 
   deploy-prod:
     name: Deploy til prod
-    needs: deploy-dev
+    needs: [bygg-image, deploy-dev]
     uses: ./.github/workflows/deploy.yml
     with:
       CLUSTER: prod-gcp
