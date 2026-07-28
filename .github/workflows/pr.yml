@@ -6,6 +6,10 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
   cancel-in-progress: true
 
+permissions:
+  contents: read
+  id-token: write # for nais login
+
 jobs:
   bygg-og-test:
     name: Bygg og test
