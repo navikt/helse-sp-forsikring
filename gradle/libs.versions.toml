@@ -1,10 +1,9 @@
 [versions]
 flyway = "12.11.0"
-junit = "6.1.1"
-kotlin = "2.4.0"
 coroutines = "1.11.0"
 ktor = "3.5.1"
 tbd-libs = "20260702.1010"
+sasGradlePlugins = "20260721.2050"
 testcontainers = "2.0.5"
 
 [libraries]
@@ -36,8 +35,6 @@ postgresql = "org.postgresql:postgresql:42.7.13"
 rapids-and-rivers = "com.github.navikt:rapids-and-rivers:2026051812441779101082"
 ojdbc11 = "com.oracle.database.jdbc:ojdbc11:23.26.2.0.0"
 
-junit-bom = { module = "org.junit:junit-bom", version.ref = "junit" }
-junit-jupiter = { module = "org.junit.jupiter:junit-jupiter", version.ref = "junit" }
 ktor-client-mock = {module = "io.ktor:ktor-client-mock-jvm", version.ref = "ktor"}
 mock-oauth2-server = "no.nav.security:mock-oauth2-server:5.0.2"
 tbd-libs-rapids-and-rivers-test = { module = "com.github.navikt.tbd-libs:rapids-and-rivers-test", version.ref = "tbd-libs" }
@@ -70,4 +67,5 @@ logback = [
 ]
 
 [plugins]
-kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
+sas-deployable = { id = "no.nav.helse.sas.sas-deployable", version.ref = "sasGradlePlugins" }
+sas-multimodule-root = { id = "no.nav.helse.sas.sas-multimodule-root", version.ref = "sasGradlePlugins" }
