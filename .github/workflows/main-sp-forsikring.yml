@@ -12,13 +12,13 @@ on:
       - '!LICENSE'
       - '!docs/**'
       - '!.nais/**'
-      - '!.github/workflows/dependabot-auto-merge.yml'
-      - '!.github/workflows/dependency-submission.yml'
+      - '!.github/workflows/standard-dependabot-auto-merge.yml'
+      - '!.github/workflows/standard-dependency-submission.yml'
       # Ressursene som deployes av denne workflowen
       - '.nais/sp-forsikring.yaml'
       - '.nais/sp-forsikring-vars-*.yaml'
       # Spesielt for denne tjenesten ellers
-      - '!.github/workflows/pr.yml'
+      - '!.github/workflows/standard-pr.yml'
       - '!.github/workflows/main-opprydding-dev.yml'
       - '!opprydding-dev/**'
   schedule:
@@ -39,14 +39,14 @@ permissions:
 jobs:
   bygg-og-test:
     name: Bygg og test
-    uses: ./.github/workflows/bygg-og-test-med-gradle.yml
+    uses: navikt/helse-sas-github-workflows/.github/workflows/bygg-og-test-med-gradle.yml@d943bbae32e67f52766859e62f56aab033857bfe # v1.0.0
     permissions:
       contents: read
 
   bygg-image:
     name: Bygg image
     needs: bygg-og-test
-    uses: ./.github/workflows/bygg-modul-image-med-jib.yml
+    uses: navikt/helse-sas-github-workflows/.github/workflows/bygg-modul-image-med-jib.yml@d943bbae32e67f52766859e62f56aab033857bfe # v1.0.0
     with:
       modul: sp-forsikring
     permissions:
@@ -58,7 +58,7 @@ jobs:
   deploy-dev:
     name: Deploy til dev
     needs: bygg-image
-    uses: ./.github/workflows/deploy.yml
+    uses: navikt/helse-sas-github-workflows/.github/workflows/deploy.yml@d943bbae32e67f52766859e62f56aab033857bfe # v1.0.0
     with:
       CLUSTER: dev-gcp
       RESOURCE: .nais/sp-forsikring.yaml
@@ -71,7 +71,7 @@ jobs:
   deploy-prod:
     name: Deploy til prod
     needs: [bygg-image, deploy-dev]
-    uses: ./.github/workflows/deploy.yml
+    uses: navikt/helse-sas-github-workflows/.github/workflows/deploy.yml@d943bbae32e67f52766859e62f56aab033857bfe # v1.0.0
     with:
       CLUSTER: prod-gcp
       RESOURCE: .nais/sp-forsikring.yaml
