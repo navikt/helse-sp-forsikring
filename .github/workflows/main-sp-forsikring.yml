@@ -1,0 +1,80 @@
+name: main - sp-forsikring - Bygg, test og deploy
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      # Generelt oppsett - alt unntatt dokumentasjon / urelatert oppsett
+      - '**'
+      - '!**.md'
+      - '!CODEOWNERS'
+      - '!LICENSE'
+      - '!docs/**'
+      - '!.nais/**'
+      # Ressursene som deployes av denne workflowen
+      - '.nais/sp-forsikring.yaml'
+      - '.nais/sp-forsikring-vars-*.yaml'
+      # Spesielt for denne tjenesten ellers
+      - '!.github/workflows/pr.yml'
+      - '!.github/workflows/main-opprydding-dev.yml'
+      - '!opprydding-dev/**'
+  schedule:
+    - cron: '0 4 * * 3'
+      timezone: 'Europe/Oslo'
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  actions: read # for sarif
+  contents: read
+  security-events: write # push sarif to github security
+  id-token: write # for nais login
+
+jobs:
+  bygg-og-test:
+    name: Bygg og test
+    uses: ./.github/workflows/bygg-og-test-med-gradle.yml
+    permissions:
+      contents: read
+
+  bygg-image:
+    name: Bygg image
+    needs: bygg-og-test
+    uses: ./.github/workflows/bygg-modul-image-med-jib.yml
+    with:
+      modul: sp-forsikring
+    permissions:
+      actions: read # for sarif upload on private repos
+      contents: read
+      id-token: write # for nais login
+      security-events: write # push sarif to github security
+
+  deploy-dev:
+    name: Deploy til dev
+    needs: bygg-image
+    uses: ./.github/workflows/deploy.yml
+    with:
+      CLUSTER: dev-gcp
+      RESOURCE: .nais/sp-forsikring.yaml
+      VARS: .nais/sp-forsikring-vars-dev.yaml
+      WORKLOAD_IMAGE: ${{ needs.bygg-image.outputs.image_ref }}
+    permissions:
+      contents: read
+      id-token: write # for nais login
+
+  deploy-prod:
+    name: Deploy til prod
+    needs: deploy-dev
+    uses: ./.github/workflows/deploy.yml
+    with:
+      CLUSTER: prod-gcp
+      RESOURCE: .nais/sp-forsikring.yaml
+      VARS: .nais/sp-forsikring-vars-prod.yaml
+      WORKLOAD_IMAGE: ${{ needs.bygg-image.outputs.image_ref }}
+    permissions:
+      contents: read
+      id-token: write # for nais login

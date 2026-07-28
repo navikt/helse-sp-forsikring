@@ -1,9 +1,10 @@
-name: Bygg og test PR
+name: PR - Bygg og test alt
 
-on: [ pull_request ]
+on:
+  pull_request:
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+  group: ${{ github.workflow }}-pr${{ github.event.pull_request.number }}
   cancel-in-progress: true
 
 permissions:
@@ -22,10 +23,6 @@ jobs:
         with:
           persist-credentials: false
 
-      - uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294 # v5.0.0
-        with:
-          fail-on-severity: high # Fail if introducing high or critical vulnerabilities
-
       - uses: actions/setup-java@03ad4de0992f5dab5e18fcb136590ce7c4a0ac95 # v5.6.0
         with:
           distribution: temurin
@@ -43,4 +40,18 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          ./gradlew clean build jibDockerBuild -Djib.console=plain
+          ./gradlew clean build jibDockerBuild -Djib.console=plain --build-cache
+
+  dependency-review:
+    name: Dependency review
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+
+      - uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294 # v5.0.0
+        with:
+          fail-on-severity: high # Fail if introducing high or critical vulnerabilities

@@ -1,0 +1,48 @@
+name: Deploy
+
+on:
+  workflow_call:
+    inputs:
+      CLUSTER:
+        description: 'Which Nais cluster to deploy into.'
+        required: true
+        type: string
+      RESOURCE:
+        description: 'Comma-separated list of files containing Kubernetes resources. Must be JSON or YAML format.'
+        required: true
+        type: string
+      VARS:
+        description: 'File containing template variables. Will be interpolated with the $RESOURCE file. Must be JSON or YAML format.'
+        required: false
+        default: '/dev/null'
+        type: string
+      WORKLOAD_IMAGE:
+        description: 'Use this image in a companion Image resource.'
+        required: true
+        type: string
+
+jobs:
+  deploy:
+    name: Deploy
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      id-token: write # for nais login
+    steps:
+    - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      with:
+        persist-credentials: false
+
+    - name: NAIS login
+      uses: nais/login@bb6c3e1e14e53d40d69d0d092bd2fce2e39ae3bf # v0
+      with:
+        team: tbd
+
+    - name: Deploy
+      uses: nais/deploy/actions/deploy@2d18f050f07b6a007864c6a57070ed915d571beb # v2
+      env:
+        CLUSTER: ${{ inputs.CLUSTER }}
+        RESOURCE: ${{ inputs.RESOURCE }}
+        VARS: ${{ inputs.VARS }}
+        WORKLOAD_IMAGE: ${{ inputs.WORKLOAD_IMAGE }}
