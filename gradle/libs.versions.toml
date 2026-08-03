@@ -3,7 +3,7 @@ flyway = "13.0.0"
 coroutines = "1.11.0"
 ktor = "3.5.1"
 tbd-libs = "20260702.1010"
-sasGradlePlugins = "20260728.1104"
+sasGradlePlugins = "20260803.1345"
 testcontainers = "2.0.5"
 
 [libraries]
@@ -68,4 +68,5 @@ logback = [
 
 [plugins]
 sas-deployable = { id = "no.nav.helse.sas.sas-deployable", version.ref = "sasGradlePlugins" }
-sas-multimodule-root = { id = "no.nav.helse.sas.sas-multimodule-root", version.ref = "sasGradlePlugins" }
+sas-kotlin = { id = "no.nav.helse.sas.sas-kotlin", version.ref = "sasGradlePlugins" }
+sas-root = { id = "no.nav.helse.sas.sas-root", version.ref = "sasGradlePlugins" }

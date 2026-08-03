@@ -1,3 +1,3 @@
 plugins {
-    kotlin("jvm")
+    id("no.nav.helse.sas.sas-kotlin")
 }
