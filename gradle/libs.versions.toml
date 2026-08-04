@@ -33,7 +33,7 @@ logback-classic = "ch.qos.logback:logback-classic:1.6.0"
 logback-logstash-encoder = "net.logstash.logback:logstash-logback-encoder:9.0"
 postgresql = "org.postgresql:postgresql:42.7.13"
 rapids-and-rivers = "com.github.navikt:rapids-and-rivers:2026071513121784113927"
-ojdbc11 = "com.oracle.database.jdbc:ojdbc11:23.26.2.0.0"
+ojdbc11 = "com.oracle.database.jdbc:ojdbc11:23.26.3.0.0"
 
 ktor-client-mock = {module = "io.ktor:ktor-client-mock-jvm", version.ref = "ktor"}
 mock-oauth2-server = "no.nav.security:mock-oauth2-server:5.0.2"
