@@ -21,4 +21,3 @@ updates:
       default-days: 7
       exclude:
         - "no.nav.helse.sas.*"
-        - "sasGradlePlugins"
