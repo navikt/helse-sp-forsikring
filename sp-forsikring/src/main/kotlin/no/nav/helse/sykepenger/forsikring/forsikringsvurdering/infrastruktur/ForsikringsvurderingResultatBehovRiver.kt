@@ -8,6 +8,7 @@ import com.github.navikt.tbd_libs.rapids_and_rivers_api.MessageProblems
 import com.github.navikt.tbd_libs.rapids_and_rivers_api.RapidsConnection
 import io.micrometer.core.instrument.MeterRegistry
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.ForsikringsvurderingRepository
+import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.domain.AbstractNavKjøptForsikring.Ekskluderingsårsak.ALDRI_BETALT
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.domain.ForsikringsvurderingId
 import no.nav.helse.sykepenger.forsikring.shared.logging.MdcKey
 import no.nav.helse.sykepenger.forsikring.shared.logging.loggError
@@ -60,6 +61,7 @@ class ForsikringsvurderingResultatBehovRiver(
                             mapOf(
                                 "forsikringsvurderingId" to forsikringsvurdering.id.value.toString(),
                                 "harForsikring" to forsikringsvurdering.harForsikring,
+                                "villeHattForsikringOmDenVarBetalt" to forsikringsvurdering.ekskluderinger.any { it.ekskluderingsårsak == ALDRI_BETALT },
                                 "dekning" to
                                     forsikringsvurdering.dekning?.let { dekning ->
                                         mapOf(

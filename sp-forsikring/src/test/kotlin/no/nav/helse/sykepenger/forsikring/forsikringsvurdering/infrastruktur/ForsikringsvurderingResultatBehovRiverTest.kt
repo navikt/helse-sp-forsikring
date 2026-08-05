@@ -10,6 +10,8 @@ import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.Forsikringsvurder
 import no.nav.helse.sykepenger.forsikring.oppslag.OppslagService
 import no.nav.helse.sykepenger.forsikring.oppslag.infrastruktur.ReplikabaseDao
 import no.nav.helse.sykepenger.forsikring.oppslag.infrastruktur.TestcontainersReplikadatabase
+import no.nav.helse.sykepenger.forsikring.oppslag.infrastruktur.TestcontainersReplikadatabase.insertFkonto12
+import no.nav.helse.sykepenger.forsikring.oppslag.infrastruktur.TestcontainersReplikadatabase.insertVedfrivt
 import no.nav.helse.sykepenger.forsikring.shared.testsupport.TestcontainersSpForsikringDatabase
 import org.intellij.lang.annotations.Language
 import org.junit.jupiter.api.BeforeEach
@@ -73,13 +75,13 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
 
     @Test
     fun `returnerer løsning med forsikring basert på forsikringsvurderingId`() {
-        TestcontainersReplikadatabase.insertVedfrivt(
+        insertVedfrivt(
             IF01_AGNR_FNR = 3020112345L,
             IF10_FORSFOM_SEQ = 0,
             IF10_TYPE = '2',
             IF10_VIRKDATO = 20260101,
         )
-        TestcontainersReplikadatabase.insertFkonto12(
+        insertFkonto12(
             IF01_AGNR_FNR = 3020112345L,
             IF10_FORSFOM_SEQ = 0,
             IF12_BETDATO_SEQ = 1,
@@ -95,6 +97,7 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
             {
                 "forsikringsvurderingId": "$forsikringsvurderingId",
                 "harForsikring": true,
+                "villeHattForsikringOmDenVarBetalt": false,
                 "dekning": {
                     "iVentetid": false,
                     "grad": 100
@@ -108,14 +111,14 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
 
     @Test
     fun `returnerer løsning med forsikring og opphørsdato basert på forsikringsvurderingId`() {
-        TestcontainersReplikadatabase.insertVedfrivt(
+        insertVedfrivt(
             IF01_AGNR_FNR = 3020112345L,
             IF10_FORSFOM_SEQ = 0,
             IF10_TYPE = '2',
             IF10_VIRKDATO = 20260101,
             IF10_FORSTOM = 20260531,
         )
-        TestcontainersReplikadatabase.insertFkonto12(
+        insertFkonto12(
             IF01_AGNR_FNR = 3020112345L,
             IF10_FORSFOM_SEQ = 0,
             IF12_BETDATO_SEQ = 1,
@@ -131,6 +134,7 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
             {
                 "forsikringsvurderingId": "$forsikringsvurderingId",
                 "harForsikring": true,
+                "villeHattForsikringOmDenVarBetalt": false,
                 "dekning": {
                     "iVentetid": false,
                     "grad": 100
@@ -153,6 +157,7 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
             {
                 "forsikringsvurderingId": "$forsikringsvurderingId",
                 "harForsikring": false,
+                "villeHattForsikringOmDenVarBetalt": false,
                 "dekning": null,
                 "opphørsdato": null,
                 "forsikringskategori": null
@@ -174,6 +179,60 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
     }
 
     @Test
+    fun `villeHattForsikringOmDenVarBetalt er true når eneste forsikring aldri er betalt`() {
+        insertVedfrivt(IF01_AGNR_FNR = 3020112345L, IF10_TYPE = '2')
+
+        val forsikringsvurderingId = opprettVurdering(yrkesaktivitetstype = "SELVSTENDIG")
+
+        sendForsikringsvurderingResultatBehov(forsikringsvurderingId)
+
+        forventVilleHattForsikringOmDenVarBetalt(true)
+    }
+
+    @Test
+    fun `villeHattForsikringOmDenVarBetalt er true selv om bruker også har en gyldig betalt forsikring`() {
+        insertBetaltVedfrivt(IF01_AGNR_FNR = 3020112345L, IF10_FORSFOM_SEQ = 1, IF10_TYPE = '2')
+        insertVedfrivt(IF01_AGNR_FNR = 3020112345L, IF10_FORSFOM_SEQ = 2, IF10_TYPE = '2')
+
+        val forsikringsvurderingId = opprettVurdering(yrkesaktivitetstype = "SELVSTENDIG")
+
+        sendForsikringsvurderingResultatBehov(forsikringsvurderingId)
+
+        forventVilleHattForsikringOmDenVarBetalt(true)
+    }
+
+    @Test
+    fun `villeHattForsikringOmDenVarBetalt er false når forsikringen er betalt`() {
+        insertBetaltVedfrivt(IF01_AGNR_FNR = 3020112345L, IF10_TYPE = '2')
+
+        val forsikringsvurderingId = opprettVurdering(yrkesaktivitetstype = "SELVSTENDIG")
+
+        sendForsikringsvurderingResultatBehov(forsikringsvurderingId)
+
+        forventVilleHattForsikringOmDenVarBetalt(false)
+    }
+
+    @Test
+    fun `villeHattForsikringOmDenVarBetalt er false når forsikringen ble ekskludert av en annen årsak og fortsatt ikke betalt`() {
+        insertVedfrivt(IF01_AGNR_FNR = 3020112345L, IF10_TYPE = '2', IF10_FORSTOM = 20251231)
+
+        val forsikringsvurderingId = opprettVurdering(yrkesaktivitetstype = "SELVSTENDIG")
+
+        sendForsikringsvurderingResultatBehov(forsikringsvurderingId)
+
+        forventVilleHattForsikringOmDenVarBetalt(false)
+    }
+
+    @Test
+    fun `villeHattForsikringOmDenVarBetalt er false når bruker ikke har noen forsikringer`() {
+        val forsikringsvurderingId = opprettVurdering(yrkesaktivitetstype = "SELVSTENDIG")
+
+        sendForsikringsvurderingResultatBehov(forsikringsvurderingId)
+
+        forventVilleHattForsikringOmDenVarBetalt(false)
+    }
+
+    @Test
     fun `returnerer løsning med KOLLEKTIV forsikringskategori for JORDBRUKER`() {
         val forsikringsvurderingId =
             opprettVurdering(
@@ -188,6 +247,7 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
             {
                 "forsikringsvurderingId": "$forsikringsvurderingId",
                 "harForsikring": true,
+                "villeHattForsikringOmDenVarBetalt": false,
                 "dekning": {
                     "iVentetid": false,
                     "grad": 100
@@ -287,6 +347,7 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
             {
                 "forsikringsvurderingId": "$forsikringsvurderingId",
                 "harForsikring": true,
+                "villeHattForsikringOmDenVarBetalt": false,
                 "dekning": { "grad": $grad, "iVentetid": $iVentetid },
                 "opphørsdato": null,
                 "forsikringskategori": "$forsikringskategori"
@@ -326,6 +387,7 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
             {
                 "forsikringsvurderingId": "$forsikringsvurderingId",
                 "harForsikring": false,
+                "villeHattForsikringOmDenVarBetalt": false,
                 "dekning": null,
                 "opphørsdato": null,
                 "forsikringskategori": null
@@ -356,6 +418,7 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
             {
                 "forsikringsvurderingId": "$forsikringsvurderingId",
                 "harForsikring": false,
+                "villeHattForsikringOmDenVarBetalt": false,
                 "dekning": null,
                 "opphørsdato": null,
                 "forsikringskategori": null
@@ -387,6 +450,7 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
             {
                 "forsikringsvurderingId": "$forsikringsvurderingId",
                 "harForsikring": true,
+                "villeHattForsikringOmDenVarBetalt": false,
                 "dekning": { "grad": 100, "iVentetid": true },
                 "opphørsdato": null,
                 "forsikringskategori": "NAVKJØPT"
@@ -421,6 +485,7 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
             {
                 "forsikringsvurderingId": "$forsikringsvurderingId",
                 "harForsikring": false,
+                "villeHattForsikringOmDenVarBetalt": false,
                 "dekning": null,
                 "opphørsdato": null,
                 "forsikringskategori": null
@@ -455,6 +520,7 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
             {
                 "forsikringsvurderingId": "$forsikringsvurderingId",
                 "harForsikring": true,
+                "villeHattForsikringOmDenVarBetalt": false,
                 "dekning": { "grad": 100, "iVentetid": false },
                 "opphørsdato": "2026-01-01",
                 "forsikringskategori": "NAVKJØPT"
@@ -489,6 +555,7 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
             {
                 "forsikringsvurderingId": "$forsikringsvurderingId",
                 "harForsikring": true,
+                "villeHattForsikringOmDenVarBetalt": false,
                 "dekning": { "grad": 100, "iVentetid": false },
                 "opphørsdato": "2026-01-02",
                 "forsikringskategori": "NAVKJØPT"
@@ -523,6 +590,7 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
             {
                 "forsikringsvurderingId": "$forsikringsvurderingId",
                 "harForsikring": true,
+                "villeHattForsikringOmDenVarBetalt": false,
                 "dekning": { "grad": 100, "iVentetid": false },
                 "opphørsdato": null,
                 "forsikringskategori": "NAVKJØPT"
@@ -557,6 +625,7 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
             {
                 "forsikringsvurderingId": "$forsikringsvurderingId",
                 "harForsikring": false,
+                "villeHattForsikringOmDenVarBetalt": false,
                 "dekning": null,
                 "opphørsdato": null,
                 "forsikringskategori": null
@@ -591,6 +660,7 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
             {
                 "forsikringsvurderingId": "$forsikringsvurderingId",
                 "harForsikring": true,
+                "villeHattForsikringOmDenVarBetalt": false,
                 "dekning": { "grad": 100, "iVentetid": false },
                 "opphørsdato": null,
                 "forsikringskategori": "NAVKJØPT"
@@ -625,6 +695,7 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
             {
                 "forsikringsvurderingId": "$forsikringsvurderingId",
                 "harForsikring": true,
+                "villeHattForsikringOmDenVarBetalt": false,
                 "dekning": { "grad": 100, "iVentetid": false },
                 "opphørsdato": null,
                 "forsikringskategori": "NAVKJØPT"
@@ -635,7 +706,7 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
 
     @Test
     fun `eliminerer forsikring som aldri er betalt`() {
-        TestcontainersReplikadatabase.insertVedfrivt(IF01_AGNR_FNR = 3020112345L, IF10_TYPE = '2')
+        insertVedfrivt(IF01_AGNR_FNR = 3020112345L, IF10_TYPE = '2')
 
         testForsikringsvurderingOgForventResultat(
             """
@@ -655,6 +726,7 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
             {
                 "forsikringsvurderingId": "$forsikringsvurderingId",
                 "harForsikring": false,
+                "villeHattForsikringOmDenVarBetalt": true,
                 "dekning": null,
                 "opphørsdato": null,
                 "forsikringskategori": null
@@ -665,8 +737,8 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
 
     @Test
     fun `eliminerer forsikring med betdato null`() {
-        TestcontainersReplikadatabase.insertVedfrivt(IF01_AGNR_FNR = 3020112345L, IF10_FORSFOM_SEQ = 0, IF10_TYPE = '2')
-        TestcontainersReplikadatabase.insertFkonto12(IF01_AGNR_FNR = 3020112345L, IF10_FORSFOM_SEQ = 0, IF12_BETDATO_SEQ = 1, IF12_BETDATO = null)
+        insertVedfrivt(IF01_AGNR_FNR = 3020112345L, IF10_FORSFOM_SEQ = 0, IF10_TYPE = '2')
+        insertFkonto12(IF01_AGNR_FNR = 3020112345L, IF10_FORSFOM_SEQ = 0, IF12_BETDATO_SEQ = 1, IF12_BETDATO = null)
 
         testForsikringsvurderingOgForventResultat(
             """
@@ -686,6 +758,7 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
             {
                 "forsikringsvurderingId": "$forsikringsvurderingId",
                 "harForsikring": false,
+                "villeHattForsikringOmDenVarBetalt": true,
                 "dekning": null,
                 "opphørsdato": null,
                 "forsikringskategori": null
@@ -696,8 +769,8 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
 
     @Test
     fun `eliminerer forsikring med betdato 0`() {
-        TestcontainersReplikadatabase.insertVedfrivt(IF01_AGNR_FNR = 3020112345L, IF10_FORSFOM_SEQ = 0, IF10_TYPE = '2')
-        TestcontainersReplikadatabase.insertFkonto12(IF01_AGNR_FNR = 3020112345L, IF10_FORSFOM_SEQ = 0, IF12_BETDATO_SEQ = 1, IF12_BETDATO = 0)
+        insertVedfrivt(IF01_AGNR_FNR = 3020112345L, IF10_FORSFOM_SEQ = 0, IF10_TYPE = '2')
+        insertFkonto12(IF01_AGNR_FNR = 3020112345L, IF10_FORSFOM_SEQ = 0, IF12_BETDATO_SEQ = 1, IF12_BETDATO = 0)
 
         testForsikringsvurderingOgForventResultat(
             """
@@ -717,6 +790,7 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
             {
                 "forsikringsvurderingId": "$forsikringsvurderingId",
                 "harForsikring": false,
+                "villeHattForsikringOmDenVarBetalt": true,
                 "dekning": null,
                 "opphørsdato": null,
                 "forsikringskategori": null
@@ -752,6 +826,7 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
             {
                 "forsikringsvurderingId": "$forsikringsvurderingId",
                 "harForsikring": false,
+                "villeHattForsikringOmDenVarBetalt": false,
                 "dekning": null,
                 "opphørsdato": null,
                 "forsikringskategori": null
@@ -787,6 +862,7 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
             {
                 "forsikringsvurderingId": "$forsikringsvurderingId",
                 "harForsikring": false,
+                "villeHattForsikringOmDenVarBetalt": false,
                 "dekning": null,
                 "opphørsdato": null,
                 "forsikringskategori": null
@@ -822,6 +898,7 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
             {
                 "forsikringsvurderingId": "$forsikringsvurderingId",
                 "harForsikring": true,
+                "villeHattForsikringOmDenVarBetalt": false,
                 "dekning": { "grad": 100, "iVentetid": false },
                 "opphørsdato": null,
                 "forsikringskategori": "NAVKJØPT"
@@ -857,6 +934,7 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
             {
                 "forsikringsvurderingId": "$forsikringsvurderingId",
                 "harForsikring": true,
+                "villeHattForsikringOmDenVarBetalt": false,
                 "dekning": { "grad": 100, "iVentetid": false },
                 "opphørsdato": null,
                 "forsikringskategori": "NAVKJØPT"
@@ -927,6 +1005,16 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
         )
     }
 
+    private fun forventVilleHattForsikringOmDenVarBetalt(forventet: Boolean) {
+        assertEquals(1, rapid.inspektør.size)
+        val faktisk =
+            rapid.inspektør
+                .message(0)["@løsning"]["ForsikringsvurderingResultat"]["villeHattForsikringOmDenVarBetalt"]
+                ?.asBoolean()
+        assertNotNull(faktisk) { "Manglet villeHattForsikringOmDenVarBetalt i løsning" }
+        assertEquals(forventet, faktisk)
+    }
+
     private fun assertJsonEquals(
         expectedJson: String,
         actualJsonNode: JsonNode,
@@ -976,7 +1064,7 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
         IF10_FORSTOM: Int = 0,
         IF10_GODKJ: Char = 'J',
     ) {
-        TestcontainersReplikadatabase.insertVedfrivt(
+        insertVedfrivt(
             IF01_AGNR_FNR = IF01_AGNR_FNR,
             IF10_FORSFOM_SEQ = IF10_FORSFOM_SEQ,
             IF10_TYPE = IF10_TYPE,
@@ -985,7 +1073,7 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
             IF10_FORSTOM = IF10_FORSTOM,
             IF10_GODKJ = IF10_GODKJ,
         )
-        TestcontainersReplikadatabase.insertFkonto12(
+        insertFkonto12(
             IF01_AGNR_FNR = IF01_AGNR_FNR,
             IF10_FORSFOM_SEQ = IF10_FORSFOM_SEQ,
             IF12_BETDATO_SEQ = 1,
