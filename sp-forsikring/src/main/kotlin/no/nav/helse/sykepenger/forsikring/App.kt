@@ -86,6 +86,7 @@ fun launchApplication(env: Map<String, String>) {
             withKtorModule {
                 forsikringsvurderingApi(
                     replikabaseDataSource = replikabaseDataSource,
+                    spForsikringDataSource = spForsikringDataSource,
                     forsikringsvurderingRepository = forsikringsvurderingRepository,
                     clientId = env.getValue("AZURE_APP_CLIENT_ID"),
                     issuerUrl = env.getValue("AZURE_OPENID_CONFIG_ISSUER"),

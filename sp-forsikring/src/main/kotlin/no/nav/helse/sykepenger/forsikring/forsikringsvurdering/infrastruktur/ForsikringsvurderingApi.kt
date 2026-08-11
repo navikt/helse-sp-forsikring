@@ -16,13 +16,16 @@ import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.ForsikringsvurderingRepository
+import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.domain.AbstractNavKjøptForsikring
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.domain.Forsikringskategori.KollektivForsikring
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.domain.Forsikringskategori.NavKjøptForsikring
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.domain.ForsikringsvurderingId
+import no.nav.helse.sykepenger.forsikring.oppslag.infrastruktur.OppslagDao
 import no.nav.helse.sykepenger.forsikring.oppslag.infrastruktur.ReplikabaseDao
 import no.nav.helse.sykepenger.forsikring.oppslag.infrastruktur.mapTilRåNavKjøptForsikring
 import no.nav.helse.sykepenger.forsikring.shared.logging.loggInfo
 import no.nav.helse.sykepenger.forsikring.shared.logging.teamLogs
+import no.nav.helse.sykepenger.forsikring.shared.util.withSession
 import org.slf4j.event.Level
 import java.net.URI
 import java.time.LocalDate
@@ -40,11 +43,40 @@ data class ForsikringsvurderingResponse(
     val harForsikringMedDekningIVentetid: Boolean,
 )
 
+open class SpesialistForsikringResponse(
+    val virkningsdato: LocalDate,
+    val opphørsdato: LocalDate?,
+    val dekningsgrad: Int,
+    val dekningIVentetid: Boolean,
+)
+
+enum class SpesialistEkskluderingsårsakResponse {
+    SKJÆRINGSTIDSPUNKT_INNEN_28_DAGER_FØR_VIRKNINGSDATO,
+    SKJÆRINGSTIDSPUNKT_MER_ENN_28_DAGER_FØR_VIRKNINGSDATO,
+    OPPHØRT_PÅ_SKJÆRINGSTIDSPUNKT,
+    ALDRI_BETALT,
+}
+
+class SpesialistEkskludertForsikringResponse(
+    virkningsdato: LocalDate,
+    opphørsdato: LocalDate?,
+    dekningsgrad: Int,
+    dekningIVentetid: Boolean,
+    val ekskluderingsårsak: SpesialistEkskluderingsårsakResponse,
+) : SpesialistForsikringResponse(
+        virkningsdato,
+        opphørsdato,
+        dekningsgrad,
+        dekningIVentetid,
+    )
+
 data class SpesialistForsikringsvurderingResponse(
     val identitetsnummer: String,
     val harForsikring: Boolean,
     val forsikringskategori: String?,
     val dekning: SpesialistDekningResponse?,
+    val ekskluderteForsikringer: List<SpesialistEkskludertForsikringResponse>,
+    val gjeldendeForsikring: SpesialistForsikringResponse?,
 )
 
 data class SpesialistDekningResponse(
@@ -62,6 +94,7 @@ data class ProblemResponse(
 
 fun Application.forsikringsvurderingApi(
     replikabaseDataSource: DataSource,
+    spForsikringDataSource: DataSource,
     forsikringsvurderingRepository: ForsikringsvurderingRepository,
     clientId: String,
     issuerUrl: String,
@@ -148,8 +181,19 @@ fun Application.forsikringsvurderingApi(
                             ),
                         )
 
+                val oppslag =
+                    spForsikringDataSource.withSession { session ->
+                        session.transaction { transaction ->
+                            OppslagDao().hentOppslag(
+                                oppslagId = forsikringsvurdering.oppslagId,
+                                session = transaction,
+                            )
+                        }
+                    }
+
                 val identitetsnummer = jsonMapper.readTree(forsikringsvurdering.behovJson)["fødselsnummer"].asText()
 
+                val mapIdTilEkskluderingsårsak = forsikringsvurdering.ekskluderinger.associate { it.oppslagIfVedfrivt10Id to it.ekskluderingsårsak }
                 val response =
                     SpesialistForsikringsvurderingResponse(
                         identitetsnummer = identitetsnummer,
@@ -167,6 +211,40 @@ fun Application.forsikringsvurderingApi(
                                 is NavKjøptForsikring -> "Individuell"
                                 null -> null
                             },
+                        ekskluderteForsikringer =
+                            oppslag.navKjøpteForsikringer
+                                .filter {
+                                    mapIdTilEkskluderingsårsak.containsKey(it.id)
+                                }.map {
+                                    it to mapIdTilEkskluderingsårsak[it.id]!!
+                                }.map {
+                                    SpesialistEkskludertForsikringResponse(
+                                        virkningsdato = it.first.virkningsdato,
+                                        opphørsdato = it.first.opphørsdato,
+                                        dekningsgrad = it.first.dekningGrad(),
+                                        dekningIVentetid = it.first.dekningFraDag() == 1,
+                                        ekskluderingsårsak =
+                                            when (it.second) {
+                                                AbstractNavKjøptForsikring.Ekskluderingsårsak.SKJÆRINGSTIDSPUNKT_INNEN_28_DAGER_FØR_VIRKNINGSDATO -> SpesialistEkskluderingsårsakResponse.SKJÆRINGSTIDSPUNKT_INNEN_28_DAGER_FØR_VIRKNINGSDATO
+                                                AbstractNavKjøptForsikring.Ekskluderingsårsak.SKJÆRINGSTIDSPUNKT_MER_ENN_28_DAGER_FØR_VIRKNINGSDATO -> SpesialistEkskluderingsårsakResponse.SKJÆRINGSTIDSPUNKT_MER_ENN_28_DAGER_FØR_VIRKNINGSDATO
+                                                AbstractNavKjøptForsikring.Ekskluderingsårsak.OPPHØRT_PÅ_SKJÆRINGSTIDSPUNKT -> SpesialistEkskluderingsårsakResponse.OPPHØRT_PÅ_SKJÆRINGSTIDSPUNKT
+                                                AbstractNavKjøptForsikring.Ekskluderingsårsak.ALDRI_BETALT -> SpesialistEkskluderingsårsakResponse.ALDRI_BETALT
+                                            },
+                                    )
+                                },
+                        gjeldendeForsikring =
+                            oppslag.navKjøpteForsikringer
+                                .filterNot {
+                                    mapIdTilEkskluderingsårsak.containsKey(it.id)
+                                }.minByOrNull { it.dekningFraDag() }
+                                ?.let {
+                                    SpesialistForsikringResponse(
+                                        virkningsdato = it.virkningsdato,
+                                        opphørsdato = it.opphørsdato,
+                                        dekningsgrad = it.dekningGrad(),
+                                        dekningIVentetid = it.dekningFraDag() == 1,
+                                    )
+                                },
                     )
 
                 loggInfo("Svarer på GET /forsikringsvurderinger/$id", "response" to response)

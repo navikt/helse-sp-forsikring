@@ -1,5 +1,8 @@
 package no.nav.helse.sykepenger.forsikring.forsikringsvurdering.infrastruktur
 
+import com.fasterxml.jackson.databind.JsonNode
+import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
 import io.ktor.server.cio.*
 import io.ktor.server.engine.*
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.ForsikringsvurderingService
@@ -14,8 +17,7 @@ import org.apache.hc.client5.http.fluent.Request
 import org.apache.hc.core5.http.ContentType
 import org.apache.hc.core5.http.io.entity.EntityUtils
 import org.junit.jupiter.api.AfterAll
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
@@ -26,6 +28,12 @@ import java.time.LocalDate
 import java.util.*
 
 private const val CLIENT_ID = "sp-forsikring-junit"
+
+private val testJsonMapper = ObjectMapper().registerModule(JavaTimeModule())
+
+private fun String.somJson(): JsonNode = testJsonMapper.readTree(this)
+
+private fun JsonNode.localDate(feltnavn: String): LocalDate? = this[feltnavn]?.takeUnless { it.isNull }?.let { testJsonMapper.treeToValue(it, LocalDate::class.java) }
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class ForsikringsvurderingApiTest {
@@ -43,6 +51,7 @@ class ForsikringsvurderingApiTest {
         embeddedServer(CIO, port = port) {
             forsikringsvurderingApi(
                 replikabaseDataSource = TestcontainersReplikadatabase.dataSource,
+                spForsikringDataSource = TestcontainersSpForsikringDatabase.dataSource,
                 forsikringsvurderingRepository = forsikringsvurderingRepository,
                 clientId = CLIENT_ID,
                 issuerUrl = mockOAuth2Server.issuerUrl("default").toString(),
@@ -304,6 +313,255 @@ class ForsikringsvurderingApiTest {
         assertEquals(401, statusCode)
     }
 
+    @Test
+    fun `GET forsikringsvurderinger returnerer gjeldendeForsikring og tom liste med ekskluderteForsikringer`() {
+        TestcontainersReplikadatabase.insertVedfrivt(
+            IF01_AGNR_FNR = 56341278901L,
+            IF10_TYPE = '1',
+            IF10_VIRKDATO = 20260101,
+        )
+        TestcontainersReplikadatabase.insertFkonto12(
+            IF01_AGNR_FNR = 56341278901L,
+            IF10_FORSFOM_SEQ = 0,
+            IF12_BETDATO_SEQ = 1,
+            IF12_BETDATO = 20260101,
+        )
+        val forsikringsvurderingId =
+            opprettForsikringsvurdering(
+                identitetsnummer = "12345678901",
+                skjæringstidspunkt = LocalDate.parse("2026-01-01"),
+            )
+
+        val (statusCode, body) = getForsikringsvurdering(forsikringsvurderingId, bearerToken())
+
+        assertEquals(200, statusCode) { "Body was: $body" }
+        val json = body.somJson()
+        assertTrue(json["ekskluderteForsikringer"].isEmpty) { "Forventet ingen ekskluderte forsikringer, fikk: $body" }
+
+        val gjeldendeForsikring = json["gjeldendeForsikring"]
+        assertNotNull(gjeldendeForsikring) { "Forventet gjeldendeForsikring, fikk: $body" }
+        assertEquals(LocalDate.parse("2026-01-01"), gjeldendeForsikring.localDate("virkningsdato"))
+        assertNull(gjeldendeForsikring.localDate("opphørsdato"))
+        assertEquals(80, gjeldendeForsikring["dekningsgrad"].asInt())
+        assertTrue(gjeldendeForsikring["dekningIVentetid"].asBoolean()) { "Forventet dekningIVentetid=true, fikk: $body" }
+    }
+
+    @Test
+    fun `GET forsikringsvurderinger returnerer gjeldendeForsikring uten dekning i ventetid for dag-17-forsikring`() {
+        TestcontainersReplikadatabase.insertVedfrivt(
+            IF01_AGNR_FNR = 56341278901L,
+            IF10_TYPE = '2',
+            IF10_VIRKDATO = 20260101,
+        )
+        TestcontainersReplikadatabase.insertFkonto12(
+            IF01_AGNR_FNR = 56341278901L,
+            IF10_FORSFOM_SEQ = 0,
+            IF12_BETDATO_SEQ = 1,
+            IF12_BETDATO = 20260101,
+        )
+        val forsikringsvurderingId =
+            opprettForsikringsvurdering(
+                identitetsnummer = "12345678901",
+                skjæringstidspunkt = LocalDate.parse("2026-01-01"),
+            )
+
+        val (statusCode, body) = getForsikringsvurdering(forsikringsvurderingId, bearerToken())
+
+        assertEquals(200, statusCode) { "Body was: $body" }
+        val gjeldendeForsikring = body.somJson()["gjeldendeForsikring"]
+        assertNotNull(gjeldendeForsikring) { "Forventet gjeldendeForsikring, fikk: $body" }
+        assertEquals(100, gjeldendeForsikring["dekningsgrad"].asInt())
+        assertEquals(false, gjeldendeForsikring["dekningIVentetid"].asBoolean()) { "Forventet dekningIVentetid=false, fikk: $body" }
+    }
+
+    @Test
+    fun `GET forsikringsvurderinger returnerer null gjeldendeForsikring og tom liste når bruker ikke har forsikringer`() {
+        val forsikringsvurderingId =
+            opprettForsikringsvurdering(
+                identitetsnummer = "12345678901",
+                skjæringstidspunkt = LocalDate.parse("2026-01-01"),
+            )
+
+        val (statusCode, body) = getForsikringsvurdering(forsikringsvurderingId, bearerToken())
+
+        assertEquals(200, statusCode) { "Body was: $body" }
+        val json = body.somJson()
+        assertTrue(json["gjeldendeForsikring"].isNull) { "Forventet gjeldendeForsikring=null, fikk: $body" }
+        assertTrue(json["ekskluderteForsikringer"].isEmpty) { "Forventet ingen ekskluderte forsikringer, fikk: $body" }
+    }
+
+    @Test
+    fun `GET forsikringsvurderinger returnerer ekskludert forsikring med årsak ALDRI_BETALT`() {
+        TestcontainersReplikadatabase.insertVedfrivt(
+            IF01_AGNR_FNR = 56341278901L,
+            IF10_TYPE = '1',
+            IF10_VIRKDATO = 20260101,
+        )
+        val forsikringsvurderingId =
+            opprettForsikringsvurdering(
+                identitetsnummer = "12345678901",
+                skjæringstidspunkt = LocalDate.parse("2026-01-01"),
+            )
+
+        val (statusCode, body) = getForsikringsvurdering(forsikringsvurderingId, bearerToken())
+
+        assertEquals(200, statusCode) { "Body was: $body" }
+        val json = body.somJson()
+        assertTrue(json["gjeldendeForsikring"].isNull) { "Forventet gjeldendeForsikring=null, fikk: $body" }
+
+        val ekskluderteForsikringer = json["ekskluderteForsikringer"]
+        assertEquals(1, ekskluderteForsikringer.size()) { "Forventet én ekskludert forsikring, fikk: $body" }
+        val ekskludert = ekskluderteForsikringer.first()
+        assertEquals("ALDRI_BETALT", ekskludert["ekskluderingsårsak"].asText())
+        assertEquals(LocalDate.parse("2026-01-01"), ekskludert.localDate("virkningsdato"))
+        assertNull(ekskludert.localDate("opphørsdato"))
+        assertEquals(80, ekskludert["dekningsgrad"].asInt())
+        assertTrue(ekskludert["dekningIVentetid"].asBoolean()) { "Forventet dekningIVentetid=true, fikk: $body" }
+    }
+
+    @Test
+    fun `GET forsikringsvurderinger returnerer ekskludert forsikring med årsak OPPHØRT_PÅ_SKJÆRINGSTIDSPUNKT`() {
+        TestcontainersReplikadatabase.insertVedfrivt(
+            IF01_AGNR_FNR = 56341278901L,
+            IF10_TYPE = '1',
+            IF10_VIRKDATO = 20250601,
+            IF10_FORSTOM = 20251231,
+        )
+        TestcontainersReplikadatabase.insertFkonto12(
+            IF01_AGNR_FNR = 56341278901L,
+            IF10_FORSFOM_SEQ = 0,
+            IF12_BETDATO_SEQ = 1,
+            IF12_BETDATO = 20250601,
+        )
+        val forsikringsvurderingId =
+            opprettForsikringsvurdering(
+                identitetsnummer = "12345678901",
+                skjæringstidspunkt = LocalDate.parse("2026-01-01"),
+            )
+
+        val (statusCode, body) = getForsikringsvurdering(forsikringsvurderingId, bearerToken())
+
+        assertEquals(200, statusCode) { "Body was: $body" }
+        val json = body.somJson()
+        assertTrue(json["gjeldendeForsikring"].isNull) { "Forventet gjeldendeForsikring=null, fikk: $body" }
+
+        val ekskludert = json["ekskluderteForsikringer"].single()
+        assertEquals("OPPHØRT_PÅ_SKJÆRINGSTIDSPUNKT", ekskludert["ekskluderingsårsak"].asText())
+        assertEquals(LocalDate.parse("2025-06-01"), ekskludert.localDate("virkningsdato"))
+        assertEquals(LocalDate.parse("2025-12-31"), ekskludert.localDate("opphørsdato"))
+    }
+
+    @Test
+    fun `GET forsikringsvurderinger returnerer ekskludert forsikring med årsak SKJÆRINGSTIDSPUNKT_INNEN_28_DAGER_FØR_VIRKNINGSDATO`() {
+        TestcontainersReplikadatabase.insertVedfrivt(
+            IF01_AGNR_FNR = 56341278901L,
+            IF10_TYPE = '1',
+            IF10_VIRKDATO = 20260115,
+        )
+        TestcontainersReplikadatabase.insertFkonto12(
+            IF01_AGNR_FNR = 56341278901L,
+            IF10_FORSFOM_SEQ = 0,
+            IF12_BETDATO_SEQ = 1,
+            IF12_BETDATO = 20260115,
+        )
+        val forsikringsvurderingId =
+            opprettForsikringsvurdering(
+                identitetsnummer = "12345678901",
+                skjæringstidspunkt = LocalDate.parse("2026-01-01"),
+            )
+
+        val (statusCode, body) = getForsikringsvurdering(forsikringsvurderingId, bearerToken())
+
+        assertEquals(200, statusCode) { "Body was: $body" }
+        val json = body.somJson()
+        assertTrue(json["gjeldendeForsikring"].isNull) { "Forventet gjeldendeForsikring=null, fikk: $body" }
+
+        val ekskludert = json["ekskluderteForsikringer"].single()
+        assertEquals("SKJÆRINGSTIDSPUNKT_INNEN_28_DAGER_FØR_VIRKNINGSDATO", ekskludert["ekskluderingsårsak"].asText())
+        assertEquals(LocalDate.parse("2026-01-15"), ekskludert.localDate("virkningsdato"))
+    }
+
+    @Test
+    fun `GET forsikringsvurderinger returnerer ekskludert forsikring med årsak SKJÆRINGSTIDSPUNKT_MER_ENN_28_DAGER_FØR_VIRKNINGSDATO`() {
+        TestcontainersReplikadatabase.insertVedfrivt(
+            IF01_AGNR_FNR = 56341278901L,
+            IF10_TYPE = '1',
+            IF10_VIRKDATO = 20260601,
+        )
+        TestcontainersReplikadatabase.insertFkonto12(
+            IF01_AGNR_FNR = 56341278901L,
+            IF10_FORSFOM_SEQ = 0,
+            IF12_BETDATO_SEQ = 1,
+            IF12_BETDATO = 20260601,
+        )
+        val forsikringsvurderingId =
+            opprettForsikringsvurdering(
+                identitetsnummer = "12345678901",
+                skjæringstidspunkt = LocalDate.parse("2026-01-01"),
+            )
+
+        val (statusCode, body) = getForsikringsvurdering(forsikringsvurderingId, bearerToken())
+
+        assertEquals(200, statusCode) { "Body was: $body" }
+        val json = body.somJson()
+        assertTrue(json["gjeldendeForsikring"].isNull) { "Forventet gjeldendeForsikring=null, fikk: $body" }
+
+        val ekskludert = json["ekskluderteForsikringer"].single()
+        assertEquals("SKJÆRINGSTIDSPUNKT_MER_ENN_28_DAGER_FØR_VIRKNINGSDATO", ekskludert["ekskluderingsårsak"].asText())
+        assertEquals(LocalDate.parse("2026-06-01"), ekskludert.localDate("virkningsdato"))
+    }
+
+    @Test
+    fun `GET forsikringsvurderinger returnerer både gjeldendeForsikring og ekskluderteForsikringer`() {
+        TestcontainersReplikadatabase.insertVedfrivt(
+            IF01_AGNR_FNR = 56341278901L,
+            IF10_FORSFOM_SEQ = 0,
+            IF10_TYPE = '2',
+            IF10_VIRKDATO = 20230101,
+            IF10_FORSTOM = 20241231,
+        )
+        TestcontainersReplikadatabase.insertFkonto12(
+            IF01_AGNR_FNR = 56341278901L,
+            IF10_FORSFOM_SEQ = 0,
+            IF12_BETDATO_SEQ = 1,
+            IF12_BETDATO = 20230101,
+        )
+        TestcontainersReplikadatabase.insertVedfrivt(
+            IF01_AGNR_FNR = 56341278901L,
+            IF10_FORSFOM_SEQ = 1,
+            IF10_TYPE = '1',
+            IF10_VIRKDATO = 20250101,
+        )
+        TestcontainersReplikadatabase.insertFkonto12(
+            IF01_AGNR_FNR = 56341278901L,
+            IF10_FORSFOM_SEQ = 1,
+            IF12_BETDATO_SEQ = 1,
+            IF12_BETDATO = 20250101,
+        )
+        val forsikringsvurderingId =
+            opprettForsikringsvurdering(
+                identitetsnummer = "12345678901",
+                skjæringstidspunkt = LocalDate.parse("2026-01-01"),
+            )
+
+        val (statusCode, body) = getForsikringsvurdering(forsikringsvurderingId, bearerToken())
+
+        assertEquals(200, statusCode) { "Body was: $body" }
+        val json = body.somJson()
+
+        val gjeldendeForsikring = json["gjeldendeForsikring"]
+        assertNotNull(gjeldendeForsikring) { "Forventet gjeldendeForsikring, fikk: $body" }
+        assertEquals(LocalDate.parse("2025-01-01"), gjeldendeForsikring.localDate("virkningsdato"))
+        assertNull(gjeldendeForsikring.localDate("opphørsdato"))
+        assertEquals(80, gjeldendeForsikring["dekningsgrad"].asInt())
+
+        val ekskludert = json["ekskluderteForsikringer"].single()
+        assertEquals("OPPHØRT_PÅ_SKJÆRINGSTIDSPUNKT", ekskludert["ekskluderingsårsak"].asText())
+        assertEquals(LocalDate.parse("2023-01-01"), ekskludert.localDate("virkningsdato"))
+        assertEquals(LocalDate.parse("2024-12-31"), ekskludert.localDate("opphørsdato"))
+        assertEquals(100, ekskludert["dekningsgrad"].asInt())
+    }
+
     private fun bearerToken(
         issuerId: String = "default",
         audience: String = CLIENT_ID,
@@ -346,7 +604,7 @@ class ForsikringsvurderingApiTest {
         Request
             .post("$serverUrl/api/forsikringsvurdering")
             .bodyString(
-                """{ "identitetsnummer": "$identitetsnummer", "skjæringstidspunkt": "$`skjæringstidspunkt`" }""",
+                """{ "identitetsnummer": "$identitetsnummer", "skjæringstidspunkt": "$skjæringstidspunkt" }""",
                 ContentType.APPLICATION_JSON,
             ).apply { token?.let { addHeader("Authorization", "Bearer $it") } }
             .execute()
