@@ -456,9 +456,9 @@ class ForsikringsvurderingApiTest {
             forventetBokstav = "a",
             faktisk = ekskludert["folketrygdlovenreferanse"],
         )
-        val ekskluderingsBegrunnelse = ekskludert["ekskluderingsBegrunnelse"]
-        assertEquals("Forsikringen er innvilget, men ikke betalt ennå", ekskluderingsBegrunnelse["forklaring"].asText())
-        assertTrue(ekskluderingsBegrunnelse["folketrygdlovenreferanse"].isNull) { "Forventet ingen referanse i begrunnelsen, fikk: $body" }
+        val ekskluderingsbegrunnelse = ekskludert["ekskluderingsbegrunnelse"]
+        assertEquals("Forsikringen er innvilget, men ikke betalt ennå", ekskluderingsbegrunnelse["forklaring"].asText())
+        assertTrue(ekskluderingsbegrunnelse["folketrygdlovenreferanse"].isNull) { "Forventet ingen referanse i begrunnelsen, fikk: $body" }
     }
 
     @Test
@@ -499,14 +499,14 @@ class ForsikringsvurderingApiTest {
             forventetBokstav = "a",
             faktisk = ekskludert["folketrygdlovenreferanse"],
         )
-        val ekskluderingsBegrunnelse = ekskludert["ekskluderingsBegrunnelse"]
-        assertEquals("Forsikringen var opphørt på skjæringstidspunktet", ekskluderingsBegrunnelse["forklaring"].asText())
+        val ekskluderingsbegrunnelse = ekskludert["ekskluderingsbegrunnelse"]
+        assertEquals("Forsikringen var opphørt på skjæringstidspunktet", ekskluderingsbegrunnelse["forklaring"].asText())
         assertFolketrygdlovenreferanse(
             forventetKapittel = 8,
             forventetParagrafIKapittel = 37,
             forventetLedd = null,
             forventetBokstav = null,
-            faktisk = ekskluderingsBegrunnelse["folketrygdlovenreferanse"],
+            faktisk = ekskluderingsbegrunnelse["folketrygdlovenreferanse"],
         )
     }
 
@@ -538,9 +538,9 @@ class ForsikringsvurderingApiTest {
         val ekskludert = json["ekskluderteForsikringer"].single()
         assertEquals("SKJÆRINGSTIDSPUNKT_INNEN_28_DAGER_FØR_VIRKNINGSDATO", ekskludert["ekskluderingsårsak"].asText())
         assertEquals(LocalDate.parse("2026-01-15"), ekskludert.localDate("virkningsdato"))
-        val ekskluderingsBegrunnelse = ekskludert["ekskluderingsBegrunnelse"]
-        assertEquals("Forsikringen var ikke ennå gyldig på skjæringstidspunktet", ekskluderingsBegrunnelse["forklaring"].asText())
-        assertTrue(ekskluderingsBegrunnelse["folketrygdlovenreferanse"].isNull) { "Forventet ingen referanse i begrunnelsen, fikk: $body" }
+        val ekskluderingsbegrunnelse = ekskludert["ekskluderingsbegrunnelse"]
+        assertEquals("Forsikringen var ikke ennå gyldig på skjæringstidspunktet", ekskluderingsbegrunnelse["forklaring"].asText())
+        assertTrue(ekskluderingsbegrunnelse["folketrygdlovenreferanse"].isNull) { "Forventet ingen referanse i begrunnelsen, fikk: $body" }
     }
 
     @Test
@@ -571,9 +571,9 @@ class ForsikringsvurderingApiTest {
         val ekskludert = json["ekskluderteForsikringer"].single()
         assertEquals("SKJÆRINGSTIDSPUNKT_MER_ENN_28_DAGER_FØR_VIRKNINGSDATO", ekskludert["ekskluderingsårsak"].asText())
         assertEquals(LocalDate.parse("2026-06-01"), ekskludert.localDate("virkningsdato"))
-        val ekskluderingsBegrunnelse = ekskludert["ekskluderingsBegrunnelse"]
-        assertEquals("Forsikringen var ikke ennå gyldig på skjæringstidspunktet", ekskluderingsBegrunnelse["forklaring"].asText())
-        assertTrue(ekskluderingsBegrunnelse["folketrygdlovenreferanse"].isNull) { "Forventet ingen referanse i begrunnelsen, fikk: $body" }
+        val ekskluderingsbegrunnelse = ekskludert["ekskluderingsbegrunnelse"]
+        assertEquals("Forsikringen var ikke ennå gyldig på skjæringstidspunktet", ekskluderingsbegrunnelse["forklaring"].asText())
+        assertTrue(ekskluderingsbegrunnelse["folketrygdlovenreferanse"].isNull) { "Forventet ingen referanse i begrunnelsen, fikk: $body" }
     }
 
     @Test
@@ -641,14 +641,14 @@ class ForsikringsvurderingApiTest {
             forventetBokstav = "b",
             faktisk = ekskludert["folketrygdlovenreferanse"],
         )
-        val ekskluderingsBegrunnelse = ekskludert["ekskluderingsBegrunnelse"]
-        assertEquals("Forsikringen var opphørt på skjæringstidspunktet", ekskluderingsBegrunnelse["forklaring"].asText())
+        val ekskluderingsbegrunnelse = ekskludert["ekskluderingsbegrunnelse"]
+        assertEquals("Forsikringen var opphørt på skjæringstidspunktet", ekskluderingsbegrunnelse["forklaring"].asText())
         assertFolketrygdlovenreferanse(
             forventetKapittel = 8,
             forventetParagrafIKapittel = 37,
             forventetLedd = null,
             forventetBokstav = null,
-            faktisk = ekskluderingsBegrunnelse["folketrygdlovenreferanse"],
+            faktisk = ekskluderingsbegrunnelse["folketrygdlovenreferanse"],
         )
     }
 

@@ -83,7 +83,7 @@ class SpesialistEkskludertForsikringResponse(
     val ekskluderingsårsak: SpesialistEkskluderingsårsakResponse,
     navnSomSaksbehandlerSkjønnerOgSetterPrisPå: String,
     folketrygdlovenreferanse: Folketrygdlovenreferanse,
-    val ekskluderingsBegrunnelse: Ekskluderingsbegrunnelse,
+    val ekskluderingsbegrunnelse: Ekskluderingsbegrunnelse,
 ) : SpesialistForsikringResponse(
         virkningsdato,
         opphørsdato,
@@ -259,7 +259,7 @@ fun Application.forsikringsvurderingApi(
                                                 AbstractNavKjøptForsikring.Ekskluderingsårsak.OPPHØRT_PÅ_SKJÆRINGSTIDSPUNKT -> SpesialistEkskluderingsårsakResponse.OPPHØRT_PÅ_SKJÆRINGSTIDSPUNKT
                                                 AbstractNavKjøptForsikring.Ekskluderingsårsak.ALDRI_BETALT -> SpesialistEkskluderingsårsakResponse.ALDRI_BETALT
                                             },
-                                        ekskluderingsBegrunnelse =
+                                        ekskluderingsbegrunnelse =
                                             when (ekskluderingsårsak) {
                                                 AbstractNavKjøptForsikring.Ekskluderingsårsak.SKJÆRINGSTIDSPUNKT_INNEN_28_DAGER_FØR_VIRKNINGSDATO ->
                                                     Ekskluderingsbegrunnelse(
