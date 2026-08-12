@@ -33,7 +33,7 @@ private val testJsonMapper = ObjectMapper().registerModule(JavaTimeModule())
 
 private fun String.somJson(): JsonNode = testJsonMapper.readTree(this)
 
-private fun JsonNode.localDate(feltnavn: String): LocalDate? = this[feltnavn]?.takeUnless { it.isNull }?.let { testJsonMapper.treeToValue(it, LocalDate::class.java) }
+private fun JsonNode.asTextOrNull(feltnavn: String): String? = this[feltnavn]?.takeUnless { it.isNull }?.asText()
 
 private fun assertFolketrygdlovenreferanse(
     forventetKapittel: Int,
@@ -355,8 +355,8 @@ class ForsikringsvurderingApiTest {
 
         val gjeldendeForsikring = json["gjeldendeForsikring"]
         assertNotNull(gjeldendeForsikring) { "Forventet gjeldendeForsikring, fikk: $body" }
-        assertEquals(LocalDate.parse("2026-01-01"), gjeldendeForsikring.localDate("virkningsdato"))
-        assertNull(gjeldendeForsikring.localDate("opphørsdato"))
+        assertEquals("2026-01-01", gjeldendeForsikring.asTextOrNull("virkningsdato"))
+        assertNull(gjeldendeForsikring.asTextOrNull("opphørsdato"))
         assertEquals(80, gjeldendeForsikring["dekningsgrad"].asInt())
         assertTrue(gjeldendeForsikring["dekningIVentetid"].asBoolean()) { "Forventet dekningIVentetid=true, fikk: $body" }
         assertEquals("80 % fra 1. dag (Nav-kjøpt)", gjeldendeForsikring["navn"].asText())
@@ -444,8 +444,8 @@ class ForsikringsvurderingApiTest {
         assertEquals(1, ekskluderteForsikringer.size()) { "Forventet én ekskludert forsikring, fikk: $body" }
         val ekskludert = ekskluderteForsikringer.first()
         assertEquals("ALDRI_BETALT", ekskludert["ekskluderingsårsak"].asText())
-        assertEquals(LocalDate.parse("2026-01-01"), ekskludert.localDate("virkningsdato"))
-        assertNull(ekskludert.localDate("opphørsdato"))
+        assertEquals("2026-01-01", ekskludert.asTextOrNull("virkningsdato"))
+        assertNull(ekskludert.asTextOrNull("opphørsdato"))
         assertEquals(80, ekskludert["dekningsgrad"].asInt())
         assertTrue(ekskludert["dekningIVentetid"].asBoolean()) { "Forventet dekningIVentetid=true, fikk: $body" }
         assertEquals("80 % fra 1. dag (Nav-kjøpt)", ekskludert["navn"].asText())
@@ -489,8 +489,8 @@ class ForsikringsvurderingApiTest {
 
         val ekskludert = json["ekskluderteForsikringer"].single()
         assertEquals("OPPHØRT_PÅ_SKJÆRINGSTIDSPUNKT", ekskludert["ekskluderingsårsak"].asText())
-        assertEquals(LocalDate.parse("2025-06-01"), ekskludert.localDate("virkningsdato"))
-        assertEquals(LocalDate.parse("2025-12-31"), ekskludert.localDate("opphørsdato"))
+        assertEquals("2025-06-01", ekskludert.asTextOrNull("virkningsdato"))
+        assertEquals("2025-12-31", ekskludert.asTextOrNull("opphørsdato"))
         assertEquals("80 % fra 1. dag (Nav-kjøpt)", ekskludert["navn"].asText())
         assertFolketrygdlovenreferanse(
             forventetKapittel = 8,
@@ -537,7 +537,7 @@ class ForsikringsvurderingApiTest {
 
         val ekskludert = json["ekskluderteForsikringer"].single()
         assertEquals("SKJÆRINGSTIDSPUNKT_INNEN_28_DAGER_FØR_VIRKNINGSDATO", ekskludert["ekskluderingsårsak"].asText())
-        assertEquals(LocalDate.parse("2026-01-15"), ekskludert.localDate("virkningsdato"))
+        assertEquals("2026-01-15", ekskludert.asTextOrNull("virkningsdato"))
         val ekskluderingsbegrunnelse = ekskludert["ekskluderingsbegrunnelse"]
         assertEquals("Forsikringen var ikke ennå gyldig på skjæringstidspunktet", ekskluderingsbegrunnelse["forklaring"].asText())
         assertTrue(ekskluderingsbegrunnelse["folketrygdlovenreferanse"].isNull) { "Forventet ingen referanse i begrunnelsen, fikk: $body" }
@@ -570,7 +570,7 @@ class ForsikringsvurderingApiTest {
 
         val ekskludert = json["ekskluderteForsikringer"].single()
         assertEquals("SKJÆRINGSTIDSPUNKT_MER_ENN_28_DAGER_FØR_VIRKNINGSDATO", ekskludert["ekskluderingsårsak"].asText())
-        assertEquals(LocalDate.parse("2026-06-01"), ekskludert.localDate("virkningsdato"))
+        assertEquals("2026-06-01", ekskludert.asTextOrNull("virkningsdato"))
         val ekskluderingsbegrunnelse = ekskludert["ekskluderingsbegrunnelse"]
         assertEquals("Forsikringen var ikke ennå gyldig på skjæringstidspunktet", ekskluderingsbegrunnelse["forklaring"].asText())
         assertTrue(ekskluderingsbegrunnelse["folketrygdlovenreferanse"].isNull) { "Forventet ingen referanse i begrunnelsen, fikk: $body" }
@@ -616,8 +616,8 @@ class ForsikringsvurderingApiTest {
 
         val gjeldendeForsikring = json["gjeldendeForsikring"]
         assertNotNull(gjeldendeForsikring) { "Forventet gjeldendeForsikring, fikk: $body" }
-        assertEquals(LocalDate.parse("2025-01-01"), gjeldendeForsikring.localDate("virkningsdato"))
-        assertNull(gjeldendeForsikring.localDate("opphørsdato"))
+        assertEquals("2025-01-01", gjeldendeForsikring.asTextOrNull("virkningsdato"))
+        assertNull(gjeldendeForsikring.asTextOrNull("opphørsdato"))
         assertEquals(80, gjeldendeForsikring["dekningsgrad"].asInt())
         assertEquals("80 % fra 1. dag (Nav-kjøpt)", gjeldendeForsikring["navn"].asText())
         assertFolketrygdlovenreferanse(
@@ -630,8 +630,8 @@ class ForsikringsvurderingApiTest {
 
         val ekskludert = json["ekskluderteForsikringer"].single()
         assertEquals("OPPHØRT_PÅ_SKJÆRINGSTIDSPUNKT", ekskludert["ekskluderingsårsak"].asText())
-        assertEquals(LocalDate.parse("2023-01-01"), ekskludert.localDate("virkningsdato"))
-        assertEquals(LocalDate.parse("2024-12-31"), ekskludert.localDate("opphørsdato"))
+        assertEquals("2023-01-01", ekskludert.asTextOrNull("virkningsdato"))
+        assertEquals("2024-12-31", ekskludert.asTextOrNull("opphørsdato"))
         assertEquals(100, ekskludert["dekningsgrad"].asInt())
         assertEquals("100 % fra 17. dag (Nav-kjøpt)", ekskludert["navn"].asText())
         assertFolketrygdlovenreferanse(

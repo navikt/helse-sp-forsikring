@@ -2,6 +2,7 @@ package no.nav.helse.sykepenger.forsikring.forsikringsvurdering.infrastruktur
 
 import com.auth0.jwk.JwkProviderBuilder
 import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.databind.SerializationFeature
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
@@ -142,6 +143,7 @@ fun Application.forsikringsvurderingApi(
     install(ContentNegotiation) {
         jackson {
             registerModule(JavaTimeModule())
+            disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
         }
     }
     install(StatusPages) {
