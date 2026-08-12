@@ -275,7 +275,7 @@ fun Application.forsikringsvurderingApi(
 
                                                 AbstractNavKjøptForsikring.Ekskluderingsårsak.OPPHØRT_PÅ_SKJÆRINGSTIDSPUNKT ->
                                                     Ekskluderingsbegrunnelse(
-                                                        forklaring = "Forsikringen var opphørt på skjæringstidspunktet",
+                                                        forklaring = "Forsikringen opphørte før skjæringstidspunktet",
                                                         folketrygdlovenreferanse =
                                                             Folketrygdlovenreferanse(
                                                                 kapittel = 8,
@@ -351,11 +351,11 @@ fun Application.forsikringsvurderingApi(
 
 private fun AbstractNavKjøptForsikring.tilNavnSomSaksbehandlerSkjønnerOgSetterPrisPå(): String =
     when (type) {
-        AbstractNavKjøptForsikring.Type.SELVSTENDIG_80_PROSENT_FRA_DAG_1 -> "80 % fra dag 1"
-        AbstractNavKjøptForsikring.Type.SELVSTENDIG_100_PROSENT_FRA_DAG_17 -> "100 % fra dag 17"
-        AbstractNavKjøptForsikring.Type.SELVSTENDIG_100_PROSENT_FRA_DAG_1 -> "100 % fra dag 1"
-        AbstractNavKjøptForsikring.Type.SELVSTENDIG_JORDBRUKER_100_PROSENT_FRA_DAG_1 -> "100 % fra dag 1 (tilleggsforsikring)"
-        AbstractNavKjøptForsikring.Type.FRILANSER_100_PROSENT_FRA_DAG_1 -> "100 % fra dag 1 (frilanser)"
+        AbstractNavKjøptForsikring.Type.SELVSTENDIG_80_PROSENT_FRA_DAG_1 -> "80 % fra 1. dag (Nav-kjøpt)"
+        AbstractNavKjøptForsikring.Type.SELVSTENDIG_100_PROSENT_FRA_DAG_17 -> "100 % fra 17. dag (Nav-kjøpt)"
+        AbstractNavKjøptForsikring.Type.SELVSTENDIG_100_PROSENT_FRA_DAG_1 -> "100 % fra 1. dag (Nav-kjøpt)"
+        AbstractNavKjøptForsikring.Type.SELVSTENDIG_JORDBRUKER_100_PROSENT_FRA_DAG_1 -> "100 % fra 1. dag (Nav-kjøpt)"
+        AbstractNavKjøptForsikring.Type.FRILANSER_100_PROSENT_FRA_DAG_1 -> "100 % fra 1. dag (Nav-kjøpt)"
     }
 
 private fun AbstractNavKjøptForsikring.tilRettsreferanse(): Folketrygdlovenreferanse =

@@ -359,7 +359,7 @@ class ForsikringsvurderingApiTest {
         assertNull(gjeldendeForsikring.localDate("opphørsdato"))
         assertEquals(80, gjeldendeForsikring["dekningsgrad"].asInt())
         assertTrue(gjeldendeForsikring["dekningIVentetid"].asBoolean()) { "Forventet dekningIVentetid=true, fikk: $body" }
-        assertEquals("80 % fra dag 1", gjeldendeForsikring["navn"].asText())
+        assertEquals("80 % fra 1. dag (Nav-kjøpt)", gjeldendeForsikring["navn"].asText())
         assertFolketrygdlovenreferanse(
             forventetKapittel = 8,
             forventetParagrafIKapittel = 36,
@@ -395,7 +395,7 @@ class ForsikringsvurderingApiTest {
         assertNotNull(gjeldendeForsikring) { "Forventet gjeldendeForsikring, fikk: $body" }
         assertEquals(100, gjeldendeForsikring["dekningsgrad"].asInt())
         assertEquals(false, gjeldendeForsikring["dekningIVentetid"].asBoolean()) { "Forventet dekningIVentetid=false, fikk: $body" }
-        assertEquals("100 % fra dag 17", gjeldendeForsikring["navn"].asText())
+        assertEquals("100 % fra 17. dag (Nav-kjøpt)", gjeldendeForsikring["navn"].asText())
         assertFolketrygdlovenreferanse(
             forventetKapittel = 8,
             forventetParagrafIKapittel = 36,
@@ -448,7 +448,7 @@ class ForsikringsvurderingApiTest {
         assertNull(ekskludert.localDate("opphørsdato"))
         assertEquals(80, ekskludert["dekningsgrad"].asInt())
         assertTrue(ekskludert["dekningIVentetid"].asBoolean()) { "Forventet dekningIVentetid=true, fikk: $body" }
-        assertEquals("80 % fra dag 1", ekskludert["navn"].asText())
+        assertEquals("80 % fra 1. dag (Nav-kjøpt)", ekskludert["navn"].asText())
         assertFolketrygdlovenreferanse(
             forventetKapittel = 8,
             forventetParagrafIKapittel = 36,
@@ -491,7 +491,7 @@ class ForsikringsvurderingApiTest {
         assertEquals("OPPHØRT_PÅ_SKJÆRINGSTIDSPUNKT", ekskludert["ekskluderingsårsak"].asText())
         assertEquals(LocalDate.parse("2025-06-01"), ekskludert.localDate("virkningsdato"))
         assertEquals(LocalDate.parse("2025-12-31"), ekskludert.localDate("opphørsdato"))
-        assertEquals("80 % fra dag 1", ekskludert["navn"].asText())
+        assertEquals("80 % fra 1. dag (Nav-kjøpt)", ekskludert["navn"].asText())
         assertFolketrygdlovenreferanse(
             forventetKapittel = 8,
             forventetParagrafIKapittel = 36,
@@ -500,7 +500,7 @@ class ForsikringsvurderingApiTest {
             faktisk = ekskludert["folketrygdlovenreferanse"],
         )
         val ekskluderingsbegrunnelse = ekskludert["ekskluderingsbegrunnelse"]
-        assertEquals("Forsikringen var opphørt på skjæringstidspunktet", ekskluderingsbegrunnelse["forklaring"].asText())
+        assertEquals("Forsikringen opphørte før skjæringstidspunktet", ekskluderingsbegrunnelse["forklaring"].asText())
         assertFolketrygdlovenreferanse(
             forventetKapittel = 8,
             forventetParagrafIKapittel = 37,
@@ -619,7 +619,7 @@ class ForsikringsvurderingApiTest {
         assertEquals(LocalDate.parse("2025-01-01"), gjeldendeForsikring.localDate("virkningsdato"))
         assertNull(gjeldendeForsikring.localDate("opphørsdato"))
         assertEquals(80, gjeldendeForsikring["dekningsgrad"].asInt())
-        assertEquals("80 % fra dag 1", gjeldendeForsikring["navn"].asText())
+        assertEquals("80 % fra 1. dag (Nav-kjøpt)", gjeldendeForsikring["navn"].asText())
         assertFolketrygdlovenreferanse(
             forventetKapittel = 8,
             forventetParagrafIKapittel = 36,
@@ -633,7 +633,7 @@ class ForsikringsvurderingApiTest {
         assertEquals(LocalDate.parse("2023-01-01"), ekskludert.localDate("virkningsdato"))
         assertEquals(LocalDate.parse("2024-12-31"), ekskludert.localDate("opphørsdato"))
         assertEquals(100, ekskludert["dekningsgrad"].asInt())
-        assertEquals("100 % fra dag 17", ekskludert["navn"].asText())
+        assertEquals("100 % fra 17. dag (Nav-kjøpt)", ekskludert["navn"].asText())
         assertFolketrygdlovenreferanse(
             forventetKapittel = 8,
             forventetParagrafIKapittel = 36,
@@ -642,7 +642,7 @@ class ForsikringsvurderingApiTest {
             faktisk = ekskludert["folketrygdlovenreferanse"],
         )
         val ekskluderingsbegrunnelse = ekskludert["ekskluderingsbegrunnelse"]
-        assertEquals("Forsikringen var opphørt på skjæringstidspunktet", ekskluderingsbegrunnelse["forklaring"].asText())
+        assertEquals("Forsikringen opphørte før skjæringstidspunktet", ekskluderingsbegrunnelse["forklaring"].asText())
         assertFolketrygdlovenreferanse(
             forventetKapittel = 8,
             forventetParagrafIKapittel = 37,
