@@ -13,6 +13,7 @@ import no.nav.helse.sykepenger.forsikring.oppslag.domain.OppslagIfVedrift10Id
 import org.intellij.lang.annotations.Language
 import org.junit.jupiter.api.assertThrows
 import java.math.BigDecimal
+import java.time.Instant
 import java.time.LocalDate
 import java.util.*
 import kotlin.test.Test
@@ -73,7 +74,7 @@ class VedtakFattetRiverTest {
             ),
         )
 
-        oppslagRepository.lagre(Oppslag(oppslagId, listOf(navKjøptForsikring)))
+        oppslagRepository.lagre(Oppslag(oppslagId, listOf(navKjøptForsikring), Instant.now()))
 
         // when
         testRapid.sendTestMessage(event(forsikringsvurderingId.value))
@@ -123,7 +124,7 @@ class VedtakFattetRiverTest {
             ),
         )
 
-        oppslagRepository.lagre(Oppslag(oppslagId, listOf(navKjøptForsikring)))
+        oppslagRepository.lagre(Oppslag(oppslagId, listOf(navKjøptForsikring), Instant.now()))
 
         // when
         testRapid.sendTestMessage(event(forsikringsvurderingId.value))
@@ -156,7 +157,7 @@ class VedtakFattetRiverTest {
             ),
         )
 
-        oppslagRepository.lagre(Oppslag(oppslagId, emptyList()))
+        oppslagRepository.lagre(Oppslag(oppslagId, emptyList(), Instant.now()))
 
         // when
         testRapid.sendTestMessage(event(forsikringsvurderingId.value))
@@ -184,7 +185,7 @@ class VedtakFattetRiverTest {
                 forsikringskategori = null,
             ),
         )
-        oppslagRepository.lagre(Oppslag(oppslagId, emptyList()))
+        oppslagRepository.lagre(Oppslag(oppslagId, emptyList(), Instant.now()))
 
         // when
         testRapid.sendTestMessage(event(forsikringsvurderingId.value))

@@ -193,6 +193,18 @@ class OppslagDao {
             FROM oppslag_IF_VEDFRIVT_10 v
             WHERE v.oppslag_id = :oppslag_id
         """
+        val oppslagStatement =
+            """
+            SELECT oppslag_tidspunkt
+            FROM oppslag
+            WHERE id = :oppslag_id
+            """.trimIndent()
+        val oppslagTidspunkt =
+            session.run(
+                queryOf(oppslagStatement, mapOf("oppslag_id" to oppslagId.value))
+                    .map { row -> row.instant("oppslag_tidspunkt") }
+                    .asSingle,
+            ) ?: error("Fant ikke oppslag med id $oppslagId")
         val navKjøpteForsikringer =
             session.run(
                 queryOf(statement, mapOf("oppslag_id" to oppslagId.value))
@@ -216,7 +228,7 @@ class OppslagDao {
                         )
                     }.asList,
             )
-        return Oppslag(id = oppslagId, navKjøpteForsikringer = navKjøpteForsikringer)
+        return Oppslag(id = oppslagId, navKjøpteForsikringer = navKjøpteForsikringer, oppslagTidspunkt = oppslagTidspunkt)
     }
 
     private fun Row.intToLocalDate(label: String) = int(label).toLocalDate()

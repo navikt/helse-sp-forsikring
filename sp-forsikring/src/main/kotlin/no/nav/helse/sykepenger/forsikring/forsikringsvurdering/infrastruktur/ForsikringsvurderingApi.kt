@@ -4,27 +4,18 @@ import com.auth0.jwk.JwkProviderBuilder
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.SerializationFeature
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
-import io.ktor.http.HttpHeaders
-import io.ktor.http.HttpStatusCode
-import io.ktor.serialization.jackson.jackson
-import io.ktor.server.application.Application
-import io.ktor.server.application.install
-import io.ktor.server.auth.authenticate
-import io.ktor.server.auth.authentication
-import io.ktor.server.auth.jwt.JWTPrincipal
-import io.ktor.server.auth.jwt.jwt
-import io.ktor.server.plugins.callid.CallId
-import io.ktor.server.plugins.callid.callIdMdc
-import io.ktor.server.plugins.calllogging.CallLogging
-import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
-import io.ktor.server.plugins.statuspages.StatusPages
-import io.ktor.server.request.path
-import io.ktor.server.request.receive
-import io.ktor.server.request.uri
-import io.ktor.server.response.respond
-import io.ktor.server.routing.get
-import io.ktor.server.routing.post
-import io.ktor.server.routing.routing
+import io.ktor.http.*
+import io.ktor.serialization.jackson.*
+import io.ktor.server.application.*
+import io.ktor.server.auth.*
+import io.ktor.server.auth.jwt.*
+import io.ktor.server.plugins.callid.*
+import io.ktor.server.plugins.calllogging.*
+import io.ktor.server.plugins.contentnegotiation.*
+import io.ktor.server.plugins.statuspages.*
+import io.ktor.server.request.*
+import io.ktor.server.response.*
+import io.ktor.server.routing.*
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.ForsikringsvurderingRepository
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.domain.AbstractNavKjøptForsikring
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.domain.Forsikringskategori.KollektivForsikring
@@ -38,6 +29,7 @@ import no.nav.helse.sykepenger.forsikring.shared.logging.teamLogs
 import no.nav.helse.sykepenger.forsikring.shared.util.withSession
 import org.slf4j.event.Level
 import java.net.URI
+import java.time.Instant
 import java.time.LocalDate
 import java.util.*
 import javax.sql.DataSource
@@ -106,6 +98,7 @@ data class SpesialistForsikringsvurderingResponse(
     val dekning: SpesialistDekningResponse?,
     val ekskluderteForsikringer: List<SpesialistEkskludertForsikringResponse>,
     val gjeldendeForsikring: SpesialistForsikringResponse?,
+    val dataHentetTidspunkt: Instant,
 )
 
 data class SpesialistDekningResponse(
@@ -312,6 +305,7 @@ fun Application.forsikringsvurderingApi(
                                         folketrygdlovenreferanse = it.tilRettsreferanse(),
                                     )
                                 },
+                        dataHentetTidspunkt = oppslag.oppslagTidspunkt,
                     )
 
                 loggInfo("Svarer på GET /forsikringsvurderinger/$id", "response" to response)

@@ -13,6 +13,7 @@ import no.nav.helse.sykepenger.forsikring.oppslag.domain.OppslagIfVedrift10Id
 import org.intellij.lang.annotations.Language
 import org.junit.jupiter.api.assertThrows
 import java.math.BigDecimal
+import java.time.Instant
 import java.time.LocalDate
 import java.util.*
 import kotlin.test.Test
@@ -71,7 +72,7 @@ class SelvstendigUtbetaltEtterVentetidRiverTest {
             ),
         )
 
-        oppslagRepository.lagre(Oppslag(oppslagId, listOf(navKjøptForsikring)))
+        oppslagRepository.lagre(Oppslag(oppslagId, listOf(navKjøptForsikring), Instant.now()))
 
         // when
         testRapid.sendTestMessage(event(forsikringsvurderingId))
@@ -117,7 +118,7 @@ class SelvstendigUtbetaltEtterVentetidRiverTest {
             ),
         )
 
-        oppslagRepository.lagre(Oppslag(oppslagId, listOf(navKjøptForsikring)))
+        oppslagRepository.lagre(Oppslag(oppslagId, listOf(navKjøptForsikring), Instant.now()))
 
         // when
         testRapid.sendTestMessage(event(forsikringsvurderingId))
@@ -173,7 +174,7 @@ class SelvstendigUtbetaltEtterVentetidRiverTest {
                 forsikringskategori = Forsikringskategori.NavKjøptForsikring(oppslagIfVedrift10Id),
             ),
         )
-        oppslagRepository.lagre(Oppslag(oppslagId, listOf(navKjøptForsikring)))
+        oppslagRepository.lagre(Oppslag(oppslagId, listOf(navKjøptForsikring), Instant.now()))
 
         // when
         testRapid.sendTestMessage(event(forsikringsvurderingId))
@@ -215,7 +216,7 @@ class SelvstendigUtbetaltEtterVentetidRiverTest {
                 forsikringskategori = Forsikringskategori.NavKjøptForsikring(oppslagIfVedrift10Id),
             ),
         )
-        oppslagRepository.lagre(Oppslag(oppslagId, listOf(navKjøptForsikring)))
+        oppslagRepository.lagre(Oppslag(oppslagId, listOf(navKjøptForsikring), Instant.now()))
 
         // when
         testRapid.sendTestMessage(event(forsikringsvurderingId))
