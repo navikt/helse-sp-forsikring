@@ -45,8 +45,8 @@ spec:
         - id: team_logs
   resources:
     requests:
-      cpu: 50m
-      memory: 320Mi
+      cpu: 100m
+      memory: 512Mi
     limits:
       memory: 512Mi
   replicas:
