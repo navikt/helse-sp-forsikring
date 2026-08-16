@@ -11,21 +11,17 @@ import io.ktor.client.plugins.contentnegotiation.*
 import io.ktor.serialization.jackson.*
 import io.ktor.server.application.*
 import no.nav.helse.rapids_rivers.RapidApplication
+import no.nav.helse.sykepenger.forsikring.api.forsikringsvurderingApi
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.ForsikringsvurderingService
-import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.infrastruktur.ForsikringsvurderingBehovRiver
-import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.infrastruktur.ForsikringsvurderingResultatBehovRiver
-import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.infrastruktur.PgForsikringsvurderingRepository
-import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.infrastruktur.forsikringsvurderingApi
-import no.nav.helse.sykepenger.forsikring.oppgaver.infrastruktur.GosysOppgaveClient
-import no.nav.helse.sykepenger.forsikring.oppgaver.infrastruktur.SelvstendigIngenDagerIgjenRiver
-import no.nav.helse.sykepenger.forsikring.oppgaver.infrastruktur.SelvstendigUtbetaltEtterVentetidRiver
-import no.nav.helse.sykepenger.forsikring.oppgaver.infrastruktur.VedtakFattetRiver
-import no.nav.helse.sykepenger.forsikring.oppslag.OppslagService
-import no.nav.helse.sykepenger.forsikring.oppslag.infrastruktur.PgOppslagRepository
-import no.nav.helse.sykepenger.forsikring.oppslag.infrastruktur.ReplikabaseDao
+import no.nav.helse.sykepenger.forsikring.gosys.GosysOppgaveClient
+import no.nav.helse.sykepenger.forsikring.kafka.ForsikringsvurderingBehovRiver
+import no.nav.helse.sykepenger.forsikring.kafka.ForsikringsvurderingResultatBehovRiver
+import no.nav.helse.sykepenger.forsikring.kafka.SelvstendigIngenDagerIgjenRiver
+import no.nav.helse.sykepenger.forsikring.kafka.SelvstendigUtbetaltEtterVentetidRiver
+import no.nav.helse.sykepenger.forsikring.kafka.VedtakFattetRiver
+import no.nav.helse.sykepenger.forsikring.kafka.VedtakFattetTellerRiver
 import no.nav.helse.sykepenger.forsikring.shared.logging.loggInfo
 import no.nav.helse.sykepenger.forsikring.telling.infrastruktur.TellingDao
-import no.nav.helse.sykepenger.forsikring.telling.infrastruktur.VedtakFattetTellerRiver
 import org.flywaydb.core.Flyway
 import java.time.Duration
 
@@ -55,11 +51,7 @@ fun launchApplication(env: Map<String, String>) {
             },
         )
 
-    val forsikringsvurderingRepository = PgForsikringsvurderingRepository(spForsikringDataSource)
-    val oppslagRepository = PgOppslagRepository(spForsikringDataSource)
-    val replikabaseDao = ReplikabaseDao(dataSource = replikabaseDataSource)
-    val oppslagService = OppslagService(replikabaseDao)
-    val forsikringsvurderingService = ForsikringsvurderingService(forsikringsvurderingRepository, oppslagService)
+    val forsikringsvurderingService = ForsikringsvurderingService(replikabaseDataSource = replikabaseDataSource)
 
     val tellingDao = TellingDao(dataSource = spForsikringDataSource)
 
@@ -85,9 +77,8 @@ fun launchApplication(env: Map<String, String>) {
         .create(System.getenv(), builder = {
             withKtorModule {
                 forsikringsvurderingApi(
-                    replikabaseDataSource = replikabaseDataSource,
                     spForsikringDataSource = spForsikringDataSource,
-                    forsikringsvurderingRepository = forsikringsvurderingRepository,
+                    forsikringsvurderingService = forsikringsvurderingService,
                     clientId = env.getValue("AZURE_APP_CLIENT_ID"),
                     issuerUrl = env.getValue("AZURE_OPENID_CONFIG_ISSUER"),
                     jwkProviderUri = env.getValue("AZURE_OPENID_CONFIG_JWKS_URI"),
@@ -115,33 +106,31 @@ fun launchApplication(env: Map<String, String>) {
         .apply {
             ForsikringsvurderingBehovRiver(
                 rapidsConnection = this,
+                replikabaseDataSource = replikabaseDataSource,
                 spForsikringDataSource = spForsikringDataSource,
-                forsikringsvurderingService = forsikringsvurderingService,
             )
             ForsikringsvurderingResultatBehovRiver(
                 rapidsConnection = this,
-                forsikringsvurderingRepository = forsikringsvurderingRepository,
+                spForsikringDataSource = spForsikringDataSource,
             )
             SelvstendigUtbetaltEtterVentetidRiver(
                 rapidsConnection = this,
-                oppgaveClient = gosysOppgaveClient,
-                forsikringsvurderingRepository = forsikringsvurderingRepository,
-                oppslagRepository = oppslagRepository,
+                gosysOppgaveClient = gosysOppgaveClient,
+                spForsikringDataSource = spForsikringDataSource,
             )
             SelvstendigIngenDagerIgjenRiver(
                 rapidsConnection = this,
-                oppgaveClient = gosysOppgaveClient,
-                forsikringsvurderingRepository = forsikringsvurderingRepository,
+                gosysOppgaveClient = gosysOppgaveClient,
+                spForsikringDataSource = spForsikringDataSource,
             )
             VedtakFattetRiver(
                 rapidsConnection = this,
-                oppgaveClient = gosysOppgaveClient,
-                oppslagRepository = oppslagRepository,
-                forsikringsvurderingRepository = forsikringsvurderingRepository,
+                gosysOppgaveClient = gosysOppgaveClient,
+                spForsikringDataSource = spForsikringDataSource,
             )
             VedtakFattetTellerRiver(
                 rapidsConnection = this,
-                forsikringsvurderingRepository = forsikringsvurderingRepository,
+                spForsikringDataSource = spForsikringDataSource,
                 tellingDao = tellingDao,
             )
         }.start()

@@ -20,20 +20,37 @@ object TestcontainersSpForsikringDatabase {
                 jdbcUrl = postgresContainer.jdbcUrl
                 username = postgresContainer.username
                 password = postgresContainer.password
+                poolName = "sp-forsikring-test"
+                maximumPoolSize = 5
+                connectionTimeout = 5_000
             },
         )
 
-    private val flyway =
+    init {
         Flyway
             .configure()
             .dataSource(dataSource)
-            .cleanDisabled(false)
             .load()
-            .also { it.migrate() }
+            .migrate()
+    }
 
     fun reset() {
-        flyway.clean()
-        flyway.migrate()
+        val tabeller =
+            sessionOf(dataSource).use { session ->
+                session.run(
+                    queryOf(
+                        """
+                        SELECT tablename
+                        FROM pg_tables
+                        WHERE schemaname = 'public' AND tablename <> 'flyway_schema_history'
+                        """.trimIndent(),
+                    ).map { it.string("tablename") }.asList,
+                )
+            }
+        if (tabeller.isEmpty()) return
+        sessionOf(dataSource).use { session ->
+            session.run(queryOf("TRUNCATE TABLE ${tabeller.joinToString(", ")} RESTART IDENTITY CASCADE").asExecute)
+        }
     }
 
     fun shutdown() {
