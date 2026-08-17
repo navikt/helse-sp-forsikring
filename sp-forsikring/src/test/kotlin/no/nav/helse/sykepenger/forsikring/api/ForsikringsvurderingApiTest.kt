@@ -192,6 +192,7 @@ class ForsikringsvurderingApiTest {
         assertEquals(200, statusCode) { "Body was: $body" }
         val json = body.somJson()
         assertEquals(TESTFØDSELSNUMMER, json["identitetsnummer"].asText())
+        assertNotNull(json.asTextOrNull("vurdertTidspunkt")) { "Forventet vurdertTidspunkt, fikk: $body" }
         assertEquals(80, json["samletDekning"]["grad"].asInt())
         assertEquals(1, json["samletDekning"]["fraDag"].asInt())
         assertTrue(json["kollektivForsikring"].isNull) { "Forventet ingen kollektiv forsikring, fikk: $body" }
@@ -411,76 +412,7 @@ class ForsikringsvurderingApiTest {
     }
 
     @Test
-    fun `GET forsikringsvurderinger returnerer bakoverkompatible felter for nav-kjøpt forsikring`() {
-        val forsikringsvurderingId =
-            lagreForsikringsvurdering(
-                forsikringer = listOf(Infotrygdforsikring(type = NavKjøptForsikringType.SELVSTENDIG_80_PROSENT_FRA_DAG_1)),
-            )
-
-        val (statusCode, body) = getForsikringsvurdering(forsikringsvurderingId.value.toString(), bearerToken())
-
-        assertEquals(200, statusCode) { "Body was: $body" }
-        val json = body.somJson()
-        assertTrue(json["harForsikring"].asBoolean()) { "Forventet harForsikring=true, fikk: $body" }
-        assertEquals("Individuell", json.asTextOrNull("forsikringskategori"))
-        assertEquals(80, json["dekning"]["grad"].asInt())
-        assertEquals(1, json["dekning"]["fraDag"].asInt())
-        assertTrue(json["ekskluderteForsikringer"].isEmpty) { "Forventet ingen ekskluderte forsikringer, fikk: $body" }
-
-        val gjeldendeForsikring = json["gjeldendeForsikring"]
-        assertEquals("80 % fra 1. dag (Nav-kjøpt)", gjeldendeForsikring["navn"].asText())
-        assertEquals(80, gjeldendeForsikring["dekningsgrad"].asInt())
-        assertTrue(gjeldendeForsikring["dekningIVentetid"].asBoolean()) { "Forventet dekningIVentetid=true, fikk: $body" }
-        assertEquals(TESTSKJÆRINGSTIDSPUNKT.toString(), gjeldendeForsikring.asTextOrNull("virkningsdato"))
-        assertNull(gjeldendeForsikring.asTextOrNull("opphørsdato"))
-        assertFolketrygdlovenreferanse(
-            forventetKapittel = 8,
-            forventetParagrafIKapittel = 36,
-            forventetLedd = 1,
-            forventetBokstav = "a",
-            faktisk = gjeldendeForsikring["folketrygdlovenreferanse"],
-        )
-    }
-
-    @Test
-    fun `GET forsikringsvurderinger returnerer dekningIVentetid false for dag-17-forsikring`() {
-        val forsikringsvurderingId =
-            lagreForsikringsvurdering(
-                forsikringer = listOf(Infotrygdforsikring(type = NavKjøptForsikringType.SELVSTENDIG_100_PROSENT_FRA_DAG_17)),
-            )
-
-        val (statusCode, body) = getForsikringsvurdering(forsikringsvurderingId.value.toString(), bearerToken())
-
-        assertEquals(200, statusCode) { "Body was: $body" }
-        val gjeldendeForsikring = body.somJson()["gjeldendeForsikring"]
-        assertEquals(100, gjeldendeForsikring["dekningsgrad"].asInt())
-        assertFalse(gjeldendeForsikring["dekningIVentetid"].asBoolean()) { "Forventet dekningIVentetid=false, fikk: $body" }
-        assertEquals("100 % fra 17. dag (Nav-kjøpt)", gjeldendeForsikring["navn"].asText())
-    }
-
-    @Test
-    fun `GET forsikringsvurderinger returnerer bakoverkompatible felter for kollektiv forsikring`() {
-        val forsikringsvurderingId =
-            lagreForsikringsvurdering(
-                spesielleYrkesgrupper = setOf(SpesiellYrkesgruppe.FISKER_BLAD_B),
-            )
-
-        val (statusCode, body) = getForsikringsvurdering(forsikringsvurderingId.value.toString(), bearerToken())
-
-        assertEquals(200, statusCode) { "Body was: $body" }
-        val json = body.somJson()
-        assertTrue(json["harForsikring"].asBoolean()) { "Forventet harForsikring=true, fikk: $body" }
-        assertEquals("Kollektiv", json.asTextOrNull("forsikringskategori"))
-        assertEquals(100, json["dekning"]["grad"].asInt())
-        assertEquals(1, json["dekning"]["fraDag"].asInt())
-        assertTrue(json["ekskluderteForsikringer"].isEmpty) { "Forventet ingen ekskluderte forsikringer, fikk: $body" }
-        assertTrue(json["gjeldendeForsikring"].isNull) {
-            "gjeldendeForsikring gjaldt kun nav-kjøpte forsikringer i det gamle API-et, fikk: $body"
-        }
-    }
-
-    @Test
-    fun `GET forsikringsvurderinger returnerer forsikringskategori Individuell når bruker har kollektiv og nav-kjøpt tilleggsforsikring`() {
+    fun `GET forsikringsvurderinger returnerer både kollektiv og nav-kjøpt tilleggsforsikring`() {
         val forsikringsvurderingId =
             lagreForsikringsvurdering(
                 spesielleYrkesgrupper = setOf(SpesiellYrkesgruppe.JORDBRUKER),
@@ -491,112 +423,14 @@ class ForsikringsvurderingApiTest {
 
         assertEquals(200, statusCode) { "Body was: $body" }
         val json = body.somJson()
-        assertTrue(json["harForsikring"].asBoolean()) { "Forventet harForsikring=true, fikk: $body" }
-        assertEquals("Individuell", json.asTextOrNull("forsikringskategori"))
-        assertEquals(100, json["dekning"]["grad"].asInt())
-        assertEquals(1, json["dekning"]["fraDag"].asInt())
-        assertEquals("100 % fra 1. dag (Nav-kjøpt)", json["gjeldendeForsikring"]["navn"].asText())
-        assertFalse(json["kollektivForsikring"].isNull) { "Forventet kollektiv forsikring i nytt felt, fikk: $body" }
+        assertEquals(100, json["samletDekning"]["grad"].asInt())
+        assertEquals(1, json["samletDekning"]["fraDag"].asInt())
+        assertEquals("100 % fra 1. dag (Nav-kjøpt)", json["navKjøpteForsikringer"].single()["navn"].asText())
+        assertFalse(json["kollektivForsikring"].isNull) { "Forventet kollektiv forsikring, fikk: $body" }
     }
 
     @Test
-    fun `GET forsikringsvurderinger returnerer tomme bakoverkompatible felter når bruker ikke har forsikringer`() {
-        val forsikringsvurderingId = lagreForsikringsvurdering()
-
-        val (statusCode, body) = getForsikringsvurdering(forsikringsvurderingId.value.toString(), bearerToken())
-
-        assertEquals(200, statusCode) { "Body was: $body" }
-        val json = body.somJson()
-        assertFalse(json["harForsikring"].asBoolean()) { "Forventet harForsikring=false, fikk: $body" }
-        assertTrue(json["forsikringskategori"].isNull) { "Forventet forsikringskategori=null, fikk: $body" }
-        assertTrue(json["dekning"].isNull) { "Forventet dekning=null, fikk: $body" }
-        assertTrue(json["ekskluderteForsikringer"].isEmpty) { "Forventet ingen ekskluderte forsikringer, fikk: $body" }
-        assertTrue(json["gjeldendeForsikring"].isNull) { "Forventet gjeldendeForsikring=null, fikk: $body" }
-    }
-
-    @Test
-    fun `GET forsikringsvurderinger returnerer ekskludert forsikring som opphørte før skjæringstidspunktet`() {
-        val forsikringsvurderingId =
-            lagreForsikringsvurdering(
-                forsikringer =
-                    listOf(
-                        Infotrygdforsikring(
-                            virkningsdato = LocalDate.of(2025, 6, 1),
-                            opphørsdato = LocalDate.of(2025, 12, 31),
-                        ),
-                    ),
-            )
-
-        val (statusCode, body) = getForsikringsvurdering(forsikringsvurderingId.value.toString(), bearerToken())
-
-        assertEquals(200, statusCode) { "Body was: $body" }
-        val json = body.somJson()
-        assertFalse(json["harForsikring"].asBoolean()) { "Forventet harForsikring=false, fikk: $body" }
-        assertTrue(json["gjeldendeForsikring"].isNull) { "Forventet gjeldendeForsikring=null, fikk: $body" }
-
-        val ekskludert = json["ekskluderteForsikringer"].single()
-        assertEquals("OPPHØRT_PÅ_SKJÆRINGSTIDSPUNKT", ekskludert["ekskluderingsårsak"].asText())
-        assertEquals("80 % fra 1. dag (Nav-kjøpt)", ekskludert["navn"].asText())
-        assertEquals(80, ekskludert["dekningsgrad"].asInt())
-        assertTrue(ekskludert["dekningIVentetid"].asBoolean()) { "Forventet dekningIVentetid=true, fikk: $body" }
-        assertEquals("2025-06-01", ekskludert.asTextOrNull("virkningsdato"))
-        assertEquals("2025-12-31", ekskludert.asTextOrNull("opphørsdato"))
-        assertFolketrygdlovenreferanse(
-            forventetKapittel = 8,
-            forventetParagrafIKapittel = 36,
-            forventetLedd = 1,
-            forventetBokstav = "a",
-            faktisk = ekskludert["folketrygdlovenreferanse"],
-        )
-
-        val ekskluderingsbegrunnelse = ekskludert["ekskluderingsbegrunnelse"]
-        assertEquals("Forsikringen opphørte før skjæringstidspunktet", ekskluderingsbegrunnelse["forklaring"].asText())
-        assertFolketrygdlovenreferanse(
-            forventetKapittel = 8,
-            forventetParagrafIKapittel = 37,
-            forventetLedd = null,
-            forventetBokstav = null,
-            faktisk = ekskluderingsbegrunnelse["folketrygdlovenreferanse"],
-        )
-    }
-
-    @Test
-    fun `GET forsikringsvurderinger returnerer ekskluderingsårsak ALDRI_BETALT`() {
-        val forsikringsvurderingId =
-            lagreForsikringsvurdering(
-                forsikringer = listOf(Infotrygdforsikring(erBetalt = false)),
-            )
-
-        val (statusCode, body) = getForsikringsvurdering(forsikringsvurderingId.value.toString(), bearerToken())
-
-        assertEquals(200, statusCode) { "Body was: $body" }
-        val ekskludert = body.somJson()["ekskluderteForsikringer"].single()
-        assertEquals("ALDRI_BETALT", ekskludert["ekskluderingsårsak"].asText())
-        val ekskluderingsbegrunnelse = ekskludert["ekskluderingsbegrunnelse"]
-        assertEquals("Forsikringen er innvilget, men ikke betalt ennå", ekskluderingsbegrunnelse["forklaring"].asText())
-        assertTrue(ekskluderingsbegrunnelse["folketrygdlovenreferanse"].isNull) { "Forventet ingen referanse, fikk: $body" }
-    }
-
-    @Test
-    fun `GET forsikringsvurderinger returnerer ekskluderingsårsak SKJÆRINGSTIDSPUNKT_INNEN_28_DAGER_FØR_VIRKNINGSDATO`() {
-        val forsikringsvurderingId =
-            lagreForsikringsvurdering(
-                forsikringer = listOf(Infotrygdforsikring(virkningsdato = TESTSKJÆRINGSTIDSPUNKT.plusDays(14))),
-            )
-
-        val (statusCode, body) = getForsikringsvurdering(forsikringsvurderingId.value.toString(), bearerToken())
-
-        assertEquals(200, statusCode) { "Body was: $body" }
-        val ekskludert = body.somJson()["ekskluderteForsikringer"].single()
-        assertEquals("SKJÆRINGSTIDSPUNKT_INNEN_28_DAGER_FØR_VIRKNINGSDATO", ekskludert["ekskluderingsårsak"].asText())
-        assertEquals(
-            "Forsikringen var ikke ennå gyldig på skjæringstidspunktet",
-            ekskludert["ekskluderingsbegrunnelse"]["forklaring"].asText(),
-        )
-    }
-
-    @Test
-    fun `GET forsikringsvurderinger returnerer ekskluderingsårsak SKJÆRINGSTIDSPUNKT_MER_ENN_28_DAGER_FØR_VIRKNINGSDATO`() {
+    fun `GET forsikringsvurderinger forklarer forsikring som ikke var gyldig ennå mer enn 28 dager etter skjæringstidspunktet`() {
         val forsikringsvurderingId =
             lagreForsikringsvurdering(
                 forsikringer = listOf(Infotrygdforsikring(virkningsdato = TESTSKJÆRINGSTIDSPUNKT.plusDays(29))),
@@ -605,90 +439,11 @@ class ForsikringsvurderingApiTest {
         val (statusCode, body) = getForsikringsvurdering(forsikringsvurderingId.value.toString(), bearerToken())
 
         assertEquals(200, statusCode) { "Body was: $body" }
-        val ekskludert = body.somJson()["ekskluderteForsikringer"].single()
-        assertEquals("SKJÆRINGSTIDSPUNKT_MER_ENN_28_DAGER_FØR_VIRKNINGSDATO", ekskludert["ekskluderingsårsak"].asText())
+        val forsikring = body.somJson()["navKjøpteForsikringer"].single()
+        assertFalse(forsikring["lagtTilGrunn"].asBoolean()) { "Forventet lagtTilGrunn=false, fikk: $body" }
         assertEquals(
             "Forsikringen var ikke ennå gyldig på skjæringstidspunktet",
-            ekskludert["ekskluderingsbegrunnelse"]["forklaring"].asText(),
-        )
-    }
-
-    @Test
-    fun `GET forsikringsvurderinger skiller gjeldendeForsikring fra ekskluderteForsikringer`() {
-        val forsikringsvurderingId =
-            lagreForsikringsvurdering(
-                forsikringer =
-                    listOf(
-                        Infotrygdforsikring(
-                            forsikringssekvensnummer = 0,
-                            type = NavKjøptForsikringType.SELVSTENDIG_100_PROSENT_FRA_DAG_17,
-                            virkningsdato = LocalDate.of(2023, 1, 1),
-                            opphørsdato = LocalDate.of(2024, 12, 31),
-                        ),
-                        Infotrygdforsikring(
-                            forsikringssekvensnummer = 1,
-                            type = NavKjøptForsikringType.SELVSTENDIG_80_PROSENT_FRA_DAG_1,
-                        ),
-                    ),
-            )
-
-        val (statusCode, body) = getForsikringsvurdering(forsikringsvurderingId.value.toString(), bearerToken())
-
-        assertEquals(200, statusCode) { "Body was: $body" }
-        val json = body.somJson()
-        assertEquals("80 % fra 1. dag (Nav-kjøpt)", json["gjeldendeForsikring"]["navn"].asText())
-
-        val ekskludert = json["ekskluderteForsikringer"].single()
-        assertEquals("100 % fra 17. dag (Nav-kjøpt)", ekskludert["navn"].asText())
-        assertEquals("OPPHØRT_PÅ_SKJÆRINGSTIDSPUNKT", ekskludert["ekskluderingsårsak"].asText())
-    }
-
-    @Test
-    fun `GET forsikringsvurderinger har samme verdi i utfasede og nye felter`() {
-        val forsikringsvurderingId =
-            lagreForsikringsvurdering(
-                forsikringer =
-                    listOf(
-                        Infotrygdforsikring(
-                            forsikringssekvensnummer = 0,
-                            type = NavKjøptForsikringType.SELVSTENDIG_100_PROSENT_FRA_DAG_17,
-                            virkningsdato = LocalDate.of(2023, 1, 1),
-                            opphørsdato = LocalDate.of(2024, 12, 31),
-                        ),
-                        Infotrygdforsikring(
-                            forsikringssekvensnummer = 1,
-                            type = NavKjøptForsikringType.SELVSTENDIG_80_PROSENT_FRA_DAG_1,
-                        ),
-                    ),
-            )
-
-        val (statusCode, body) = getForsikringsvurdering(forsikringsvurderingId.value.toString(), bearerToken())
-
-        assertEquals(200, statusCode) { "Body was: $body" }
-        val json = body.somJson()
-        assertEquals(json["samletDekning"], json["dekning"])
-        assertEquals(json.asTextOrNull("vurdertTidspunkt"), json.asTextOrNull("dataHentetTidspunkt"))
-
-        val navKjøpteForsikringer = json["navKjøpteForsikringer"].associateBy { it["navn"].asText() }
-        val gjeldende = navKjøpteForsikringer.getValue(json["gjeldendeForsikring"]["navn"].asText())
-        assertTrue(gjeldende["lagtTilGrunn"].asBoolean()) { "gjeldendeForsikring må være lagt til grunn, fikk: $body" }
-
-        val ekskludert = json["ekskluderteForsikringer"].single()
-        val tilsvarendeNyForsikring = navKjøpteForsikringer.getValue(ekskludert["navn"].asText())
-        assertFalse(tilsvarendeNyForsikring["lagtTilGrunn"].asBoolean()) {
-            "ekskluderteForsikringer må ikke være lagt til grunn, fikk: $body"
-        }
-        assertEquals(
-            tilsvarendeNyForsikring["konklusjon"]["forklaring"].asText(),
-            ekskludert["ekskluderingsbegrunnelse"]["forklaring"].asText(),
-        )
-        assertEquals(
-            tilsvarendeNyForsikring["konklusjon"]["folketrygdlovenreferanse"],
-            ekskludert["ekskluderingsbegrunnelse"]["folketrygdlovenreferanse"],
-        )
-        assertEquals(
-            tilsvarendeNyForsikring["dekningFolketrygdlovenreferanse"],
-            ekskludert["folketrygdlovenreferanse"],
+            forsikring["konklusjon"]["forklaring"].asText(),
         )
     }
 

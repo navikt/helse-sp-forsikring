@@ -48,73 +48,6 @@ fun Route.spesialistApi(spForsikringDataSource: DataSource) {
         val response =
             SpesialistForsikringsvurderingResponse(
                 identitetsnummer = forsikringsvurdering.identitetsnummer.value,
-                harForsikring = forsikringsvurdering.harForsikring(),
-                forsikringskategori =
-                    when {
-                        forsikringsvurdering.harNavKjøptForsikring() -> "Individuell"
-                        forsikringsvurdering.harKollektivForsikring() -> "Kollektiv"
-                        else -> null
-                    },
-                dekning =
-                    forsikringsvurdering.dekning()?.let {
-                        SpesialistForsikringsvurderingResponse.Dekning(
-                            grad = it.grad,
-                            fraDag = it.fraDag,
-                        )
-                    },
-                ekskluderteForsikringer =
-                    forsikringsvurdering.navKjøpteForsikringer
-                        .filterNot { it.erGyldig() }
-                        .map { forsikring ->
-                            SpesialistEkskludertForsikringResponse(
-                                virkningsdato = forsikring.virkningsdato,
-                                opphørsdato = forsikring.opphørsdato,
-                                dekningsgrad = forsikring.type.dekning.grad,
-                                dekningIVentetid = forsikring.type.dekning.fraDag == 1,
-                                navn = forsikring.navKjøptForsikringNavn(),
-                                folketrygdlovenreferanse =
-                                    forsikring.type.dekning.folketrygdlovenreferanse
-                                        .tilApiFolketrygdlovenReferanse(),
-                                ekskluderingsårsak =
-                                    when (forsikring.konklusjon) {
-                                        VurdertNavKjøptForsikring.Konklusjon.SKJÆRINGSTIDSPUNKT_INNEN_28_DAGER_FØR_VIRKNINGSDATO ->
-                                            SpesialistEkskluderingsårsakResponse.SKJÆRINGSTIDSPUNKT_INNEN_28_DAGER_FØR_VIRKNINGSDATO
-
-                                        VurdertNavKjøptForsikring.Konklusjon.SKJÆRINGSTIDSPUNKT_MER_ENN_28_DAGER_FØR_VIRKNINGSDATO ->
-                                            SpesialistEkskluderingsårsakResponse.SKJÆRINGSTIDSPUNKT_MER_ENN_28_DAGER_FØR_VIRKNINGSDATO
-
-                                        VurdertNavKjøptForsikring.Konklusjon.OPPHØRT_PÅ_SKJÆRINGSTIDSPUNKT ->
-                                            SpesialistEkskluderingsårsakResponse.OPPHØRT_PÅ_SKJÆRINGSTIDSPUNKT
-
-                                        VurdertNavKjøptForsikring.Konklusjon.ALDRI_BETALT ->
-                                            SpesialistEkskluderingsårsakResponse.ALDRI_BETALT
-
-                                        VurdertNavKjøptForsikring.Konklusjon.GYLDIG ->
-                                            error("Gyldige forsikringer er allerede filtrert bort")
-                                    },
-                                ekskluderingsbegrunnelse =
-                                    Ekskluderingsbegrunnelse(
-                                        forklaring = forsikring.konklusjon.forklaring(),
-                                        folketrygdlovenreferanse =
-                                            forsikring.konklusjon.folketrygdlovenReferanse
-                                                ?.tilApiFolketrygdlovenReferanse(),
-                                    ),
-                            )
-                        },
-                gjeldendeForsikring =
-                    forsikringsvurdering.gjeldendeNavKjøptForsikring()?.let {
-                        SpesialistForsikringResponse(
-                            virkningsdato = it.virkningsdato,
-                            opphørsdato = it.opphørsdato,
-                            dekningsgrad = it.type.dekning.grad,
-                            dekningIVentetid = it.type.dekning.fraDag == 1,
-                            navn = it.navKjøptForsikringNavn(),
-                            folketrygdlovenreferanse =
-                                it.type.dekning.folketrygdlovenreferanse
-                                    .tilApiFolketrygdlovenReferanse(),
-                        )
-                    },
-                dataHentetTidspunkt = forsikringsvurdering.vurdertTidspunkt,
                 samletDekning =
                     forsikringsvurdering.dekning()?.let {
                         SpesialistForsikringsvurderingResponse.Dekning(
@@ -193,18 +126,6 @@ data class Folketrygdlovenreferanse(
 
 data class SpesialistForsikringsvurderingResponse(
     val identitetsnummer: String,
-    @Deprecated("Bruk harForsikring via samletDekning/navKjøpteForsikringer")
-    val harForsikring: Boolean,
-    @Deprecated("Bruk kollektivForsikring/navKjøpteForsikringer")
-    val forsikringskategori: String?,
-    @Deprecated("Bruk samletDekning")
-    val dekning: SpesialistForsikringsvurderingResponse.Dekning?,
-    @Deprecated("Bruk navKjøpteForsikringer med lagtTilGrunn = false")
-    val ekskluderteForsikringer: List<SpesialistEkskludertForsikringResponse>,
-    @Deprecated("Bruk navKjøpteForsikringer med lagtTilGrunn = true")
-    val gjeldendeForsikring: SpesialistForsikringResponse?,
-    @Deprecated("Bruk vurdertTidspunkt")
-    val dataHentetTidspunkt: Instant,
     val samletDekning: Dekning?,
     val kollektivForsikring: KollektivForsikring?,
     val navKjøpteForsikringer: List<NavKjøptForsikring>,
@@ -235,49 +156,6 @@ data class SpesialistForsikringsvurderingResponse(
         )
     }
 }
-
-@Deprecated("Erstattet av SpesialistForsikringsvurderingResponse.NavKjøptForsikring")
-open class SpesialistForsikringResponse(
-    val virkningsdato: LocalDate,
-    val opphørsdato: LocalDate?,
-    val dekningsgrad: Int,
-    val dekningIVentetid: Boolean,
-    val navn: String,
-    val folketrygdlovenreferanse: Folketrygdlovenreferanse,
-)
-
-@Deprecated("Erstattet av SpesialistForsikringsvurderingResponse.NavKjøptForsikring.Konklusjon")
-enum class SpesialistEkskluderingsårsakResponse {
-    SKJÆRINGSTIDSPUNKT_INNEN_28_DAGER_FØR_VIRKNINGSDATO,
-    SKJÆRINGSTIDSPUNKT_MER_ENN_28_DAGER_FØR_VIRKNINGSDATO,
-    OPPHØRT_PÅ_SKJÆRINGSTIDSPUNKT,
-    ALDRI_BETALT,
-}
-
-@Deprecated("Erstattet av SpesialistForsikringsvurderingResponse.NavKjøptForsikring.Konklusjon")
-data class Ekskluderingsbegrunnelse(
-    val forklaring: String,
-    val folketrygdlovenreferanse: Folketrygdlovenreferanse?,
-)
-
-@Deprecated("Erstattet av SpesialistForsikringsvurderingResponse.NavKjøptForsikring")
-class SpesialistEkskludertForsikringResponse(
-    virkningsdato: LocalDate,
-    opphørsdato: LocalDate?,
-    dekningsgrad: Int,
-    dekningIVentetid: Boolean,
-    navn: String,
-    folketrygdlovenreferanse: Folketrygdlovenreferanse,
-    val ekskluderingsårsak: SpesialistEkskluderingsårsakResponse,
-    val ekskluderingsbegrunnelse: Ekskluderingsbegrunnelse,
-) : SpesialistForsikringResponse(
-        virkningsdato = virkningsdato,
-        opphørsdato = opphørsdato,
-        dekningsgrad = dekningsgrad,
-        dekningIVentetid = dekningIVentetid,
-        navn = navn,
-        folketrygdlovenreferanse = folketrygdlovenreferanse,
-    )
 
 data class ProblemResponse(
     val type: String = "about:blank",
