@@ -67,9 +67,9 @@ object Database {
             }
         }
 
-    fun countEkskluderinger(dataSource: DataSource = this.dataSource): Int =
+    fun countNavKjøpteForsikringer(dataSource: DataSource = this.dataSource): Int =
         dataSource.connection.use { conn ->
-            conn.prepareStatement("SELECT COUNT(*) FROM forsikringsvurdering_ekskludering_navkjopt_forsikring").executeQuery().use { rs ->
+            conn.prepareStatement("SELECT COUNT(*) FROM forsikringsvurdering_navkjøpt_forsikring").executeQuery().use { rs ->
                 rs.next()
                 rs.getInt(1)
             }

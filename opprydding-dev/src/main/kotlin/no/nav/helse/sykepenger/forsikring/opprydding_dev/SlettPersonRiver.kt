@@ -55,7 +55,7 @@ internal class SlettPersonRiver(
                     """
                 SELECT DISTINCT råkopi_id FROM råkopi_IF_VEDFRIVT_10 WHERE IF01_AGNR_FNR = :fnr
                 UNION
-                SELECT råkopi_id FROM forsikringsvurdering WHERE behov->>'fødselsnummer' = :fnrStr
+                SELECT råkopi_id FROM forsikringsvurdering WHERE identitetsnummer = :fnrStr
                 """,
                     mapOf("fnr" to fnrLong, "fnrStr" to fødselsnummer),
                 ).map { it.uuid("råkopi_id") }.asList,
@@ -65,24 +65,38 @@ internal class SlettPersonRiver(
 
         // Slett i riktig rekkefølge for å respektere FK-koblinger
 
-        @Language("PostgreSQL")
-        val slettEkskluderinger = """
-            DELETE FROM forsikringsvurdering_ekskludering_navkjopt_forsikring
-            WHERE råkopi_IF_VEDFRIVT_10_id IN (
-                SELECT id FROM råkopi_IF_VEDFRIVT_10 WHERE IF01_AGNR_FNR = :fnr
-            )
-        """
-        tx.run(queryOf(slettEkskluderinger, mapOf("fnr" to fnrLong)).asUpdate)
+        val placeholders = råkopiIds.indices.joinToString(",") { "?" }
 
-        if (råkopiIds.isNotEmpty()) {
-            val placeholders = råkopiIds.indices.joinToString(",") { "?" }
-            tx.run(
-                queryOf(
-                    "DELETE FROM forsikringsvurdering WHERE råkopi_id IN ($placeholders)",
-                    *råkopiIds.toTypedArray(),
-                ).asUpdate,
-            )
-        }
+        tx.run(
+            queryOf(
+                """
+                DELETE FROM forsikringsvurdering_navkjøpt_forsikring
+                WHERE forsikringsvurdering_id IN (
+                    SELECT id FROM forsikringsvurdering WHERE råkopi_id IN ($placeholders)
+                )
+                """,
+                *råkopiIds.toTypedArray(),
+            ).asUpdate,
+        )
+
+        tx.run(
+            queryOf(
+                """
+                DELETE FROM forsikringsvurdering_spesiell_yrkesgruppe
+                WHERE forsikringsvurdering_id IN (
+                    SELECT id FROM forsikringsvurdering WHERE råkopi_id IN ($placeholders)
+                )
+                """,
+                *råkopiIds.toTypedArray(),
+            ).asUpdate,
+        )
+
+        tx.run(
+            queryOf(
+                "DELETE FROM forsikringsvurdering WHERE råkopi_id IN ($placeholders)",
+                *råkopiIds.toTypedArray(),
+            ).asUpdate,
+        )
 
         @Language("PostgreSQL")
         val slettFkonto12 = """
@@ -97,15 +111,12 @@ internal class SlettPersonRiver(
         val slettVedfrivt10 = "DELETE FROM råkopi_IF_VEDFRIVT_10 WHERE IF01_AGNR_FNR = :fnr"
         tx.run(queryOf(slettVedfrivt10, mapOf("fnr" to fnrLong)).asUpdate)
 
-        if (råkopiIds.isNotEmpty()) {
-            val placeholders = råkopiIds.indices.joinToString(",") { "?" }
-            tx.run(
-                queryOf(
-                    "DELETE FROM råkopi WHERE id IN ($placeholders)",
-                    *råkopiIds.toTypedArray(),
-                ).asUpdate,
-            )
-        }
+        tx.run(
+            queryOf(
+                "DELETE FROM råkopi WHERE id IN ($placeholders)",
+                *råkopiIds.toTypedArray(),
+            ).asUpdate,
+        )
     }
 
     @Language("JSON")

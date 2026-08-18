@@ -43,13 +43,13 @@ internal class SlettPersonRiverTest {
         insertVedfrivt10(vedfrivt10Id, råkopiId, fnrLong)
         insertFkonto12(fkonto12Id, vedfrivt10Id)
         insertForsikringsvurdering(forsikringsvurderingId, råkopiId, fødselsnummer)
-        insertEkskludering(forsikringsvurderingId, vedfrivt10Id)
+        insertNavKjøptForsikring(forsikringsvurderingId, vedfrivt10Id)
 
         assertEquals(1, Database.countRåkopi())
         assertEquals(1, Database.countForsikringsvurdering())
         assertEquals(1, Database.countRåkopiIfVedfrivt10())
         assertEquals(1, Database.countRåkopiIfFkonto12())
-        assertEquals(1, Database.countEkskluderinger())
+        assertEquals(1, Database.countNavKjøpteForsikringer())
 
         rapid.sendTestMessage(slettPersonMelding(fødselsnummer))
 
@@ -57,7 +57,7 @@ internal class SlettPersonRiverTest {
         assertEquals(0, Database.countForsikringsvurdering())
         assertEquals(0, Database.countRåkopiIfVedfrivt10())
         assertEquals(0, Database.countRåkopiIfFkonto12())
-        assertEquals(0, Database.countEkskluderinger())
+        assertEquals(0, Database.countNavKjøpteForsikringer())
     }
 
     @Test
@@ -184,18 +184,24 @@ internal class SlettPersonRiverTest {
         Database.dataSource.connection.use { conn ->
             conn
                 .prepareStatement(
-                    "INSERT INTO forsikringsvurdering (id, råkopi_id, behov, har_forsikring) VALUES (?, ?, ?::jsonb, ?)",
+                    """
+                INSERT INTO forsikringsvurdering (id, råkopi_id, behov, identitetsnummer, yrkesaktivitetstype,
+                                                  skjæringstidspunkt, vurdert_tidspunkt, har_forsikring)
+                VALUES (?, ?, ?::jsonb, ?, 'SELVSTENDIG', DATE '2026-01-01', ?, ?)
+                """,
                 ).use { stmt ->
                     stmt.setObject(1, id)
                     stmt.setObject(2, råkopiId)
                     stmt.setString(3, """{"fødselsnummer": "$fødselsnummer", "@behov": ["Forsikringsvurdering"]}""")
-                    stmt.setBoolean(4, false)
+                    stmt.setString(4, fødselsnummer)
+                    stmt.setTimestamp(5, Timestamp.from(Instant.now()))
+                    stmt.setBoolean(6, false)
                     stmt.executeUpdate()
                 }
         }
     }
 
-    private fun insertEkskludering(
+    private fun insertNavKjøptForsikring(
         forsikringsvurderingId: UUID,
         vedfrivt10Id: UUID,
     ) {
@@ -203,9 +209,10 @@ internal class SlettPersonRiverTest {
             conn
                 .prepareStatement(
                     """
-                INSERT INTO forsikringsvurdering_ekskludering_navkjopt_forsikring
-                    (forsikringsvurdering_id, råkopi_IF_VEDFRIVT_10_id, ekskluderingsaarsak)
-                VALUES (?, ?, 'ALDRI_BETALT')
+                INSERT INTO forsikringsvurdering_navkjøpt_forsikring
+                    (forsikringsvurdering_id, råkopi_IF_VEDFRIVT_10_id, type, virkningsdato, opphører,
+                     premiegrunnlag, er_betalt_noen_gang, konklusjon)
+                VALUES (?, ?, 'SELVSTENDIG_80_PROSENT_FRA_DAG_1', DATE '2026-01-01', false, 0, false, 'ALDRI_BETALT')
                 """,
                 ).use { stmt ->
                     stmt.setObject(1, forsikringsvurderingId)

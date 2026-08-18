@@ -127,10 +127,11 @@ object TestcontainersSpForsikringDatabase {
         @Language("PostgreSQL")
         val statement =
             """
-            SELECT råkopi_IF_VEDFRIVT_10.IF10_FORSFOM_SEQ, forsikringsvurdering_ekskludering_navkjopt_forsikring.ekskluderingsaarsak
-            FROM råkopi_IF_VEDFRIVT_10, forsikringsvurdering_ekskludering_navkjopt_forsikring
-            WHERE råkopi_IF_VEDFRIVT_10.id = forsikringsvurdering_ekskludering_navkjopt_forsikring.råkopi_IF_VEDFRIVT_10_id
-            AND forsikringsvurdering_ekskludering_navkjopt_forsikring.forsikringsvurdering_id = :forsikringsvurdering_id::uuid
+            SELECT råkopi_IF_VEDFRIVT_10.IF10_FORSFOM_SEQ, forsikringsvurdering_navkjøpt_forsikring.konklusjon
+            FROM råkopi_IF_VEDFRIVT_10, forsikringsvurdering_navkjøpt_forsikring
+            WHERE råkopi_IF_VEDFRIVT_10.id = forsikringsvurdering_navkjøpt_forsikring.råkopi_IF_VEDFRIVT_10_id
+            AND forsikringsvurdering_navkjøpt_forsikring.forsikringsvurdering_id = :forsikringsvurdering_id::uuid
+            AND forsikringsvurdering_navkjøpt_forsikring.konklusjon <> 'GYLDIG'
             """.trimIndent()
         return sessionOf(dataSource).use { session ->
             session
@@ -138,7 +139,7 @@ object TestcontainersSpForsikringDatabase {
                     queryOf(
                         statement,
                         mapOf("forsikringsvurdering_id" to forsikringsvurderingId),
-                    ).map { it.int("IF10_FORSFOM_SEQ") to it.string("ekskluderingsaarsak") }.asList,
+                    ).map { it.int("IF10_FORSFOM_SEQ") to it.string("konklusjon") }.asList,
                 ).toMap()
         }
     }

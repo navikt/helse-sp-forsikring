@@ -57,5 +57,26 @@ class VurdertNavKjøptForsikring private constructor(
                 konklusjon = konklusjon,
             )
         }
+
+        fun fraLagring(
+            råkopiIfVedfrivt10Id: RåkopiIfVedfrivt10.Id,
+            type: NavKjøptForsikringType,
+            virkningsdato: LocalDate,
+            opphører: Boolean,
+            opphørsdato: LocalDate?,
+            premiegrunnlag: Int,
+            erBetaltNoenGang: Boolean,
+            konklusjon: Konklusjon,
+        ): VurdertNavKjøptForsikring =
+            VurdertNavKjøptForsikring(
+                råkopiIfVedfrivt10Id = råkopiIfVedfrivt10Id,
+                type = type,
+                virkningsdato = virkningsdato,
+                opphører = opphører,
+                opphørsdato = opphørsdato,
+                premiegrunnlag = premiegrunnlag,
+                erBetaltNoenGang = erBetaltNoenGang,
+                konklusjon = konklusjon,
+            )
     }
 }
