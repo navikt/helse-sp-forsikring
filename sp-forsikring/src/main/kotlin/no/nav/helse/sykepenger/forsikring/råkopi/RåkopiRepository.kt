@@ -14,15 +14,15 @@ class RåkopiRepository(
     fun lagre(råkopi: Råkopi) {
         @Language("PostgreSQL")
         val statement = """
-            INSERT INTO oppslag (id, oppslag_tidspunkt)
-            VALUES (:id, :oppslag_tidspunkt)
+            INSERT INTO råkopi (id, lest_tidspunkt)
+            VALUES (:id, :lest_tidspunkt)
         """
         spForsikringTransaction.run(
             queryOf(
                 statement,
                 mapOf(
                     "id" to råkopi.id.value,
-                    "oppslag_tidspunkt" to Timestamp.from(råkopi.lestTidspunkt),
+                    "lest_tidspunkt" to Timestamp.from(råkopi.lestTidspunkt),
                 ),
             ).asUpdate,
         )
@@ -56,14 +56,14 @@ class RåkopiRepository(
     fun hent(id: Råkopi.Id): Råkopi? {
         @Language("PostgreSQL")
         val statement = """
-            SELECT oppslag_tidspunkt
-            FROM oppslag
+            SELECT lest_tidspunkt
+            FROM råkopi
             WHERE id = :id
         """
         val lestTidspunkt =
             spForsikringTransaction.run(
                 queryOf(statement, mapOf("id" to id.value))
-                    .map { row -> row.instant("oppslag_tidspunkt") }
+                    .map { row -> row.instant("lest_tidspunkt") }
                     .asSingle,
             ) ?: return null
 
@@ -79,11 +79,11 @@ class RåkopiRepository(
         @Language("PostgreSQL")
         val statement = """
             SELECT *
-            FROM oppslag_IF_VEDFRIVT_10
-            WHERE oppslag_id = :oppslag_id
+            FROM råkopi_IF_VEDFRIVT_10
+            WHERE råkopi_id = :rakopi_id
         """
         return spForsikringTransaction.run(
-            queryOf(statement, mapOf("oppslag_id" to råkopiId.value))
+            queryOf(statement, mapOf("rakopi_id" to råkopiId.value))
                 .map { row ->
                     RåkopiIfVedfrivt10(
                         id = RåkopiIfVedfrivt10.Id(row.uuid("id")),
@@ -127,12 +127,12 @@ class RåkopiRepository(
         @Language("PostgreSQL")
         val statement = """
             SELECT f.*
-            FROM oppslag_IF_FKONTO_12 f
-                     JOIN oppslag_IF_VEDFRIVT_10 v ON v.id = f.oppslag_IF_VEDFRIVT_10_id
-            WHERE v.oppslag_id = :oppslag_id
+            FROM råkopi_IF_FKONTO_12 f
+                     JOIN råkopi_IF_VEDFRIVT_10 v ON v.id = f.råkopi_IF_VEDFRIVT_10_id
+            WHERE v.råkopi_id = :rakopi_id
         """
         return spForsikringTransaction.run(
-            queryOf(statement, mapOf("oppslag_id" to råkopiId.value))
+            queryOf(statement, mapOf("rakopi_id" to råkopiId.value))
                 .map { row ->
                     RåkopiIfFkonto12(
                         IF01_KODE = row.string("IF01_KODE").first(),
@@ -162,8 +162,8 @@ class RåkopiRepository(
     ) {
         @Language("PostgreSQL")
         val statement = """
-                INSERT INTO oppslag_IF_VEDFRIVT_10 (
-                    id, oppslag_id,
+                INSERT INTO råkopi_IF_VEDFRIVT_10 (
+                    id, råkopi_id,
                     IF01_KODE, IF01_AGNR_FNR, IF10_FORSFOM_SEQ,
                     IF10_GODKJ, IF10_FORSFOM, IF10_VIRKDATO, IF10_TYPE, IF10_SELVFOM,
                     IF10_KOMBI, IF10_PREMGRL, IF10_FOM, IF10_PREMIE,
@@ -173,7 +173,7 @@ class RåkopiRepository(
                     IF10_PURR, IF10_TKNR_BOST, IF10_TKNR_BEH,
                     OPPRETTET, ENDRET_I_KILDE, KILDE_IF, ID_VED, OPPDATERT
                 ) VALUES (
-                    :id, :oppslag_id,
+                    :id, :rakopi_id,
                     :IF01_KODE, :IF01_AGNR_FNR, :IF10_FORSFOM_SEQ,
                     :IF10_GODKJ, :IF10_FORSFOM, :IF10_VIRKDATO, :IF10_TYPE, :IF10_SELVFOM,
                     :IF10_KOMBI, :IF10_PREMGRL, :IF10_FOM, :IF10_PREMIE,
@@ -189,7 +189,7 @@ class RåkopiRepository(
                 statement,
                 mapOf(
                     "id" to ifVedfrivt10.id.value,
-                    "oppslag_id" to råkopiId.value,
+                    "rakopi_id" to råkopiId.value,
                     "IF01_KODE" to ifVedfrivt10.IF01_KODE.toString(),
                     "IF01_AGNR_FNR" to ifVedfrivt10.IF01_AGNR_FNR,
                     "IF10_FORSFOM_SEQ" to ifVedfrivt10.IF10_FORSFOM_SEQ,
@@ -233,14 +233,14 @@ class RåkopiRepository(
     ) {
         @Language("PostgreSQL")
         val statement = """
-            INSERT INTO oppslag_IF_FKONTO_12 (
-                id, oppslag_IF_VEDFRIVT_10_id,
+            INSERT INTO råkopi_IF_FKONTO_12 (
+                id, råkopi_IF_VEDFRIVT_10_id,
                 IF01_KODE, IF01_AGNR_FNR, IF10_FORSFOM_SEQ,
                 IF12_BETDATO_SEQ, IF12_FOM, IF12_TOM, IF12_BET_KODE, IF12_FRIUKER,
                 IF12_BELOEP, IF12_BETDATO,
                 OPPRETTET, ENDRET_I_KILDE, KILDE_IF, ID_KONT, OPPDATERT
             ) VALUES (
-                :id, :oppslag_IF_VEDFRIVT_10_id,
+                :id, :rakopi_IF_VEDFRIVT_10_id,
                 :IF01_KODE, :IF01_AGNR_FNR, :IF10_FORSFOM_SEQ,
                 :IF12_BETDATO_SEQ, :IF12_FOM, :IF12_TOM, :IF12_BET_KODE, :IF12_FRIUKER,
                 :IF12_BELOEP, :IF12_BETDATO,
@@ -252,7 +252,7 @@ class RåkopiRepository(
                 statement,
                 mapOf(
                     "id" to generateUuidV7(),
-                    "oppslag_IF_VEDFRIVT_10_id" to ifVedfrivt10Id.value,
+                    "rakopi_IF_VEDFRIVT_10_id" to ifVedfrivt10Id.value,
                     "IF01_KODE" to ifFkonto12.IF01_KODE.toString(),
                     "IF01_AGNR_FNR" to ifFkonto12.IF01_AGNR_FNR,
                     "IF10_FORSFOM_SEQ" to ifFkonto12.IF10_FORSFOM_SEQ,

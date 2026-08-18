@@ -34,29 +34,29 @@ internal class SlettPersonRiverTest {
         val fødselsnummer = "01020312345"
         val fnrLong = (fødselsnummer.substring(4, 6) + fødselsnummer.substring(2, 4) + fødselsnummer.substring(0, 2) + fødselsnummer.substring(6)).toLong()
 
-        val oppslagId = UUID.randomUUID()
+        val råkopiId = UUID.randomUUID()
         val vedfrivt10Id = UUID.randomUUID()
         val fkonto12Id = UUID.randomUUID()
         val forsikringsvurderingId = UUID.randomUUID()
 
-        insertOppslag(oppslagId)
-        insertVedfrivt10(vedfrivt10Id, oppslagId, fnrLong)
+        insertRåkopi(råkopiId)
+        insertVedfrivt10(vedfrivt10Id, råkopiId, fnrLong)
         insertFkonto12(fkonto12Id, vedfrivt10Id)
-        insertForsikringsvurdering(forsikringsvurderingId, oppslagId, fødselsnummer)
+        insertForsikringsvurdering(forsikringsvurderingId, råkopiId, fødselsnummer)
         insertEkskludering(forsikringsvurderingId, vedfrivt10Id)
 
-        assertEquals(1, Database.countOppslag())
+        assertEquals(1, Database.countRåkopi())
         assertEquals(1, Database.countForsikringsvurdering())
-        assertEquals(1, Database.countOppslagIfVedfrivt10())
-        assertEquals(1, Database.countOppslagIfFkonto12())
+        assertEquals(1, Database.countRåkopiIfVedfrivt10())
+        assertEquals(1, Database.countRåkopiIfFkonto12())
         assertEquals(1, Database.countEkskluderinger())
 
         rapid.sendTestMessage(slettPersonMelding(fødselsnummer))
 
-        assertEquals(0, Database.countOppslag())
+        assertEquals(0, Database.countRåkopi())
         assertEquals(0, Database.countForsikringsvurdering())
-        assertEquals(0, Database.countOppslagIfVedfrivt10())
-        assertEquals(0, Database.countOppslagIfFkonto12())
+        assertEquals(0, Database.countRåkopiIfVedfrivt10())
+        assertEquals(0, Database.countRåkopiIfFkonto12())
         assertEquals(0, Database.countEkskluderinger())
     }
 
@@ -65,11 +65,11 @@ internal class SlettPersonRiverTest {
         val fødselsnummer = "01020312345"
         val fnrLong = (fødselsnummer.substring(4, 6) + fødselsnummer.substring(2, 4) + fødselsnummer.substring(0, 2) + fødselsnummer.substring(6)).toLong()
 
-        val oppslagId = UUID.randomUUID()
+        val råkopiId = UUID.randomUUID()
         val vedfrivt10Id = UUID.randomUUID()
-        insertOppslag(oppslagId)
-        insertVedfrivt10(vedfrivt10Id, oppslagId, fnrLong)
-        insertForsikringsvurdering(UUID.randomUUID(), oppslagId, fødselsnummer)
+        insertRåkopi(råkopiId)
+        insertVedfrivt10(vedfrivt10Id, råkopiId, fnrLong)
+        insertForsikringsvurdering(UUID.randomUUID(), råkopiId, fødselsnummer)
 
         rapid.sendTestMessage(slettPersonMelding(fødselsnummer))
 
@@ -80,7 +80,7 @@ internal class SlettPersonRiverTest {
     fun `gjør ingenting for person uten data`() {
         rapid.sendTestMessage(slettPersonMelding("99999999999"))
 
-        assertEquals(0, Database.countOppslag())
+        assertEquals(0, Database.countRåkopi())
     }
 
     @Test
@@ -90,30 +90,30 @@ internal class SlettPersonRiverTest {
         val fnrLong1 = (fødselsnummer1.substring(4, 6) + fødselsnummer1.substring(2, 4) + fødselsnummer1.substring(0, 2) + fødselsnummer1.substring(6)).toLong()
         val fnrLong2 = (fødselsnummer2.substring(4, 6) + fødselsnummer2.substring(2, 4) + fødselsnummer2.substring(0, 2) + fødselsnummer2.substring(6)).toLong()
 
-        val oppslagId1 = UUID.randomUUID()
+        val råkopiId1 = UUID.randomUUID()
         val vedfrivt10Id1 = UUID.randomUUID()
-        insertOppslag(oppslagId1)
-        insertVedfrivt10(vedfrivt10Id1, oppslagId1, fnrLong1)
-        insertForsikringsvurdering(UUID.randomUUID(), oppslagId1, fødselsnummer1)
+        insertRåkopi(råkopiId1)
+        insertVedfrivt10(vedfrivt10Id1, råkopiId1, fnrLong1)
+        insertForsikringsvurdering(UUID.randomUUID(), råkopiId1, fødselsnummer1)
 
-        val oppslagId2 = UUID.randomUUID()
+        val råkopiId2 = UUID.randomUUID()
         val vedfrivt10Id2 = UUID.randomUUID()
-        insertOppslag(oppslagId2)
-        insertVedfrivt10(vedfrivt10Id2, oppslagId2, fnrLong2)
-        insertForsikringsvurdering(UUID.randomUUID(), oppslagId2, fødselsnummer2)
+        insertRåkopi(råkopiId2)
+        insertVedfrivt10(vedfrivt10Id2, råkopiId2, fnrLong2)
+        insertForsikringsvurdering(UUID.randomUUID(), råkopiId2, fødselsnummer2)
 
-        assertEquals(2, Database.countOppslag())
+        assertEquals(2, Database.countRåkopi())
 
         rapid.sendTestMessage(slettPersonMelding(fødselsnummer1))
 
-        assertEquals(1, Database.countOppslag())
+        assertEquals(1, Database.countRåkopi())
         assertEquals(1, Database.countForsikringsvurdering())
-        assertEquals(1, Database.countOppslagIfVedfrivt10())
+        assertEquals(1, Database.countRåkopiIfVedfrivt10())
     }
 
-    private fun insertOppslag(id: UUID) {
+    private fun insertRåkopi(id: UUID) {
         Database.dataSource.connection.use { conn ->
-            conn.prepareStatement("INSERT INTO oppslag (id, oppslag_tidspunkt) VALUES (?, ?)").use { stmt ->
+            conn.prepareStatement("INSERT INTO råkopi (id, lest_tidspunkt) VALUES (?, ?)").use { stmt ->
                 stmt.setObject(1, id)
                 stmt.setTimestamp(2, Timestamp.from(Instant.now()))
                 stmt.executeUpdate()
@@ -123,7 +123,7 @@ internal class SlettPersonRiverTest {
 
     private fun insertVedfrivt10(
         id: UUID,
-        oppslagId: UUID,
+        råkopiId: UUID,
         fnr: Long,
     ) {
         val now = Timestamp.from(Instant.now())
@@ -131,8 +131,8 @@ internal class SlettPersonRiverTest {
             conn
                 .prepareStatement(
                     """
-                INSERT INTO oppslag_IF_VEDFRIVT_10 (
-                    id, oppslag_id,
+                INSERT INTO råkopi_IF_VEDFRIVT_10 (
+                    id, råkopi_id,
                     IF01_KODE, IF01_AGNR_FNR, IF10_FORSFOM_SEQ,
                     IF10_GODKJ, IF10_FORSFOM, IF10_VIRKDATO, IF10_TYPE, IF10_SELVFOM,
                     IF10_KOMBI, IF10_PREMGRL, IF10_FOM, IF10_PREMIE,
@@ -145,7 +145,7 @@ internal class SlettPersonRiverTest {
                 """,
                 ).use { stmt ->
                     stmt.setObject(1, id)
-                    stmt.setObject(2, oppslagId)
+                    stmt.setObject(2, råkopiId)
                     stmt.setLong(3, fnr)
                     stmt.setTimestamp(4, now)
                     stmt.setTimestamp(5, now)
@@ -163,7 +163,7 @@ internal class SlettPersonRiverTest {
             conn
                 .prepareStatement(
                     """
-                INSERT INTO oppslag_IF_FKONTO_12 (id, oppslag_IF_VEDFRIVT_10_id, OPPRETTET, ENDRET_I_KILDE, KILDE_IF, ID_KONT)
+                INSERT INTO råkopi_IF_FKONTO_12 (id, råkopi_IF_VEDFRIVT_10_id, OPPRETTET, ENDRET_I_KILDE, KILDE_IF, ID_KONT)
                 VALUES (?, ?, ?, ?, ' ', 0)
                 """,
                 ).use { stmt ->
@@ -178,16 +178,16 @@ internal class SlettPersonRiverTest {
 
     private fun insertForsikringsvurdering(
         id: UUID,
-        oppslagId: UUID,
+        råkopiId: UUID,
         fødselsnummer: String,
     ) {
         Database.dataSource.connection.use { conn ->
             conn
                 .prepareStatement(
-                    "INSERT INTO forsikringsvurdering (id, oppslag_id, behov, har_forsikring) VALUES (?, ?, ?::jsonb, ?)",
+                    "INSERT INTO forsikringsvurdering (id, råkopi_id, behov, har_forsikring) VALUES (?, ?, ?::jsonb, ?)",
                 ).use { stmt ->
                     stmt.setObject(1, id)
-                    stmt.setObject(2, oppslagId)
+                    stmt.setObject(2, råkopiId)
                     stmt.setString(3, """{"fødselsnummer": "$fødselsnummer", "@behov": ["Forsikringsvurdering"]}""")
                     stmt.setBoolean(4, false)
                     stmt.executeUpdate()
@@ -204,7 +204,7 @@ internal class SlettPersonRiverTest {
                 .prepareStatement(
                     """
                 INSERT INTO forsikringsvurdering_ekskludering_navkjopt_forsikring
-                    (forsikringsvurdering_id, oppslag_IF_VEDFRIVT_10_id, ekskluderingsaarsak)
+                    (forsikringsvurdering_id, råkopi_IF_VEDFRIVT_10_id, ekskluderingsaarsak)
                 VALUES (?, ?, 'ALDRI_BETALT')
                 """,
                 ).use { stmt ->

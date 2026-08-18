@@ -57,14 +57,14 @@ object TestcontainersSpForsikringDatabase {
         dataSource.close()
     }
 
-    fun countOppslag(forsikringsvurderingId: String): Int {
+    fun countRåkopi(forsikringsvurderingId: String): Int {
         @Language("PostgreSQL")
         val statement =
             """
             SELECT COUNT(*)
-            FROM oppslag
+            FROM råkopi
             WHERE id IN (
-              SELECT oppslag_id FROM forsikringsvurdering WHERE id = :forsikringsvurderingId::uuid
+              SELECT råkopi_id FROM forsikringsvurdering WHERE id = :forsikringsvurderingId::uuid
             )
             """.trimIndent()
         return sessionOf(dataSource).use { session ->
@@ -77,18 +77,18 @@ object TestcontainersSpForsikringDatabase {
         }
     }
 
-    fun countAlleOppslag(): Int = countRows("oppslag")
+    fun countAlleRåkopier(): Int = countRows("råkopi")
 
     fun countAlleForsikringsvurderinger(): Int = countRows("forsikringsvurdering")
 
-    fun countOppslagIF_VEDFRIVT_10(forsikringsvurderingId: String): Int {
+    fun countRåkopiIF_VEDFRIVT_10(forsikringsvurderingId: String): Int {
         @Language("PostgreSQL")
         val statement =
             """
             SELECT COUNT(*)
-            FROM oppslag_IF_VEDFRIVT_10
-            WHERE oppslag_id IN (
-              SELECT oppslag_id FROM forsikringsvurdering WHERE id = :forsikringsvurderingId::uuid
+            FROM råkopi_IF_VEDFRIVT_10
+            WHERE råkopi_id IN (
+              SELECT råkopi_id FROM forsikringsvurdering WHERE id = :forsikringsvurderingId::uuid
             )
             """.trimIndent()
         return sessionOf(dataSource).use { session ->
@@ -101,15 +101,15 @@ object TestcontainersSpForsikringDatabase {
         }
     }
 
-    fun countOppslagIF_FKONTO_12(forsikringsvurderingId: String): Int {
+    fun countRåkopiIF_FKONTO_12(forsikringsvurderingId: String): Int {
         @Language("PostgreSQL")
         val statement =
             """
             SELECT COUNT(*)
-            FROM oppslag_IF_FKONTO_12
-            WHERE oppslag_IF_VEDFRIVT_10_id IN (
-              SELECT id FROM oppslag_IF_VEDFRIVT_10 WHERE oppslag_id IN (
-                SELECT oppslag_id FROM forsikringsvurdering WHERE id = :forsikringsvurderingId::uuid
+            FROM råkopi_IF_FKONTO_12
+            WHERE råkopi_IF_VEDFRIVT_10_id IN (
+              SELECT id FROM råkopi_IF_VEDFRIVT_10 WHERE råkopi_id IN (
+                SELECT råkopi_id FROM forsikringsvurdering WHERE id = :forsikringsvurderingId::uuid
               )
             )
             """.trimIndent()
@@ -127,9 +127,9 @@ object TestcontainersSpForsikringDatabase {
         @Language("PostgreSQL")
         val statement =
             """
-            SELECT oppslag_IF_VEDFRIVT_10.IF10_FORSFOM_SEQ, forsikringsvurdering_ekskludering_navkjopt_forsikring.ekskluderingsaarsak
-            FROM oppslag_IF_VEDFRIVT_10, forsikringsvurdering_ekskludering_navkjopt_forsikring
-            WHERE oppslag_IF_VEDFRIVT_10.id = forsikringsvurdering_ekskludering_navkjopt_forsikring.oppslag_IF_VEDFRIVT_10_id
+            SELECT råkopi_IF_VEDFRIVT_10.IF10_FORSFOM_SEQ, forsikringsvurdering_ekskludering_navkjopt_forsikring.ekskluderingsaarsak
+            FROM råkopi_IF_VEDFRIVT_10, forsikringsvurdering_ekskludering_navkjopt_forsikring
+            WHERE råkopi_IF_VEDFRIVT_10.id = forsikringsvurdering_ekskludering_navkjopt_forsikring.råkopi_IF_VEDFRIVT_10_id
             AND forsikringsvurdering_ekskludering_navkjopt_forsikring.forsikringsvurdering_id = :forsikringsvurdering_id::uuid
             """.trimIndent()
         return sessionOf(dataSource).use { session ->

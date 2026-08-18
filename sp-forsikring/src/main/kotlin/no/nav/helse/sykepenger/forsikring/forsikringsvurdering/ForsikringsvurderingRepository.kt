@@ -18,10 +18,10 @@ import java.util.*
  *
  *  - identitetsnummer, yrkesaktivitetstype, spesielle yrkesgrupper og skjæringstidspunkt hentes fra
  *    behov-JSON-en som ble lagret sammen med vurderingen
- *  - de nav-kjøpte forsikringene tolkes fra råkopiradene (oppslag_IF_VEDFRIVT_10 / oppslag_IF_FKONTO_12)
+ *  - de nav-kjøpte forsikringene tolkes fra råkopiradene (råkopi_IF_VEDFRIVT_10 / råkopi_IF_FKONTO_12)
  *  - konklusjonen per nav-kjøpt forsikring hentes fra ekskluderingstabellen, slik at den historiske
  *    vurderingen bevares i stedet for å vurderes på nytt
- *  - vurdertTidspunkt settes til oppslagstidspunktet for råkopien
+ *  - vurdertTidspunkt settes til lest-tidspunktet for råkopien
  */
 class ForsikringsvurderingRepository(
     private val spForsikringTransactionalSession: TransactionalSession,
@@ -85,23 +85,23 @@ class ForsikringsvurderingRepository(
         // for at raden ikke skal multipliseres opp til én rad per spesiell yrkesgruppe.
         @Language("PostgreSQL")
         val statement = """
-            SELECT f.oppslag_id,
+            SELECT f.råkopi_id,
                    f.behov ->> 'fødselsnummer'                                 AS fodselsnummer,
                    f.behov ->> 'yrkesaktivitetstype'                           AS yrkesaktivitetstype,
                    f.behov -> 'Forsikringsvurdering' ->> 'skjæringstidspunkt'  AS skjaeringstidspunkt,
                    ARRAY(
                        SELECT jsonb_array_elements_text(f.behov -> 'Forsikringsvurdering' -> 'spesielleYrkesgrupper')
                    )                                                          AS spesielle_yrkesgrupper,
-                   o.oppslag_tidspunkt
+                   o.lest_tidspunkt
             FROM forsikringsvurdering f
-                     JOIN oppslag o ON o.id = f.oppslag_id
+                     JOIN råkopi o ON o.id = f.råkopi_id
             WHERE f.id = :id
         """
         return spForsikringTransactionalSession.run(
             queryOf(statement, mapOf("id" to id.value))
                 .map { row ->
                     Rad(
-                        råkopiId = Råkopi.Id(row.uuid("oppslag_id")),
+                        råkopiId = Råkopi.Id(row.uuid("råkopi_id")),
                         identitetsnummer = Identitetsnummer.fraString(row.string("fodselsnummer")),
                         yrkesaktivitetstype = enumValueOf(row.string("yrkesaktivitetstype")),
                         spesielleYrkesgrupper =
@@ -110,7 +110,7 @@ class ForsikringsvurderingRepository(
                                 .map { tilSpesiellYrkesgruppe(it) }
                                 .toSet(),
                         skjæringstidspunkt = LocalDate.parse(row.string("skjaeringstidspunkt")),
-                        vurdertTidspunkt = row.instant("oppslag_tidspunkt"),
+                        vurdertTidspunkt = row.instant("lest_tidspunkt"),
                     )
                 }.asSingle,
         )
@@ -131,7 +131,7 @@ class ForsikringsvurderingRepository(
     private fun hentKonklusjoner(id: Forsikringsvurdering.Id): Map<UUID, VurdertNavKjøptForsikring.Konklusjon> {
         @Language("PostgreSQL")
         val statement = """
-            SELECT oppslag_IF_VEDFRIVT_10_id, ekskluderingsaarsak
+            SELECT råkopi_IF_VEDFRIVT_10_id, ekskluderingsaarsak
             FROM forsikringsvurdering_ekskludering_navkjopt_forsikring
             WHERE forsikringsvurdering_id = :forsikringsvurdering_id
         """
@@ -139,7 +139,7 @@ class ForsikringsvurderingRepository(
             .run(
                 queryOf(statement, mapOf("forsikringsvurdering_id" to id.value))
                     .map { row ->
-                        row.uuid("oppslag_IF_VEDFRIVT_10_id") to
+                        row.uuid("råkopi_IF_VEDFRIVT_10_id") to
                             enumValueOf<VurdertNavKjøptForsikring.Konklusjon>(row.string("ekskluderingsaarsak"))
                     }.asList,
             ).toMap()
@@ -170,8 +170,8 @@ class ForsikringsvurderingRepository(
     ) {
         @Language("PostgreSQL")
         val statement = """
-            INSERT INTO forsikringsvurdering (id, oppslag_id, behov, har_forsikring, dekning_i_ventetid, dekning_grad, opphørsdato, oppslag_IF_VEDFRIVT_10_id, forsikringskategori)
-            VALUES (:id, :oppslag_id, :behov::jsonb, :har_forsikring, :dekning_i_ventetid, :dekning_grad, :opphorsdato, :oppslag_IF_VEDFRIVT_10_id, :forsikringskategori)
+            INSERT INTO forsikringsvurdering (id, råkopi_id, behov, har_forsikring, dekning_i_ventetid, dekning_grad, opphørsdato, råkopi_IF_VEDFRIVT_10_id, forsikringskategori)
+            VALUES (:id, :rakopi_id, :behov::jsonb, :har_forsikring, :dekning_i_ventetid, :dekning_grad, :opphorsdato, :rakopi_IF_VEDFRIVT_10_id, :forsikringskategori)
         """
         val dekning = forsikringsvurdering.dekning()
         spForsikringTransactionalSession.run(
@@ -179,13 +179,13 @@ class ForsikringsvurderingRepository(
                 statement,
                 mapOf(
                     "id" to forsikringsvurdering.id.value,
-                    "oppslag_id" to forsikringsvurdering.råkopiId.value,
+                    "rakopi_id" to forsikringsvurdering.råkopiId.value,
                     "behov" to behovJson,
                     "har_forsikring" to forsikringsvurdering.harForsikring(),
                     "dekning_i_ventetid" to dekning?.let { it.fraDag == 1 },
                     "dekning_grad" to dekning?.grad,
                     "opphorsdato" to forsikringsvurdering.opphørsdato(),
-                    "oppslag_IF_VEDFRIVT_10_id" to
+                    "rakopi_IF_VEDFRIVT_10_id" to
                         forsikringsvurdering
                             .gjeldendeNavKjøptForsikring()
                             ?.råkopiIfVedfrivt10Id
@@ -208,16 +208,16 @@ class ForsikringsvurderingRepository(
         @Language("PostgreSQL")
         val statement = """
             INSERT INTO forsikringsvurdering_ekskludering_navkjopt_forsikring
-                (forsikringsvurdering_id, oppslag_IF_VEDFRIVT_10_id, ekskluderingsaarsak)
+                (forsikringsvurdering_id, råkopi_IF_VEDFRIVT_10_id, ekskluderingsaarsak)
             VALUES
-                (:forsikringsvurdering_id, :oppslag_IF_VEDFRIVT_10_id, :ekskluderingsaarsak)
+                (:forsikringsvurdering_id, :rakopi_IF_VEDFRIVT_10_id, :ekskluderingsaarsak)
         """
         spForsikringTransactionalSession.run(
             queryOf(
                 statement,
                 mapOf(
                     "forsikringsvurdering_id" to forsikringsvurderingId.value,
-                    "oppslag_IF_VEDFRIVT_10_id" to ekskludertForsikring.råkopiIfVedfrivt10Id.value,
+                    "rakopi_IF_VEDFRIVT_10_id" to ekskludertForsikring.råkopiIfVedfrivt10Id.value,
                     "ekskluderingsaarsak" to ekskludertForsikring.konklusjon.name,
                 ),
             ).asUpdate,

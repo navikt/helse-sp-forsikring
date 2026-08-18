@@ -48,61 +48,61 @@ internal class SlettPersonRiver(
         // Konverter fra ddMMyy til yyMMdd-format før toLong()
         val fnrLong = (fødselsnummer.substring(4, 6) + fødselsnummer.substring(2, 4) + fødselsnummer.substring(0, 2) + fødselsnummer.substring(6)).toLong()
 
-        // Samle oppslag-IDer for personen fra begge mulige veier (med og uten forsikringsdata)
-        val oppslagIds: List<UUID> =
+        // Samle råkopi-IDer for personen fra begge mulige veier (med og uten forsikringsdata)
+        val råkopiIds: List<UUID> =
             tx.run(
                 queryOf(
                     """
-                SELECT DISTINCT oppslag_id FROM oppslag_IF_VEDFRIVT_10 WHERE IF01_AGNR_FNR = :fnr
+                SELECT DISTINCT råkopi_id FROM råkopi_IF_VEDFRIVT_10 WHERE IF01_AGNR_FNR = :fnr
                 UNION
-                SELECT oppslag_id FROM forsikringsvurdering WHERE behov->>'fødselsnummer' = :fnrStr
+                SELECT råkopi_id FROM forsikringsvurdering WHERE behov->>'fødselsnummer' = :fnrStr
                 """,
                     mapOf("fnr" to fnrLong, "fnrStr" to fødselsnummer),
-                ).map { it.uuid("oppslag_id") }.asList,
+                ).map { it.uuid("råkopi_id") }.asList,
             )
 
-        if (oppslagIds.isEmpty()) return
+        if (råkopiIds.isEmpty()) return
 
         // Slett i riktig rekkefølge for å respektere FK-koblinger
 
         @Language("PostgreSQL")
         val slettEkskluderinger = """
             DELETE FROM forsikringsvurdering_ekskludering_navkjopt_forsikring
-            WHERE oppslag_IF_VEDFRIVT_10_id IN (
-                SELECT id FROM oppslag_IF_VEDFRIVT_10 WHERE IF01_AGNR_FNR = :fnr
+            WHERE råkopi_IF_VEDFRIVT_10_id IN (
+                SELECT id FROM råkopi_IF_VEDFRIVT_10 WHERE IF01_AGNR_FNR = :fnr
             )
         """
         tx.run(queryOf(slettEkskluderinger, mapOf("fnr" to fnrLong)).asUpdate)
 
-        if (oppslagIds.isNotEmpty()) {
-            val placeholders = oppslagIds.indices.joinToString(",") { "?" }
+        if (råkopiIds.isNotEmpty()) {
+            val placeholders = råkopiIds.indices.joinToString(",") { "?" }
             tx.run(
                 queryOf(
-                    "DELETE FROM forsikringsvurdering WHERE oppslag_id IN ($placeholders)",
-                    *oppslagIds.toTypedArray(),
+                    "DELETE FROM forsikringsvurdering WHERE råkopi_id IN ($placeholders)",
+                    *råkopiIds.toTypedArray(),
                 ).asUpdate,
             )
         }
 
         @Language("PostgreSQL")
         val slettFkonto12 = """
-            DELETE FROM oppslag_IF_FKONTO_12
-            WHERE oppslag_IF_VEDFRIVT_10_id IN (
-                SELECT id FROM oppslag_IF_VEDFRIVT_10 WHERE IF01_AGNR_FNR = :fnr
+            DELETE FROM råkopi_IF_FKONTO_12
+            WHERE råkopi_IF_VEDFRIVT_10_id IN (
+                SELECT id FROM råkopi_IF_VEDFRIVT_10 WHERE IF01_AGNR_FNR = :fnr
             )
         """
         tx.run(queryOf(slettFkonto12, mapOf("fnr" to fnrLong)).asUpdate)
 
         @Language("PostgreSQL")
-        val slettVedfrivt10 = "DELETE FROM oppslag_IF_VEDFRIVT_10 WHERE IF01_AGNR_FNR = :fnr"
+        val slettVedfrivt10 = "DELETE FROM råkopi_IF_VEDFRIVT_10 WHERE IF01_AGNR_FNR = :fnr"
         tx.run(queryOf(slettVedfrivt10, mapOf("fnr" to fnrLong)).asUpdate)
 
-        if (oppslagIds.isNotEmpty()) {
-            val placeholders = oppslagIds.indices.joinToString(",") { "?" }
+        if (råkopiIds.isNotEmpty()) {
+            val placeholders = råkopiIds.indices.joinToString(",") { "?" }
             tx.run(
                 queryOf(
-                    "DELETE FROM oppslag WHERE id IN ($placeholders)",
-                    *oppslagIds.toTypedArray(),
+                    "DELETE FROM råkopi WHERE id IN ($placeholders)",
+                    *råkopiIds.toTypedArray(),
                 ).asUpdate,
             )
         }

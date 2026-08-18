@@ -113,7 +113,7 @@ internal class ForsikringsvurderingBehovRiverTest {
         IF10_TYPE: Char?,
     ) {
         IF10_TYPE?.let { insertBetaltVedfrivt(IF01_AGNR_FNR = 3020112345L, IF10_TYPE = it) }
-        val antallOppslagFør = TestcontainersSpForsikringDatabase.countAlleOppslag()
+        val antallRåkopierFør = TestcontainersSpForsikringDatabase.countAlleRåkopier()
         val antallForsikringsvurderingerFør = TestcontainersSpForsikringDatabase.countAlleForsikringsvurderinger()
 
         assertDoesNotThrow {
@@ -133,7 +133,7 @@ internal class ForsikringsvurderingBehovRiverTest {
         }
 
         assertEquals(0, rapid.inspektør.size)
-        assertEquals(antallOppslagFør, TestcontainersSpForsikringDatabase.countAlleOppslag())
+        assertEquals(antallRåkopierFør, TestcontainersSpForsikringDatabase.countAlleRåkopier())
         assertEquals(antallForsikringsvurderingerFør, TestcontainersSpForsikringDatabase.countAlleForsikringsvurderinger())
     }
 
@@ -141,7 +141,7 @@ internal class ForsikringsvurderingBehovRiverTest {
     fun `feiler når dekninger har ulike grader`() {
         insertBetaltVedfrivt(IF01_AGNR_FNR = 3020112345L, IF10_FORSFOM_SEQ = 1, IF10_TYPE = '1') // grad=80, fraDag=1
         insertBetaltVedfrivt(IF01_AGNR_FNR = 3020112345L, IF10_FORSFOM_SEQ = 2, IF10_TYPE = '2') // grad=100, fraDag=17
-        val antallOppslagFør = TestcontainersSpForsikringDatabase.countAlleOppslag()
+        val antallRåkopierFør = TestcontainersSpForsikringDatabase.countAlleRåkopier()
         val antallForsikringsvurderingerFør = TestcontainersSpForsikringDatabase.countAlleForsikringsvurderinger()
 
         assertDoesNotThrow {
@@ -161,12 +161,12 @@ internal class ForsikringsvurderingBehovRiverTest {
         }
 
         assertEquals(0, rapid.inspektør.size)
-        assertEquals(antallOppslagFør, TestcontainersSpForsikringDatabase.countAlleOppslag())
+        assertEquals(antallRåkopierFør, TestcontainersSpForsikringDatabase.countAlleRåkopier())
         assertEquals(antallForsikringsvurderingerFør, TestcontainersSpForsikringDatabase.countAlleForsikringsvurderinger())
     }
 
     @Test
-    fun `forsikringsvurdering og oppslag lagres ned i databasen`() {
+    fun `forsikringsvurdering og råkopi lagres ned i databasen`() {
         TestcontainersReplikadatabase.insertVedfrivt(
             IF01_AGNR_FNR = 3020112345L,
             IF10_FORSFOM_SEQ = 123,
@@ -216,9 +216,9 @@ internal class ForsikringsvurderingBehovRiverTest {
         val løsningMelding = rapid.inspektør.message(0)
         val forsikringsvurderingId = løsningMelding["@løsning"]["Forsikringsvurdering"]["forsikringsvurderingId"]?.asText()
         assertNotNull(forsikringsvurderingId) { "Manglet forsikringsvurderingId" }
-        assertEquals(1, TestcontainersSpForsikringDatabase.countOppslag(forsikringsvurderingId))
-        assertEquals(2, TestcontainersSpForsikringDatabase.countOppslagIF_VEDFRIVT_10(forsikringsvurderingId))
-        assertEquals(4, TestcontainersSpForsikringDatabase.countOppslagIF_FKONTO_12(forsikringsvurderingId))
+        assertEquals(1, TestcontainersSpForsikringDatabase.countRåkopi(forsikringsvurderingId))
+        assertEquals(2, TestcontainersSpForsikringDatabase.countRåkopiIF_VEDFRIVT_10(forsikringsvurderingId))
+        assertEquals(4, TestcontainersSpForsikringDatabase.countRåkopiIF_FKONTO_12(forsikringsvurderingId))
     }
 
     @Test

@@ -9,7 +9,7 @@ Koden i `sp-forsikring` er organisert etter løk-arkitektur (onion architecture)
 
 - `shared`: felleskode som logging, utils og test-støtte.
 - `forsikringsvurdering`: hovedflyt for vurdering av forsikring.
-- `oppslag`: oppslag mot Infotrygd/replikabase og lagring av oppslag.
+- `råkopi`: oppslag mot Infotrygd/replikabase og lagring av råkopi av forsikringsdataene.
 - `oppgaver`: oppretting av oppgaver og tilhørende rivers.
 - `telling`: telling av kroner utbetalt på grunn av forsikring.
 

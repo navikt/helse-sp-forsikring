@@ -35,9 +35,9 @@ object Database {
         dataSource.close()
     }
 
-    fun countOppslag(dataSource: DataSource = this.dataSource): Int =
+    fun countRåkopi(dataSource: DataSource = this.dataSource): Int =
         dataSource.connection.use { conn ->
-            conn.prepareStatement("SELECT COUNT(*) FROM oppslag").executeQuery().use { rs ->
+            conn.prepareStatement("SELECT COUNT(*) FROM råkopi").executeQuery().use { rs ->
                 rs.next()
                 rs.getInt(1)
             }
@@ -51,17 +51,17 @@ object Database {
             }
         }
 
-    fun countOppslagIfVedfrivt10(dataSource: DataSource = this.dataSource): Int =
+    fun countRåkopiIfVedfrivt10(dataSource: DataSource = this.dataSource): Int =
         dataSource.connection.use { conn ->
-            conn.prepareStatement("SELECT COUNT(*) FROM oppslag_IF_VEDFRIVT_10").executeQuery().use { rs ->
+            conn.prepareStatement("SELECT COUNT(*) FROM råkopi_IF_VEDFRIVT_10").executeQuery().use { rs ->
                 rs.next()
                 rs.getInt(1)
             }
         }
 
-    fun countOppslagIfFkonto12(dataSource: DataSource = this.dataSource): Int =
+    fun countRåkopiIfFkonto12(dataSource: DataSource = this.dataSource): Int =
         dataSource.connection.use { conn ->
-            conn.prepareStatement("SELECT COUNT(*) FROM oppslag_IF_FKONTO_12").executeQuery().use { rs ->
+            conn.prepareStatement("SELECT COUNT(*) FROM råkopi_IF_FKONTO_12").executeQuery().use { rs ->
                 rs.next()
                 rs.getInt(1)
             }
