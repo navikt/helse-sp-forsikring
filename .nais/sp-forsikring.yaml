@@ -53,9 +53,7 @@ spec:
     min: 2
     max: 2
   strategy:
-    rollingUpdate:
-      maxSurge: 50%
-      maxUnavailable: 50%
+    type: Recreate
   kafka:
     pool: {{ kafkaPool }}
   azure:
