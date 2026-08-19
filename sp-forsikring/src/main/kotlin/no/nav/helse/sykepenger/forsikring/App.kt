@@ -14,14 +14,8 @@ import no.nav.helse.rapids_rivers.RapidApplication
 import no.nav.helse.sykepenger.forsikring.api.forsikringsvurderingApi
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.ForsikringsvurderingService
 import no.nav.helse.sykepenger.forsikring.gosys.GosysOppgaveClient
-import no.nav.helse.sykepenger.forsikring.kafka.ForsikringsvurderingBehovRiver
-import no.nav.helse.sykepenger.forsikring.kafka.ForsikringsvurderingResultatBehovRiver
-import no.nav.helse.sykepenger.forsikring.kafka.SelvstendigIngenDagerIgjenRiver
-import no.nav.helse.sykepenger.forsikring.kafka.SelvstendigUtbetaltEtterVentetidRiver
-import no.nav.helse.sykepenger.forsikring.kafka.VedtakFattetRiver
-import no.nav.helse.sykepenger.forsikring.kafka.VedtakFattetTellerRiver
+import no.nav.helse.sykepenger.forsikring.kafka.*
 import no.nav.helse.sykepenger.forsikring.shared.logging.loggInfo
-import no.nav.helse.sykepenger.forsikring.telling.infrastruktur.TellingDao
 import org.flywaydb.core.Flyway
 import java.time.Duration
 
@@ -52,8 +46,6 @@ fun launchApplication(env: Map<String, String>) {
         )
 
     val forsikringsvurderingService = ForsikringsvurderingService(replikabaseDataSource = replikabaseDataSource)
-
-    val tellingDao = TellingDao(dataSource = spForsikringDataSource)
 
     val httpClient =
         HttpClient(CIO) {
@@ -131,7 +123,6 @@ fun launchApplication(env: Map<String, String>) {
             VedtakFattetTellerRiver(
                 rapidsConnection = this,
                 spForsikringDataSource = spForsikringDataSource,
-                tellingDao = tellingDao,
             )
         }.start()
 }
