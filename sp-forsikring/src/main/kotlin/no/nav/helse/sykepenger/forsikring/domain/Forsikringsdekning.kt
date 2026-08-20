@@ -1,10 +1,10 @@
 package no.nav.helse.sykepenger.forsikring.domain
 
 enum class Forsikringsdekning(
-    val grad: Int,
-    val fraDag: Int,
+    override val grad: Int,
+    override val fraDag: Int,
     val folketrygdlovenreferanse: Folketrygdlovenreferanse,
-) {
+) : Dekning {
     ÅTTI_PROSENT_FRA_DAG_1(
         grad = 80,
         fraDag = 1,
@@ -38,7 +38,4 @@ enum class Forsikringsdekning(
                 bokstav = 'c',
             ),
     ),
-    ;
-
-    fun iVentetid(): Boolean = fraDag == 1
 }

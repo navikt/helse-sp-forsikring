@@ -6,15 +6,15 @@ import com.github.navikt.tbd_libs.rapids_and_rivers_api.MessageContext
 import com.github.navikt.tbd_libs.rapids_and_rivers_api.MessageMetadata
 import com.github.navikt.tbd_libs.rapids_and_rivers_api.RapidsConnection
 import io.micrometer.core.instrument.MeterRegistry
+import no.nav.helse.sykepenger.forsikring.domain.FordelingAvBeløpPåUtbetalingsdag
 import no.nav.helse.sykepenger.forsikring.domain.Forsikringsvurdering
 import no.nav.helse.sykepenger.forsikring.domain.Identitetsnummer
-import no.nav.helse.sykepenger.forsikring.domain.Yrkesaktivitetstype
+import no.nav.helse.sykepenger.forsikring.domain.Utbetalingsdag
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.ForsikringsvurderingRepository
 import no.nav.helse.sykepenger.forsikring.kafka.VedtakFattetMelding.Utbetalingsdag.Type
 import no.nav.helse.sykepenger.forsikring.kafka.lib.medParsetMeldingOgTransaksjon
 import no.nav.helse.sykepenger.forsikring.shared.logging.MdcKey
 import no.nav.helse.sykepenger.forsikring.shared.logging.loggInfo
-import no.nav.helse.sykepenger.forsikring.tellingutbetaling.Forsikringstype
 import no.nav.helse.sykepenger.forsikring.tellingutbetaling.UtbetalingPerForsikringstypeDao
 import no.nav.helse.sykepenger.forsikring.tellingutbetaling.VedtakFattetMeldingDao
 import java.time.Instant
@@ -74,97 +74,55 @@ class VedtakFattetTellerRiver(
                 json = packet.toJson(),
             )
 
-            if (forsikringsvurdering == null || !forsikringsvurdering.harForsikring()) {
+            if (forsikringsvurdering == null) {
                 return@medParsetMeldingOgTransaksjon
             }
 
-            val navKjøptForsikring = forsikringsvurdering.gjeldendeNavKjøptForsikring()
             val kollektivForsikring = forsikringsvurdering.kollektivForsikring
-            val utbetalingPerForsikringstypeDao = UtbetalingPerForsikringstypeDao(transaction)
-            if (navKjøptForsikring != null && kollektivForsikring != null) {
-                if (navKjøptForsikring.type.tilleggsforsikringFor != kollektivForsikring) {
-                    error(
-                        "Bruker har en ugyldig kombinasjon av kollektiv og nav-kjøpt forsikring." +
-                            " Kan ikke fortsette med dette, siden det er tvetydig hvilken forsikring som bidrar" +
-                            " til økt utbetaling (med tanke på senere justering av premiesats)",
+            val navKjøptForsikring = forsikringsvurdering.gjeldendeNavKjøptForsikring()
+
+            val utbetalingsdager =
+                vedtakFattetMelding.utbetalingsdager.map {
+                    Utbetalingsdag(
+                        dato = it.dato,
+                        beløpTilBruker = it.beløpTilBruker,
+                        dekningsgrad = it.dekningsgrad,
+                        erIVentetid = it.type.isKnown(Type.Ventetidsdag),
                     )
                 }
 
+            val fordelingerAvBeløpPåUtbetalingsdager =
+                utbetalingsdager.map { dag ->
+                    FordelingAvBeløpPåUtbetalingsdag.finnFordeling(
+                        dag = dag,
+                        yrkesaktivitetstype = forsikringsvurdering.yrkesaktivitetstype,
+                        kollektivForsikring = kollektivForsikring,
+                        navKjøptForsikring = navKjøptForsikring,
+                    )
+                }
+
+            val (fordelingerIVentetid, fordelingerUtenomVentetid) =
+                fordelingerAvBeløpPåUtbetalingsdager.partition { it.dag.erIVentetid }
+
+            val utbetalingPerForsikringstypeDao = UtbetalingPerForsikringstypeDao(transaction)
+            if (kollektivForsikring != null) {
                 utbetalingPerForsikringstypeDao.insert(
                     vedtakFattetMeldingId = vedtakFattetMelding.id,
-                    forsikringstype = Forsikringstype.NavKjøpt(navKjøptForsikring.type),
-                    utbetaltIVentetid =
-                        vedtakFattetMelding.utbetalingsdager
-                            .filter { it.erIVentetid() }
-                            .sumOf { it.beløpTilBruker },
-                    utbetaltUtenomVentetid = 0,
+                    forsikringstype = kollektivForsikring,
+                    utbetaltIVentetid = fordelingerIVentetid.sumOf { it.påGrunnAvKollektivForsikring },
+                    utbetaltUtenomVentetid = fordelingerUtenomVentetid.sumOf { it.påGrunnAvKollektivForsikring },
                 )
+            }
+            if (navKjøptForsikring != null) {
                 utbetalingPerForsikringstypeDao.insert(
                     vedtakFattetMeldingId = vedtakFattetMelding.id,
-                    forsikringstype = Forsikringstype.Kollektiv(kollektivForsikring),
-                    utbetaltIVentetid = 0,
-                    utbetaltUtenomVentetid =
-                        vedtakFattetMelding.utbetalingsdager
-                            .filterNot { it.erIVentetid() }
-                            .sumOf { it.beløpTilBruker }
-                            .times(kollektivForsikring.dekning.grad - 80)
-                            .div(100),
-                )
-            } else if (navKjøptForsikring != null) {
-                val dagerIkkeOpphørt =
-                    vedtakFattetMelding.utbetalingsdager
-                        .filterNot { navKjøptForsikring.erOpphørtPå(it.dato) }
-
-                if (!dagerIkkeOpphørt.all { it.dekningsgrad == navKjøptForsikring.type.dekning.grad }) {
-                    error("Utbetalingsdager har ulik dekningsgrad fra forsikringstype ${navKjøptForsikring.type}")
-                }
-                val utbetaltIVentetid =
-                    dagerIkkeOpphørt
-                        .filter { it.erIVentetid() }
-                        .sumOf { it.beløpTilBruker }
-
-                if (!navKjøptForsikring.type.dekning.iVentetid() && utbetaltIVentetid > 0) {
-                    error("Utbetaling i ventetid for forsikringstype ${navKjøptForsikring.type}, som ikke har dekning i ventetid")
-                }
-
-                val utbetaltUtenomVentetid =
-                    dagerIkkeOpphørt
-                        .filterNot { it.erIVentetid() }
-                        .sumOf { it.beløpTilBruker } * (navKjøptForsikring.type.dekning.grad - (if (navKjøptForsikring.type.yrkesaktivitetstype == Yrkesaktivitetstype.SELVSTENDIG) 80 else 100)) / 100
-
-                utbetalingPerForsikringstypeDao.insert(
-                    vedtakFattetMeldingId = vedtakFattetMelding.id,
-                    forsikringstype = Forsikringstype.NavKjøpt(navKjøptForsikring.type),
-                    utbetaltIVentetid = utbetaltIVentetid,
-                    utbetaltUtenomVentetid = utbetaltUtenomVentetid,
-                )
-            } else if (kollektivForsikring != null) {
-                if (!vedtakFattetMelding.utbetalingsdager.all { it.dekningsgrad == kollektivForsikring.dekning.grad }) {
-                    error("Utbetalingsdager har ulik dekningsgrad fra forsikringstype $kollektivForsikring")
-                }
-                val utbetaltIVentetid =
-                    vedtakFattetMelding.utbetalingsdager.filter { it.erIVentetid() }.sumOf { it.beløpTilBruker }
-
-                if (!kollektivForsikring.dekning.iVentetid() && utbetaltIVentetid > 0) {
-                    error("Utbetaling i ventetid for forsikringstype $kollektivForsikring, som ikke har dekning i ventetid")
-                }
-
-                val utbetaltUtenomVentetid =
-                    vedtakFattetMelding.utbetalingsdager
-                        .filterNot { it.erIVentetid() }
-                        .sumOf { it.beløpTilBruker } * (kollektivForsikring.dekning.grad - 80) / 100
-
-                utbetalingPerForsikringstypeDao.insert(
-                    vedtakFattetMeldingId = vedtakFattetMelding.id,
-                    forsikringstype = Forsikringstype.Kollektiv(kollektivForsikring),
-                    utbetaltIVentetid = utbetaltIVentetid,
-                    utbetaltUtenomVentetid = utbetaltUtenomVentetid,
+                    forsikringstype = navKjøptForsikring.type,
+                    utbetaltIVentetid = fordelingerIVentetid.sumOf { it.påGrunnAvNavKjøptForsikring },
+                    utbetaltUtenomVentetid = fordelingerUtenomVentetid.sumOf { it.påGrunnAvNavKjøptForsikring },
                 )
             }
         }
     }
 }
-
-private fun VedtakFattetMelding.Utbetalingsdag.erIVentetid(): Boolean = type.isKnown(Type.Ventetidsdag)
 
 private fun LocalDateTime.tilInstantIOslo(): Instant = atZone(ZoneId.of("Europe/Oslo")).toInstant()

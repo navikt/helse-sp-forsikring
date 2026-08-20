@@ -3,8 +3,8 @@ package no.nav.helse.sykepenger.forsikring.domain
 enum class NavKjøptForsikringType(
     val yrkesaktivitetstype: Yrkesaktivitetstype,
     val tilleggsforsikringFor: KollektivForsikring? = null,
-    val dekning: Forsikringsdekning,
-) {
+    override val dekning: Forsikringsdekning,
+) : Forsikringstype {
     SELVSTENDIG_80_PROSENT_FRA_DAG_1(
         yrkesaktivitetstype = Yrkesaktivitetstype.SELVSTENDIG,
         dekning = Forsikringsdekning.ÅTTI_PROSENT_FRA_DAG_1,

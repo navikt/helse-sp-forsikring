@@ -34,7 +34,7 @@ class UtbetalingPerForsikringstypeDaoTest {
             lagreMelding(transaction, meldingId)
             UtbetalingPerForsikringstypeDao(transaction).insert(
                 vedtakFattetMeldingId = meldingId,
-                forsikringstype = Forsikringstype.NavKjøpt(NavKjøptForsikringType.SELVSTENDIG_80_PROSENT_FRA_DAG_1),
+                forsikringstype = NavKjøptForsikringType.SELVSTENDIG_80_PROSENT_FRA_DAG_1,
                 utbetaltIVentetid = 100,
                 utbetaltUtenomVentetid = 3272,
             )
@@ -56,7 +56,7 @@ class UtbetalingPerForsikringstypeDaoTest {
             lagreMelding(transaction, meldingId)
             UtbetalingPerForsikringstypeDao(transaction).insert(
                 vedtakFattetMeldingId = meldingId,
-                forsikringstype = Forsikringstype.Kollektiv(KollektivForsikring.JORDBRUKER),
+                forsikringstype = KollektivForsikring.JORDBRUKER,
                 utbetaltIVentetid = 0,
                 utbetaltUtenomVentetid = 500,
             )
@@ -78,14 +78,13 @@ class UtbetalingPerForsikringstypeDaoTest {
             val dao = UtbetalingPerForsikringstypeDao(transaction)
             dao.insert(
                 vedtakFattetMeldingId = meldingId,
-                forsikringstype =
-                    Forsikringstype.NavKjøpt(NavKjøptForsikringType.SELVSTENDIG_JORDBRUKER_100_PROSENT_FRA_DAG_1),
+                forsikringstype = NavKjøptForsikringType.SELVSTENDIG_JORDBRUKER_100_PROSENT_FRA_DAG_1,
                 utbetaltIVentetid = 100,
                 utbetaltUtenomVentetid = 0,
             )
             dao.insert(
                 vedtakFattetMeldingId = meldingId,
-                forsikringstype = Forsikringstype.Kollektiv(KollektivForsikring.JORDBRUKER),
+                forsikringstype = KollektivForsikring.JORDBRUKER,
                 utbetaltIVentetid = 0,
                 utbetaltUtenomVentetid = 3272,
             )
@@ -113,13 +112,13 @@ class UtbetalingPerForsikringstypeDaoTest {
                 val dao = UtbetalingPerForsikringstypeDao(transaction)
                 dao.insert(
                     vedtakFattetMeldingId = meldingId,
-                    forsikringstype = Forsikringstype.Kollektiv(KollektivForsikring.FISKER_BLAD_B),
+                    forsikringstype = KollektivForsikring.FISKER_BLAD_B,
                     utbetaltIVentetid = 100,
                     utbetaltUtenomVentetid = 3272,
                 )
                 dao.insert(
                     vedtakFattetMeldingId = UUID.randomUUID(),
-                    forsikringstype = Forsikringstype.Kollektiv(KollektivForsikring.FISKER_BLAD_B),
+                    forsikringstype = KollektivForsikring.FISKER_BLAD_B,
                     utbetaltIVentetid = 100,
                     utbetaltUtenomVentetid = 3272,
                 )
@@ -142,7 +141,7 @@ class UtbetalingPerForsikringstypeDaoTest {
                     repeat(2) {
                         dao.insert(
                             vedtakFattetMeldingId = meldingId,
-                            forsikringstype = Forsikringstype.Kollektiv(KollektivForsikring.FISKER_BLAD_B),
+                            forsikringstype = KollektivForsikring.FISKER_BLAD_B,
                             utbetaltIVentetid = 100,
                             utbetaltUtenomVentetid = 3272,
                         )

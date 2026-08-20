@@ -2,8 +2,8 @@ package no.nav.helse.sykepenger.forsikring.domain
 
 enum class KollektivForsikring(
     val spesielleYrkesgrupper: Set<SpesiellYrkesgruppe>,
-    val dekning: Forsikringsdekning,
-) {
+    override val dekning: Forsikringsdekning,
+) : Forsikringstype {
     FISKER_BLAD_B(
         spesielleYrkesgrupper = setOf(SpesiellYrkesgruppe.FISKER_BLAD_B),
         dekning = Forsikringsdekning.HUNDRE_PROSENT_FRA_DAG_1,

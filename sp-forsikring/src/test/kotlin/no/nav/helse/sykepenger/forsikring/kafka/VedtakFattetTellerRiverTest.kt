@@ -209,10 +209,30 @@ class VedtakFattetTellerRiverTest {
             vedtakFattetMelding(
                 forsikringsvurderingId = forsikringsvurderingId,
                 meldingId = meldingId,
+                dager = dager(dekningsgrad = 80, ventetidsbeløp = 0),
             ),
         )
 
         assertNotNull(hentVedtakFattetMelding(meldingId))
+        assertEquals(emptyList(), hentUtbetalingerPerForsikringstype(meldingId))
+    }
+
+    @Test
+    fun `feiler og lagrer ingenting når det er utbetalt i ventetiden uten at brukeren har forsikring`() {
+        val meldingId = UUID.randomUUID()
+        val forsikringsvurderingId = lagreForsikringsvurdering()
+
+        assertThrows<IllegalStateException> {
+            testRapid.sendTestMessage(
+                vedtakFattetMelding(
+                    forsikringsvurderingId = forsikringsvurderingId,
+                    meldingId = meldingId,
+                    dager = dager(dekningsgrad = 80),
+                ),
+            )
+        }
+
+        assertNull(hentVedtakFattetMelding(meldingId))
         assertEquals(emptyList(), hentUtbetalingerPerForsikringstype(meldingId))
     }
 

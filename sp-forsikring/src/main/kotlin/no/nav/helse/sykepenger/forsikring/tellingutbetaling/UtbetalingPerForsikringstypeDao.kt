@@ -2,6 +2,7 @@ package no.nav.helse.sykepenger.forsikring.tellingutbetaling
 
 import kotliquery.TransactionalSession
 import kotliquery.queryOf
+import no.nav.helse.sykepenger.forsikring.domain.Forsikringstype
 import no.nav.helse.sykepenger.forsikring.domain.KollektivForsikring
 import no.nav.helse.sykepenger.forsikring.domain.NavKjøptForsikringType
 import org.intellij.lang.annotations.Language
@@ -33,20 +34,18 @@ class UtbetalingPerForsikringstypeDao(
                     "vedtak_fattet_melding_id" to vedtakFattetMeldingId,
                     "utbetalt_i_ventetid" to utbetaltIVentetid,
                     "utbetalt_utenom_ventetid" to utbetaltUtenomVentetid,
-                    "kollektiv_forsikring_type" to (forsikringstype as? Forsikringstype.Kollektiv)?.type?.name,
-                    "navkjopt_forsikring_type" to (forsikringstype as? Forsikringstype.NavKjøpt)?.type?.name,
+                    "kollektiv_forsikring_type" to
+                        when (forsikringstype) {
+                            is KollektivForsikring -> forsikringstype.name
+                            is NavKjøptForsikringType -> null
+                        },
+                    "navkjopt_forsikring_type" to
+                        when (forsikringstype) {
+                            is KollektivForsikring -> null
+                            is NavKjøptForsikringType -> forsikringstype.name
+                        },
                 ),
             ).asUpdate,
         )
     }
-}
-
-sealed interface Forsikringstype {
-    data class Kollektiv(
-        val type: KollektivForsikring,
-    ) : Forsikringstype
-
-    data class NavKjøpt(
-        val type: NavKjøptForsikringType,
-    ) : Forsikringstype
 }
