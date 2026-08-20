@@ -63,7 +63,14 @@ class VedtakFattetTellerRiver(
         ) {
             loggInfo("Mottok VedtakFattet-melding", "melding" to packet.toJson())
             spForsikringDataSource.inTransaction { transaction ->
-                VedtakFattetMeldingDao(transaction).lagre(
+                val vedtakFattetMeldingDao = VedtakFattetMeldingDao(transaction)
+                val utbetalingPerForsikringstypeDao = UtbetalingPerForsikringstypeDao(transaction)
+
+                if (vedtakFattetMeldingDao.eksisterer(meldingId)) {
+                    loggInfo("Hopper over vedtak_fattet-melding som allerede er lagret ned")
+                }
+
+                vedtakFattetMeldingDao.lagre(
                     id = meldingId,
                     forsikringsvurderingId = forsikringsvurderingId,
                     identitetsnummer = Identitetsnummer.fraString(fødselsnummer),
@@ -99,18 +106,14 @@ class VedtakFattetTellerRiver(
                         )
                     }
 
-                    UtbetalingPerForsikringstypeDao(
-                        transaction,
-                    ).lagre(
+                    utbetalingPerForsikringstypeDao.lagre(
                         id = UUID.randomUUID(),
                         vedtakFattetMeldingId = meldingId,
                         forsikringstype = Forsikringstype.NavKjøpt(navKjøptForsikring.type),
                         utbetaltIVentetid = dager.filter { it.iVentetid }.sumOf { it.beløpTilBruker },
                         utbetaltUtenomVentetid = 0,
                     )
-                    UtbetalingPerForsikringstypeDao(
-                        transaction,
-                    ).lagre(
+                    utbetalingPerForsikringstypeDao.lagre(
                         id = UUID.randomUUID(),
                         vedtakFattetMeldingId = meldingId,
                         forsikringstype = Forsikringstype.Kollektiv(kollektivForsikring),
@@ -141,9 +144,7 @@ class VedtakFattetTellerRiver(
                                 .filterNot { it.iVentetid }
                                 .sumOf { it.beløpTilBruker } * (navKjøptForsikring.type.dekning.grad - (if (navKjøptForsikring.type.yrkesaktivitetstype == Yrkesaktivitetstype.SELVSTENDIG) 80 else 100)) / 100
 
-                        UtbetalingPerForsikringstypeDao(
-                            transaction,
-                        ).lagre(
+                        utbetalingPerForsikringstypeDao.lagre(
                             id = UUID.randomUUID(),
                             vedtakFattetMeldingId = meldingId,
                             forsikringstype = Forsikringstype.NavKjøpt(navKjøptForsikring.type),
@@ -165,9 +166,7 @@ class VedtakFattetTellerRiver(
                                 .filterNot { it.iVentetid }
                                 .sumOf { it.beløpTilBruker } * (kollektivForsikring.dekning.grad - 80) / 100
 
-                        UtbetalingPerForsikringstypeDao(
-                            transaction,
-                        ).lagre(
+                        utbetalingPerForsikringstypeDao.lagre(
                             id = UUID.randomUUID(),
                             vedtakFattetMeldingId = meldingId,
                             forsikringstype = Forsikringstype.Kollektiv(kollektivForsikring),
