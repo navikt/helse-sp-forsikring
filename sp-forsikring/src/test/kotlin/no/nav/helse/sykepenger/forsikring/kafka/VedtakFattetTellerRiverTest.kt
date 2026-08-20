@@ -318,22 +318,25 @@ class VedtakFattetTellerRiverTest {
     }
 
     @Test
-    fun `ignorerer melding uten forsikringsvurderingId`() {
+    fun `lagrer melding men ingen utbetaling når melding mangler forsikringsvurderingId`() {
+        val meldingId = UUID.randomUUID()
+        val behandlingId = UUID.randomUUID()
+
         testRapid.sendTestMessage(
-            """
-            {
-              "@event_name": "vedtak_fattet",
-              "@id": "${UUID.randomUUID()}",
-              "fødselsnummer": "$TESTFØDSELSNUMMER",
-              "yrkesaktivitetstype": "SELVSTENDIG",
-              "behandlingId": "${UUID.randomUUID()}",
-              "vedtakFattetTidspunkt": "$VEDTAK_FATTET_TIDSPUNKT",
-              "utbetalingsdager": []
-            }
-            """.trimIndent(),
+            vedtakFattetMelding(
+                forsikringsvurderingId = null,
+                meldingId = meldingId,
+                behandlingId = behandlingId,
+                dager = dager(dekningsgrad = 80),
+            ),
         )
 
-        assertEquals(0, antallMeldinger())
+        val melding = assertNotNull(hentVedtakFattetMelding(meldingId))
+        assertNull(melding.forsikringsvurderingId)
+        assertEquals(TESTFØDSELSNUMMER, melding.identitetsnummer)
+        assertEquals(behandlingId, melding.behandlingId)
+        assertEquals(1, antallMeldinger())
+        assertEquals(emptyList(), hentUtbetalingerPerForsikringstype(meldingId))
     }
 
     @Test
@@ -407,7 +410,7 @@ class VedtakFattetTellerRiverTest {
             }
 
     private fun vedtakFattetMelding(
-        forsikringsvurderingId: Forsikringsvurdering.Id,
+        forsikringsvurderingId: Forsikringsvurdering.Id?,
         meldingId: UUID = UUID.randomUUID(),
         behandlingId: UUID = UUID.randomUUID(),
         vedtakFattetTidspunkt: String = VEDTAK_FATTET_TIDSPUNKT,
@@ -429,7 +432,7 @@ class VedtakFattetTellerRiverTest {
           "sykepengegrunnlag": 531709.0,
           "vedtakFattetTidspunkt": "$vedtakFattetTidspunkt",
           "tags": ["Førstegangsbehandling"],
-          "forsikringsvurderingId": "${forsikringsvurderingId.value}",
+          ${forsikringsvurderingId?.let { """"forsikringsvurderingId": "${it.value}",""" } ?: ""}
           "utbetalingsdager": [
             ${dager.joinToString(",") { it.tilJson() }}
           ]
