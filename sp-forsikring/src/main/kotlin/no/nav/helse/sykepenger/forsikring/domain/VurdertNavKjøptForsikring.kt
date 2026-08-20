@@ -15,6 +15,8 @@ class VurdertNavKjøptForsikring private constructor(
 ) {
     fun erGyldig() = konklusjon == Konklusjon.GYLDIG
 
+    fun erOpphørtPå(dato: LocalDate) = opphørsdato != null && dato > opphørsdato
+
     enum class Konklusjon(
         val folketrygdlovenReferanse: Folketrygdlovenreferanse?,
     ) {

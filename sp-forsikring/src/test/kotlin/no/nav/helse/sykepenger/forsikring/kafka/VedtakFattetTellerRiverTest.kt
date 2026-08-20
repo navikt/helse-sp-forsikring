@@ -297,7 +297,7 @@ class VedtakFattetTellerRiverTest {
     }
 
     @Test
-    fun `feiler når samme melding leses to ganger`() {
+    fun `hopper over melding som allerede er lagret ned`() {
         val meldingId = UUID.randomUUID()
         val forsikringsvurderingId =
             lagreForsikringsvurdering(
@@ -311,7 +311,7 @@ class VedtakFattetTellerRiverTest {
             )
 
         testRapid.sendTestMessage(melding)
-        assertFails { testRapid.sendTestMessage(melding) }
+        testRapid.sendTestMessage(melding)
 
         assertEquals(1, antallMeldinger())
         assertEquals(1, hentUtbetalingerPerForsikringstype(meldingId).size)

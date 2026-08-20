@@ -10,8 +10,7 @@ import java.util.*
 class UtbetalingPerForsikringstypeDao(
     private val spForsikringTransactionalSession: TransactionalSession,
 ) {
-    fun lagre(
-        id: UUID,
+    fun insert(
         vedtakFattetMeldingId: UUID,
         forsikringstype: Forsikringstype,
         utbetaltIVentetid: Int,
@@ -30,7 +29,7 @@ class UtbetalingPerForsikringstypeDao(
             queryOf(
                 statement,
                 mapOf(
-                    "id" to id,
+                    "id" to UUID.randomUUID(),
                     "vedtak_fattet_melding_id" to vedtakFattetMeldingId,
                     "utbetalt_i_ventetid" to utbetaltIVentetid,
                     "utbetalt_utenom_ventetid" to utbetaltUtenomVentetid,

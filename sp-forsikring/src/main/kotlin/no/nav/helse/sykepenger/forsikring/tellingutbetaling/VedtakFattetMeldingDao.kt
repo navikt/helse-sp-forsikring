@@ -23,7 +23,7 @@ class VedtakFattetMeldingDao(
         ) == true
     }
 
-    fun lagre(
+    fun insert(
         id: UUID,
         forsikringsvurderingId: Forsikringsvurdering.Id?,
         identitetsnummer: Identitetsnummer,

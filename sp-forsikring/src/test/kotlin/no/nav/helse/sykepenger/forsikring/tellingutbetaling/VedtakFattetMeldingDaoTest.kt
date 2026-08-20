@@ -35,7 +35,7 @@ class VedtakFattetMeldingDaoTest {
         val forventetJson = """{"@event_name":"vedtak_fattet","utbetalingsdager":[]}"""
 
         dataSource.inTransaction { transaction ->
-            VedtakFattetMeldingDao(transaction).lagre(
+            VedtakFattetMeldingDao(transaction).insert(
                 id = forventetId,
                 forsikringsvurderingId = forventetForsikringsvurderingId,
                 identitetsnummer = Identitetsnummer.fraString(TESTFØDSELSNUMMER),
@@ -59,7 +59,7 @@ class VedtakFattetMeldingDaoTest {
         val forventetId = UUID.randomUUID()
 
         dataSource.inTransaction { transaction ->
-            VedtakFattetMeldingDao(transaction).lagre(
+            VedtakFattetMeldingDao(transaction).insert(
                 id = forventetId,
                 forsikringsvurderingId = null,
                 identitetsnummer = Identitetsnummer.fraString(TESTFØDSELSNUMMER),
@@ -82,7 +82,7 @@ class VedtakFattetMeldingDaoTest {
         runCatching {
             dataSource.inTransaction { transaction ->
                 val dao = VedtakFattetMeldingDao(transaction)
-                dao.lagre(
+                dao.insert(
                     id = id,
                     forsikringsvurderingId = null,
                     identitetsnummer = Identitetsnummer.fraString(TESTFØDSELSNUMMER),
@@ -90,7 +90,7 @@ class VedtakFattetMeldingDaoTest {
                     vedtakFattetTidspunkt = Instant.parse("2026-07-01T12:51:09.553707Z"),
                     json = """{"@event_name":"vedtak_fattet"}""",
                 )
-                dao.lagre(
+                dao.insert(
                     id = UUID.randomUUID(),
                     forsikringsvurderingId = ukjentForsikringsvurderingId,
                     identitetsnummer = Identitetsnummer.fraString(TESTFØDSELSNUMMER),
@@ -111,7 +111,7 @@ class VedtakFattetMeldingDaoTest {
         val ukjentId = UUID.randomUUID()
 
         dataSource.inTransaction { transaction ->
-            VedtakFattetMeldingDao(transaction).lagre(
+            VedtakFattetMeldingDao(transaction).insert(
                 id = lagretId,
                 forsikringsvurderingId = null,
                 identitetsnummer = Identitetsnummer.fraString(TESTFØDSELSNUMMER),
@@ -135,7 +135,7 @@ class VedtakFattetMeldingDaoTest {
         dataSource.inTransaction { transaction ->
             val dao = VedtakFattetMeldingDao(transaction)
             assertFalse(dao.eksisterer(id))
-            dao.lagre(
+            dao.insert(
                 id = id,
                 forsikringsvurderingId = null,
                 identitetsnummer = Identitetsnummer.fraString(TESTFØDSELSNUMMER),

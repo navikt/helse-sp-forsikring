@@ -29,12 +29,10 @@ class UtbetalingPerForsikringstypeDaoTest {
     @Test
     fun `lagrer utbetaling for navkjøpt forsikring`() {
         val meldingId = UUID.randomUUID()
-        val forventetId = UUID.randomUUID()
 
         dataSource.inTransaction { transaction ->
             lagreMelding(transaction, meldingId)
-            UtbetalingPerForsikringstypeDao(transaction).lagre(
-                id = forventetId,
+            UtbetalingPerForsikringstypeDao(transaction).insert(
                 vedtakFattetMeldingId = meldingId,
                 forsikringstype = Forsikringstype.NavKjøpt(NavKjøptForsikringType.SELVSTENDIG_80_PROSENT_FRA_DAG_1),
                 utbetaltIVentetid = 100,
@@ -42,8 +40,7 @@ class UtbetalingPerForsikringstypeDaoTest {
             )
         }
 
-        val rad = hentUtbetaling(forventetId)
-        assertNotNull(rad)
+        val rad = assertNotNull(hentUtbetalingerFor(meldingId).singleOrNull())
         assertEquals(meldingId, rad.vedtakFattetMeldingId)
         assertEquals(100, rad.utbetaltIVentetid)
         assertEquals(3272, rad.utbetaltUtenomVentetid)
@@ -54,12 +51,10 @@ class UtbetalingPerForsikringstypeDaoTest {
     @Test
     fun `lagrer utbetaling for kollektiv forsikring`() {
         val meldingId = UUID.randomUUID()
-        val forventetId = UUID.randomUUID()
 
         dataSource.inTransaction { transaction ->
             lagreMelding(transaction, meldingId)
-            UtbetalingPerForsikringstypeDao(transaction).lagre(
-                id = forventetId,
+            UtbetalingPerForsikringstypeDao(transaction).insert(
                 vedtakFattetMeldingId = meldingId,
                 forsikringstype = Forsikringstype.Kollektiv(KollektivForsikring.JORDBRUKER),
                 utbetaltIVentetid = 0,
@@ -67,8 +62,7 @@ class UtbetalingPerForsikringstypeDaoTest {
             )
         }
 
-        val rad = hentUtbetaling(forventetId)
-        assertNotNull(rad)
+        val rad = assertNotNull(hentUtbetalingerFor(meldingId).singleOrNull())
         assertEquals(KollektivForsikring.JORDBRUKER.name, rad.kollektivForsikringType)
         assertNull(rad.navkjøptForsikringType)
         assertEquals(0, rad.utbetaltIVentetid)
@@ -78,22 +72,18 @@ class UtbetalingPerForsikringstypeDaoTest {
     @Test
     fun `lagrer flere forsikringstyper på samme melding`() {
         val meldingId = UUID.randomUUID()
-        val navkjøptId = UUID.randomUUID()
-        val kollektivId = UUID.randomUUID()
 
         dataSource.inTransaction { transaction ->
             lagreMelding(transaction, meldingId)
             val dao = UtbetalingPerForsikringstypeDao(transaction)
-            dao.lagre(
-                id = navkjøptId,
+            dao.insert(
                 vedtakFattetMeldingId = meldingId,
                 forsikringstype =
                     Forsikringstype.NavKjøpt(NavKjøptForsikringType.SELVSTENDIG_JORDBRUKER_100_PROSENT_FRA_DAG_1),
                 utbetaltIVentetid = 100,
                 utbetaltUtenomVentetid = 0,
             )
-            dao.lagre(
-                id = kollektivId,
+            dao.insert(
                 vedtakFattetMeldingId = meldingId,
                 forsikringstype = Forsikringstype.Kollektiv(KollektivForsikring.JORDBRUKER),
                 utbetaltIVentetid = 0,
@@ -102,31 +92,32 @@ class UtbetalingPerForsikringstypeDaoTest {
         }
 
         assertEquals(2, antallUtbetalingerFor(meldingId))
+        val rader = hentUtbetalingerFor(meldingId)
         assertEquals(
             NavKjøptForsikringType.SELVSTENDIG_JORDBRUKER_100_PROSENT_FRA_DAG_1.name,
-            hentUtbetaling(navkjøptId)?.navkjøptForsikringType,
+            rader.single { it.navkjøptForsikringType != null }.navkjøptForsikringType,
         )
-        assertEquals(KollektivForsikring.JORDBRUKER.name, hentUtbetaling(kollektivId)?.kollektivForsikringType)
+        assertEquals(
+            KollektivForsikring.JORDBRUKER.name,
+            rader.single { it.kollektivForsikringType != null }.kollektivForsikringType,
+        )
     }
 
     @Test
     fun `ruller tilbake hele transaksjonen når lagring feiler`() {
         val meldingId = UUID.randomUUID()
-        val id = UUID.randomUUID()
 
         runCatching {
             dataSource.inTransaction { transaction ->
                 lagreMelding(transaction, meldingId)
                 val dao = UtbetalingPerForsikringstypeDao(transaction)
-                dao.lagre(
-                    id = id,
+                dao.insert(
                     vedtakFattetMeldingId = meldingId,
                     forsikringstype = Forsikringstype.Kollektiv(KollektivForsikring.FISKER_BLAD_B),
                     utbetaltIVentetid = 100,
                     utbetaltUtenomVentetid = 3272,
                 )
-                dao.lagre(
-                    id = UUID.randomUUID(),
+                dao.insert(
                     vedtakFattetMeldingId = UUID.randomUUID(),
                     forsikringstype = Forsikringstype.Kollektiv(KollektivForsikring.FISKER_BLAD_B),
                     utbetaltIVentetid = 100,
@@ -135,7 +126,7 @@ class UtbetalingPerForsikringstypeDaoTest {
             }
         }
 
-        assertNull(hentUtbetaling(id))
+        assertNull(hentUtbetalingerFor(meldingId).singleOrNull())
         assertEquals(0, antallUtbetalingerFor(meldingId))
     }
 
@@ -149,8 +140,7 @@ class UtbetalingPerForsikringstypeDaoTest {
                     lagreMelding(transaction, meldingId)
                     val dao = UtbetalingPerForsikringstypeDao(transaction)
                     repeat(2) {
-                        dao.lagre(
-                            id = UUID.randomUUID(),
+                        dao.insert(
                             vedtakFattetMeldingId = meldingId,
                             forsikringstype = Forsikringstype.Kollektiv(KollektivForsikring.FISKER_BLAD_B),
                             utbetaltIVentetid = 100,
@@ -177,7 +167,7 @@ class UtbetalingPerForsikringstypeDaoTest {
         val navkjøptForsikringType: String?,
     )
 
-    private fun hentUtbetaling(id: UUID): UtbetalingPerForsikringstypeRad? =
+    private fun hentUtbetalingerFor(vedtakFattetMeldingId: UUID): List<UtbetalingPerForsikringstypeRad> =
         sessionOf(dataSource).use { session ->
             session.run(
                 queryOf(
@@ -185,9 +175,9 @@ class UtbetalingPerForsikringstypeDaoTest {
                     SELECT id, vedtak_fattet_melding_id, utbetalt_i_ventetid, utbetalt_utenom_ventetid,
                            kollektiv_forsikring_type, navkjøpt_forsikring_type
                     FROM utbetaling_per_forsikringstype
-                    WHERE id = ?
+                    WHERE vedtak_fattet_melding_id = ?
                     """.trimIndent(),
-                    id,
+                    vedtakFattetMeldingId,
                 ).map { row ->
                     UtbetalingPerForsikringstypeRad(
                         id = row.uuid("id"),
@@ -197,7 +187,7 @@ class UtbetalingPerForsikringstypeDaoTest {
                         kollektivForsikringType = row.stringOrNull("kollektiv_forsikring_type"),
                         navkjøptForsikringType = row.stringOrNull("navkjøpt_forsikring_type"),
                     )
-                }.asSingle,
+                }.asList,
             )
         }
 
@@ -215,7 +205,7 @@ class UtbetalingPerForsikringstypeDaoTest {
         transaction: TransactionalSession,
         meldingId: UUID,
     ) {
-        VedtakFattetMeldingDao(transaction).lagre(
+        VedtakFattetMeldingDao(transaction).insert(
             id = meldingId,
             forsikringsvurderingId = null,
             identitetsnummer = Identitetsnummer.fraString(TESTFØDSELSNUMMER),

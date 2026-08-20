@@ -38,4 +38,7 @@ enum class Forsikringsdekning(
                 bokstav = 'c',
             ),
     ),
+    ;
+
+    fun iVentetid(): Boolean = fraDag == 1
 }

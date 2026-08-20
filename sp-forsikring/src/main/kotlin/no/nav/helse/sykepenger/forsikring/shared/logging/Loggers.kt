@@ -88,7 +88,6 @@ private fun String.medTeamLogsDetaljer(teamLogsDetaljer: List<Pair<String, Any?>
 enum class MdcKey(
     val value: String,
 ) {
-    HENDELSE_ID("hendelseId"),
     MELDING_ID("meldingId"),
     FORSIKRINGSVURDERING_ID("forsikringsvurderingId"),
 }
