@@ -16,6 +16,7 @@ import no.nav.helse.sykepenger.forsikring.shared.testsupport.lagVurdertNavKjøpt
 import no.nav.helse.sykepenger.forsikring.shared.testsupport.lagreRåkopiOgForsikringsvurdering
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.assertThrows
+import java.time.DayOfWeek
 import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalDateTime
@@ -48,9 +49,10 @@ class VedtakFattetTellerRiverTest {
         val meldingId = UUID.randomUUID()
         val behandlingId = UUID.randomUUID()
         val identitetsnummer = lagIdentitetsnummer()
+        val skjæringstidspunkt = LocalDate.parse("2026-04-06")
         val forsikringsvurdering =
             lagForsikringsvurdering(
-                skjæringstidspunkt = LocalDate.parse("2026-04-06"),
+                skjæringstidspunkt = skjæringstidspunkt,
                 identitetsnummer = identitetsnummer,
                 navKjøpteForsikringer =
                     listOf(
@@ -68,7 +70,14 @@ class VedtakFattetTellerRiverTest {
                 meldingId = meldingId,
                 behandlingId = behandlingId,
                 fødselsnummer = identitetsnummer.value,
-                dager = dager(dekningsgrad = 80),
+                dager =
+                    utbetalingsdagerForPeriode(
+                        fom = "2026-04-06",
+                        tom = "2026-04-30",
+                        skjæringstidspunkt = skjæringstidspunkt,
+                        dekningsgrad = 80,
+                        beløpPerUkedag = 100,
+                    ),
                 vedtakFattetTidspunkt = "2026-07-08T12:34:56.789101112",
             )
         testRapid.sendTestMessage(testmelding)
@@ -89,9 +98,39 @@ class VedtakFattetTellerRiverTest {
         val utbetaling = utbetalinger.single()
         assertEquals(NavKjøptForsikringType.SELVSTENDIG_80_PROSENT_FRA_DAG_1.name, utbetaling.navkjøptForsikringType)
         assertNull(utbetaling.kollektivForsikringType)
-        assertEquals(VENTETIDSBELØP, utbetaling.utbetaltIVentetid)
-        // 80 % dekning gir ingen utbetaling utover det ordinære for selvstendige (80 %)
+        assertEquals(1200, utbetaling.utbetaltIVentetid)
         assertEquals(0, utbetaling.utbetaltUtenomVentetid)
+    }
+
+    private fun utbetalingsdagerForPeriode(
+        fom: String,
+        tom: String,
+        skjæringstidspunkt: LocalDate,
+        dekningsgrad: Int,
+        beløpPerUkedag: Int,
+    ): List<String> {
+        val fomDate = LocalDate.parse(fom)
+        val tomDate = LocalDate.parse(tom)
+        val numDaysBeyondFirst = tomDate.toEpochDay() - fomDate.toEpochDay()
+        return (0..numDaysBeyondFirst)
+            .map { fomDate.plusDays(it) }
+            .map { localDate ->
+                val erHelg = localDate.dayOfWeek in setOf(DayOfWeek.SATURDAY, DayOfWeek.SUNDAY)
+                val erVentetid = (localDate.toEpochDay() - skjæringstidspunkt.toEpochDay()) < 16
+                lagUtbetalingsdagJson(
+                    dato = localDate.toString(),
+                    type =
+                        if (erVentetid) {
+                            "Ventetidsdag"
+                        } else if (erHelg) {
+                            "NavHelgDag"
+                        } else {
+                            "NavDag"
+                        },
+                    dekningsgrad = dekningsgrad,
+                    beløpTilBruker = if (erHelg) 0 else beløpPerUkedag,
+                )
+            }
     }
 
     @Test
@@ -114,13 +153,13 @@ class VedtakFattetTellerRiverTest {
             vedtakFattetMelding(
                 forsikringsvurderingId = forsikringsvurdering.id,
                 meldingId = meldingId,
-                dager = dager(dekningsgrad = 100),
+                dager = dager(dekningIVentetid = 100, beløpIVentetid = 100),
             ),
         )
 
         val utbetaling = hentUtbetalingerPerForsikringstype(meldingId).single()
         assertEquals(NavKjøptForsikringType.SELVSTENDIG_100_PROSENT_FRA_DAG_1.name, utbetaling.navkjøptForsikringType)
-        assertEquals(VENTETIDSBELØP, utbetaling.utbetaltIVentetid)
+        assertEquals(100, utbetaling.utbetaltIVentetid)
         // (100 - 80) % av 2000
         assertEquals(400, utbetaling.utbetaltUtenomVentetid)
     }
@@ -151,21 +190,31 @@ class VedtakFattetTellerRiverTest {
                 meldingId = meldingId,
                 dager =
                     listOf(
-                        Testdag(
+                        lagUtbetalingsdagJson(
                             dato = "2026-04-06",
                             type = "Ventetidsdag",
                             dekningsgrad = 100,
-                            beløpTilBruker = VENTETIDSBELØP,
+                            beløpTilBruker = 100,
                         ),
-                        Testdag(dato = "2026-04-22", type = "NavDag", dekningsgrad = 100, beløpTilBruker = 1000),
+                        lagUtbetalingsdagJson(
+                            dato = "2026-04-22",
+                            type = "NavDag",
+                            dekningsgrad = 100,
+                            beløpTilBruker = 1000,
+                        ),
                         // Etter opphør: skal hverken telles med eller feile på avvikende dekningsgrad
-                        Testdag(dato = "2026-04-23", type = "NavDag", dekningsgrad = 80, beløpTilBruker = 1000),
+                        lagUtbetalingsdagJson(
+                            dato = "2026-04-23",
+                            type = "NavDag",
+                            dekningsgrad = 80,
+                            beløpTilBruker = 1000,
+                        ),
                     ),
             ),
         )
 
         val utbetaling = hentUtbetalingerPerForsikringstype(meldingId).single()
-        assertEquals(VENTETIDSBELØP, utbetaling.utbetaltIVentetid)
+        assertEquals(100, utbetaling.utbetaltIVentetid)
         // (100 - 80) % av 1000
         assertEquals(200, utbetaling.utbetaltUtenomVentetid)
     }
@@ -187,14 +236,14 @@ class VedtakFattetTellerRiverTest {
             vedtakFattetMelding(
                 forsikringsvurderingId = forsikringsvurderingId,
                 meldingId = meldingId,
-                dager = dager(dekningsgrad = 100),
+                dager = dager(dekningIVentetid = 100, beløpIVentetid = 100),
             ),
         )
 
         val utbetaling = hentUtbetalingerPerForsikringstype(meldingId).single()
         assertEquals(KollektivForsikring.FISKER_BLAD_B.name, utbetaling.kollektivForsikringType)
         assertNull(utbetaling.navkjøptForsikringType)
-        assertEquals(VENTETIDSBELØP, utbetaling.utbetaltIVentetid)
+        assertEquals(100, utbetaling.utbetaltIVentetid)
         assertEquals(400, utbetaling.utbetaltUtenomVentetid)
     }
 
@@ -222,7 +271,7 @@ class VedtakFattetTellerRiverTest {
             vedtakFattetMelding(
                 forsikringsvurderingId = forsikringsvurderingId,
                 meldingId = meldingId,
-                dager = dager(dekningsgrad = 100),
+                dager = dager(dekningIVentetid = 100, beløpIVentetid = 100),
             ),
         )
 
@@ -234,7 +283,7 @@ class VedtakFattetTellerRiverTest {
                     it.navkjøptForsikringType == NavKjøptForsikringType.SELVSTENDIG_JORDBRUKER_100_PROSENT_FRA_DAG_1.name
                 },
             )
-        assertEquals(VENTETIDSBELØP, navkjøpt.utbetaltIVentetid)
+        assertEquals(100, navkjøpt.utbetaltIVentetid)
         assertEquals(0, navkjøpt.utbetaltUtenomVentetid)
 
         val kollektiv =
@@ -255,7 +304,7 @@ class VedtakFattetTellerRiverTest {
             vedtakFattetMelding(
                 forsikringsvurderingId = forsikringsvurderingId,
                 meldingId = meldingId,
-                dager = dager(dekningsgrad = 80, ventetidsbeløp = 0),
+                dager = dager(dekningIVentetid = 80, beløpIVentetid = 0),
             ),
         )
 
@@ -276,7 +325,7 @@ class VedtakFattetTellerRiverTest {
                 vedtakFattetMelding(
                     forsikringsvurderingId = forsikringsvurderingId,
                     meldingId = meldingId,
-                    dager = dager(dekningsgrad = 80),
+                    dager = dager(dekningIVentetid = 80, beløpIVentetid = 100),
                 ),
             )
         }
@@ -308,7 +357,7 @@ class VedtakFattetTellerRiverTest {
                 vedtakFattetMelding(
                     forsikringsvurderingId = forsikringsvurderingId,
                     meldingId = meldingId,
-                    dager = dager(dekningsgrad = 100),
+                    dager = dager(dekningIVentetid = 100, beløpIVentetid = 100),
                 ),
             )
         }
@@ -340,7 +389,7 @@ class VedtakFattetTellerRiverTest {
                 vedtakFattetMelding(
                     forsikringsvurderingId = forsikringsvurderingId,
                     meldingId = meldingId,
-                    dager = dager(dekningsgrad = 100, ventetidsbeløp = 100),
+                    dager = dager(dekningIVentetid = 100, beløpIVentetid = 100),
                 ),
             )
         }
@@ -371,7 +420,7 @@ class VedtakFattetTellerRiverTest {
             vedtakFattetMelding(
                 forsikringsvurderingId = forsikringsvurderingId,
                 meldingId = meldingId,
-                dager = dager(dekningsgrad = 100, ventetidsbeløp = 0),
+                dager = dager(dekningIVentetid = 100, beløpIVentetid = 0),
             ),
         )
 
@@ -392,7 +441,7 @@ class VedtakFattetTellerRiverTest {
         }
 
         assertNull(hentVedtakFattetMelding(meldingId))
-        assertEquals(0, antallMeldinger())
+        assertEquals(0, antallLagredeVedtakFattetMelding())
     }
 
     @Test
@@ -416,13 +465,13 @@ class VedtakFattetTellerRiverTest {
             vedtakFattetMelding(
                 forsikringsvurderingId = forsikringsvurderingId,
                 meldingId = meldingId,
-                dager = dager(dekningsgrad = 80),
+                dager = dager(dekningIVentetid = 80, beløpIVentetid = 100),
             )
 
         testRapid.sendTestMessage(melding)
         testRapid.sendTestMessage(melding)
 
-        assertEquals(1, antallMeldinger())
+        assertEquals(1, antallLagredeVedtakFattetMelding())
         assertEquals(1, hentUtbetalingerPerForsikringstype(meldingId).size)
     }
 
@@ -438,7 +487,7 @@ class VedtakFattetTellerRiverTest {
                 meldingId = meldingId,
                 behandlingId = behandlingId,
                 fødselsnummer = identitetsnummer.value,
-                dager = dager(dekningsgrad = 80),
+                dager = dager(dekningIVentetid = 80, beløpIVentetid = 100),
             ),
         )
 
@@ -446,7 +495,7 @@ class VedtakFattetTellerRiverTest {
         assertNull(melding.forsikringsvurderingId)
         assertEquals(identitetsnummer.value, melding.identitetsnummer)
         assertEquals(behandlingId, melding.behandlingId)
-        assertEquals(1, antallMeldinger())
+        assertEquals(1, antallLagredeVedtakFattetMelding())
         assertEquals(emptyList(), hentUtbetalingerPerForsikringstype(meldingId))
     }
 
@@ -476,7 +525,7 @@ class VedtakFattetTellerRiverTest {
             ),
         )
 
-        assertEquals(0, antallMeldinger())
+        assertEquals(0, antallLagredeVedtakFattetMelding())
     }
 
     @Test
@@ -501,37 +550,50 @@ class VedtakFattetTellerRiverTest {
             """.trimIndent(),
         )
 
-        assertEquals(0, antallMeldinger())
+        assertEquals(0, antallLagredeVedtakFattetMelding())
     }
 
-    private data class Testdag(
-        val dato: String,
-        val type: String,
-        val dekningsgrad: Int,
-        val beløpTilBruker: Int,
-    )
-
     private fun dager(
-        dekningsgrad: Int,
-        ventetidsbeløp: Int = VENTETIDSBELØP,
-        navdagsbeløp: List<Int> = listOf(1000, 1000),
-    ): List<Testdag> =
+        dekningIVentetid: Int,
+        dekningUtenforVentetid: Int = dekningIVentetid,
+        beløpIVentetid: Int,
+        beløpUtenforVentetid: Int = 1000,
+    ): List<String> =
         listOf(
-            Testdag(
+            lagUtbetalingsdagJson(
                 dato = "2026-04-06",
                 type = "Ventetidsdag",
-                dekningsgrad = dekningsgrad,
-                beløpTilBruker = ventetidsbeløp,
+                dekningsgrad = dekningIVentetid,
+                beløpTilBruker = beløpIVentetid,
             ),
-        ) +
-            navdagsbeløp.mapIndexed { index, beløp ->
-                Testdag(
-                    dato = LocalDate.parse("2026-04-22").plusDays(index.toLong()).toString(),
-                    type = "NavDag",
-                    dekningsgrad = dekningsgrad,
-                    beløpTilBruker = beløp,
-                )
-            }
+            lagUtbetalingsdagJson(
+                dato = "2026-04-23",
+                type = "NavDag",
+                dekningsgrad = dekningUtenforVentetid,
+                beløpTilBruker = beløpUtenforVentetid,
+            ),
+            lagUtbetalingsdagJson(
+                dato = "2026-04-24",
+                type = "NavDag",
+                dekningsgrad = dekningUtenforVentetid,
+                beløpTilBruker = beløpUtenforVentetid,
+            ),
+        )
+
+    private fun lagUtbetalingsdagJson(
+        dato: String,
+        type: String,
+        dekningsgrad: Int,
+        beløpTilBruker: Int,
+    ): String =
+        """
+        {
+          "dato": "$dato",
+          "type": "$type",
+          "dekningsgrad": $dekningsgrad,
+          "beløpTilBruker": $beløpTilBruker
+        }
+        """.trimIndent()
 
     private fun vedtakFattetMelding(
         forsikringsvurderingId: Forsikringsvurdering.Id?,
@@ -540,7 +602,27 @@ class VedtakFattetTellerRiverTest {
         vedtakFattetTidspunkt: String = LocalDateTime.now().format(ISO_LOCAL_DATE_TIME),
         yrkesaktivitetstype: String = "SELVSTENDIG",
         fødselsnummer: String = lagIdentitetsnummer().value,
-        dager: List<Testdag> = dager(dekningsgrad = 80),
+        dager: List<String> =
+            listOf(
+                lagUtbetalingsdagJson(
+                    dato = "2026-04-06",
+                    type = "Ventetidsdag",
+                    dekningsgrad = 80,
+                    beløpTilBruker = 100,
+                ),
+                lagUtbetalingsdagJson(
+                    dato = "2026-04-23",
+                    type = "NavDag",
+                    dekningsgrad = 80,
+                    beløpTilBruker = 1000,
+                ),
+                lagUtbetalingsdagJson(
+                    dato = "2026-04-24",
+                    type = "NavDag",
+                    dekningsgrad = 80,
+                    beløpTilBruker = 1000,
+                ),
+            ),
     ) = """
         {
           "@event_name": "vedtak_fattet",
@@ -551,25 +633,12 @@ class VedtakFattetTellerRiverTest {
           "vedtakFattetTidspunkt": "$vedtakFattetTidspunkt",
           ${forsikringsvurderingId?.let { """"forsikringsvurderingId": "${it.value}",""" } ?: ""}
           "utbetalingsdager": [
-            ${dager.joinToString(",") { it.tilJson() }}
+            ${dager.joinToString(",")}
           ]
         }
         """.trimIndent()
 
-    private fun Testdag.tilJson() =
-        """
-        {
-          "dato": "$dato",
-          "type": "$type",
-          "sykdomsgrad": 100,
-          "begrunnelser": [],
-          "dekningsgrad": $dekningsgrad,
-          "beløpTilBruker": $beløpTilBruker,
-          "beløpTilArbeidsgiver": 0
-        }
-        """.trimIndent()
-
-    private data class VedtakFattetMeldingRad(
+    private data class VedtakFattetMeldingDto(
         val forsikringsvurderingId: UUID?,
         val identitetsnummer: String,
         val behandlingId: UUID,
@@ -577,25 +646,15 @@ class VedtakFattetTellerRiverTest {
         val json: String,
     )
 
-    private data class UtbetalingRad(
-        val utbetaltIVentetid: Int,
-        val utbetaltUtenomVentetid: Int,
-        val kollektivForsikringType: String?,
-        val navkjøptForsikringType: String?,
-    )
-
-    private fun hentVedtakFattetMelding(id: UUID): VedtakFattetMeldingRad? =
+    private fun hentVedtakFattetMelding(id: UUID): VedtakFattetMeldingDto? =
         sessionOf(TestcontainersSpForsikringDatabase.dataSource).use { session ->
             session.run(
                 queryOf(
-                    """
-                    SELECT forsikringsvurdering_id, identitetsnummer, behandling_id, vedtak_fattet_tidspunkt, json
-                    FROM vedtak_fattet_melding
-                    WHERE id = ?
-                    """.trimIndent(),
-                    id,
+                    // language=postgresql
+                    "SELECT * FROM vedtak_fattet_melding WHERE id = :id",
+                    mapOf("id" to id),
                 ).map { row ->
-                    VedtakFattetMeldingRad(
+                    VedtakFattetMeldingDto(
                         forsikringsvurderingId = row.uuidOrNull("forsikringsvurdering_id"),
                         identitetsnummer = row.string("identitetsnummer"),
                         behandlingId = row.uuid("behandling_id"),
@@ -606,18 +665,22 @@ class VedtakFattetTellerRiverTest {
             )
         }
 
-    private fun hentUtbetalingerPerForsikringstype(vedtakFattetMeldingId: UUID): List<UtbetalingRad> =
+    private data class UtbetalingDto(
+        val utbetaltIVentetid: Int,
+        val utbetaltUtenomVentetid: Int,
+        val kollektivForsikringType: String?,
+        val navkjøptForsikringType: String?,
+    )
+
+    private fun hentUtbetalingerPerForsikringstype(vedtakFattetMeldingId: UUID): List<UtbetalingDto> =
         sessionOf(TestcontainersSpForsikringDatabase.dataSource).use { session ->
             session.run(
                 queryOf(
-                    """
-                    SELECT utbetalt_i_ventetid, utbetalt_utenom_ventetid, kollektiv_forsikring_type, navkjøpt_forsikring_type
-                    FROM utbetaling_per_forsikringstype
-                    WHERE vedtak_fattet_melding_id = ?
-                    """.trimIndent(),
-                    vedtakFattetMeldingId,
+                    // language=postgresql
+                    "SELECT * FROM utbetaling_per_forsikringstype WHERE vedtak_fattet_melding_id = :vedtak_fattet_melding_id",
+                    mapOf("vedtak_fattet_melding_id" to vedtakFattetMeldingId),
                 ).map { row ->
-                    UtbetalingRad(
+                    UtbetalingDto(
                         utbetaltIVentetid = row.int("utbetalt_i_ventetid"),
                         utbetaltUtenomVentetid = row.int("utbetalt_utenom_ventetid"),
                         kollektivForsikringType = row.stringOrNull("kollektiv_forsikring_type"),
@@ -627,12 +690,13 @@ class VedtakFattetTellerRiverTest {
             )
         }
 
-    private fun antallMeldinger(): Int =
+    private fun antallLagredeVedtakFattetMelding(): Int =
         sessionOf(TestcontainersSpForsikringDatabase.dataSource).use { session ->
-            session.run(queryOf("SELECT COUNT(*) FROM vedtak_fattet_melding").map { it.int(1) }.asSingle)!!
+            session.run(
+                queryOf(
+                    // language=postgresql
+                    "SELECT COUNT(*) FROM vedtak_fattet_melding",
+                ).map { it.int(1) }.asSingle,
+            )!!
         }
-
-    private companion object {
-        const val VENTETIDSBELØP = 100
-    }
 }

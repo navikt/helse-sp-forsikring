@@ -28,12 +28,12 @@ fun lagreRåkopiOgForsikringsvurdering(
 
 private fun Forsikringsvurdering.tilForsikringsvurderingBehovJson(): String =
     """
-{
-    "@behov": [ "Forsikringsvurdering" ],
-    "fødselsnummer": "${identitetsnummer.value}",
-    "yrkesaktivitetstype": "$yrkesaktivitetstype",
-    "Forsikringsvurdering": {
-        "spesielleYrkesgrupper": [ ${
+    {
+        "@behov": [ "Forsikringsvurdering" ],
+        "fødselsnummer": "${identitetsnummer.value}",
+        "yrkesaktivitetstype": "$yrkesaktivitetstype",
+        "Forsikringsvurdering": {
+            "spesielleYrkesgrupper": [ ${
         spesielleYrkesgrupper.joinToString(",") {
             when (it) {
                 SpesiellYrkesgruppe.FISKER_BLAD_B -> "\"FISKER_BLAD_B\""
@@ -42,7 +42,7 @@ private fun Forsikringsvurdering.tilForsikringsvurderingBehovJson(): String =
             }
         }
     } ],
-        "skjæringstidspunkt": "$skjæringstidspunkt"
+            "skjæringstidspunkt": "$skjæringstidspunkt"
+        }
     }
-}
     """.trimIndent()
