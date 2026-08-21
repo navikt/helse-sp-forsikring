@@ -3,13 +3,14 @@ package no.nav.helse.sykepenger.forsikring.tellingutbetaling
 import kotliquery.queryOf
 import kotliquery.sessionOf
 import no.nav.helse.sykepenger.forsikring.domain.Forsikringsvurdering
-import no.nav.helse.sykepenger.forsikring.domain.Identitetsnummer
-import no.nav.helse.sykepenger.forsikring.shared.testsupport.TESTFØDSELSNUMMER
 import no.nav.helse.sykepenger.forsikring.shared.testsupport.TestcontainersSpForsikringDatabase
-import no.nav.helse.sykepenger.forsikring.shared.testsupport.lagreForsikringsvurdering
+import no.nav.helse.sykepenger.forsikring.shared.testsupport.lagForsikringsvurdering
+import no.nav.helse.sykepenger.forsikring.shared.testsupport.lagIdentitetsnummer
+import no.nav.helse.sykepenger.forsikring.shared.testsupport.lagreRåkopiOgForsikringsvurdering
 import no.nav.helse.sykepenger.forsikring.shared.util.inTransaction
 import org.junit.jupiter.api.BeforeEach
 import java.time.Instant
+import java.time.LocalDate
 import java.util.*
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -28,7 +29,15 @@ class VedtakFattetMeldingDaoTest {
 
     @Test
     fun `lagrer rad i vedtak_fattet_melding`() {
-        val forventetForsikringsvurderingId = lagreForsikringsvurdering()
+        val identitetsnummer = lagIdentitetsnummer()
+        val forsikringsvurdering =
+            lagForsikringsvurdering(
+                skjæringstidspunkt = LocalDate.parse("2026-07-01"),
+                identitetsnummer = identitetsnummer,
+            )
+        lagreRåkopiOgForsikringsvurdering(forsikringsvurdering)
+        val forventetForsikringsvurderingId =
+            forsikringsvurdering.id
         val forventetId = UUID.randomUUID()
         val forventetBehandlingId = UUID.randomUUID()
         val forventetVedtakFattetTidspunkt = Instant.parse("2026-07-01T12:51:09.553707Z")
@@ -38,7 +47,7 @@ class VedtakFattetMeldingDaoTest {
             VedtakFattetMeldingDao(transaction).insert(
                 id = forventetId,
                 forsikringsvurderingId = forventetForsikringsvurderingId,
-                identitetsnummer = Identitetsnummer.fraString(TESTFØDSELSNUMMER),
+                identitetsnummer = identitetsnummer,
                 behandlingId = forventetBehandlingId,
                 vedtakFattetTidspunkt = forventetVedtakFattetTidspunkt,
                 json = forventetJson,
@@ -48,7 +57,7 @@ class VedtakFattetMeldingDaoTest {
         val rad = hentVedtakFattetMelding(forventetId)
         assertNotNull(rad)
         assertEquals(forventetForsikringsvurderingId.value, rad.forsikringsvurderingId)
-        assertEquals(TESTFØDSELSNUMMER, rad.identitetsnummer)
+        assertEquals(identitetsnummer.value, rad.identitetsnummer)
         assertEquals(forventetBehandlingId, rad.behandlingId)
         assertEquals(forventetVedtakFattetTidspunkt, rad.vedtakFattetTidspunkt)
         assertTrue(harLagretJson(forventetId, forventetJson), "json-kolonnen skal inneholde meldingen som ble lagret")
@@ -62,7 +71,7 @@ class VedtakFattetMeldingDaoTest {
             VedtakFattetMeldingDao(transaction).insert(
                 id = forventetId,
                 forsikringsvurderingId = null,
-                identitetsnummer = Identitetsnummer.fraString(TESTFØDSELSNUMMER),
+                identitetsnummer = lagIdentitetsnummer(),
                 behandlingId = UUID.randomUUID(),
                 vedtakFattetTidspunkt = Instant.parse("2026-07-01T12:51:09.553707Z"),
                 json = """{"@event_name":"vedtak_fattet"}""",
@@ -85,7 +94,7 @@ class VedtakFattetMeldingDaoTest {
                 dao.insert(
                     id = id,
                     forsikringsvurderingId = null,
-                    identitetsnummer = Identitetsnummer.fraString(TESTFØDSELSNUMMER),
+                    identitetsnummer = lagIdentitetsnummer(),
                     behandlingId = UUID.randomUUID(),
                     vedtakFattetTidspunkt = Instant.parse("2026-07-01T12:51:09.553707Z"),
                     json = """{"@event_name":"vedtak_fattet"}""",
@@ -93,7 +102,7 @@ class VedtakFattetMeldingDaoTest {
                 dao.insert(
                     id = UUID.randomUUID(),
                     forsikringsvurderingId = ukjentForsikringsvurderingId,
-                    identitetsnummer = Identitetsnummer.fraString(TESTFØDSELSNUMMER),
+                    identitetsnummer = lagIdentitetsnummer(),
                     behandlingId = UUID.randomUUID(),
                     vedtakFattetTidspunkt = Instant.parse("2026-07-01T12:51:09.553707Z"),
                     json = """{"@event_name":"vedtak_fattet"}""",
@@ -114,7 +123,7 @@ class VedtakFattetMeldingDaoTest {
             VedtakFattetMeldingDao(transaction).insert(
                 id = lagretId,
                 forsikringsvurderingId = null,
-                identitetsnummer = Identitetsnummer.fraString(TESTFØDSELSNUMMER),
+                identitetsnummer = lagIdentitetsnummer(),
                 behandlingId = UUID.randomUUID(),
                 vedtakFattetTidspunkt = Instant.parse("2026-07-01T12:51:09.553707Z"),
                 json = """{"@event_name":"vedtak_fattet"}""",
@@ -138,7 +147,7 @@ class VedtakFattetMeldingDaoTest {
             dao.insert(
                 id = id,
                 forsikringsvurderingId = null,
-                identitetsnummer = Identitetsnummer.fraString(TESTFØDSELSNUMMER),
+                identitetsnummer = lagIdentitetsnummer(),
                 behandlingId = UUID.randomUUID(),
                 vedtakFattetTidspunkt = Instant.parse("2026-07-01T12:51:09.553707Z"),
                 json = """{"@event_name":"vedtak_fattet"}""",

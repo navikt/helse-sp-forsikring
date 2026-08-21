@@ -1,6 +1,5 @@
 package no.nav.helse.sykepenger.forsikring.kafka
 
-import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.github.navikt.tbd_libs.rapids_and_rivers.test_support.TestRapid
 import kotliquery.queryOf
 import kotliquery.sessionOf
@@ -8,28 +7,33 @@ import no.nav.helse.sykepenger.forsikring.domain.Forsikringsvurdering
 import no.nav.helse.sykepenger.forsikring.domain.KollektivForsikring
 import no.nav.helse.sykepenger.forsikring.domain.NavKjøptForsikringType
 import no.nav.helse.sykepenger.forsikring.domain.SpesiellYrkesgruppe
-import no.nav.helse.sykepenger.forsikring.shared.testsupport.Infotrygdforsikring
-import no.nav.helse.sykepenger.forsikring.shared.testsupport.TESTFØDSELSNUMMER
+import no.nav.helse.sykepenger.forsikring.shared.testsupport.RAPIDS_GENERERTE_PROPERTIES
 import no.nav.helse.sykepenger.forsikring.shared.testsupport.TestcontainersSpForsikringDatabase
-import no.nav.helse.sykepenger.forsikring.shared.testsupport.lagreForsikringsvurdering
+import no.nav.helse.sykepenger.forsikring.shared.testsupport.assertJsonEquals
+import no.nav.helse.sykepenger.forsikring.shared.testsupport.lagForsikringsvurdering
+import no.nav.helse.sykepenger.forsikring.shared.testsupport.lagIdentitetsnummer
+import no.nav.helse.sykepenger.forsikring.shared.testsupport.lagVurdertNavKjøptForsikring
+import no.nav.helse.sykepenger.forsikring.shared.testsupport.lagreRåkopiOgForsikringsvurdering
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.assertThrows
 import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalDateTime
-import java.time.ZoneId
+import java.time.format.DateTimeFormatter.ISO_LOCAL_DATE_TIME
 import java.util.*
-import kotlin.test.*
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertFails
+import kotlin.test.assertNotNull
+import kotlin.test.assertNull
 
 class VedtakFattetTellerRiverTest {
     private val testRapid = TestRapid()
-    private val dataSource = TestcontainersSpForsikringDatabase.dataSource
-    private val objectMapper = jacksonObjectMapper()
 
     init {
         VedtakFattetTellerRiver(
             rapidsConnection = testRapid,
-            spForsikringDataSource = dataSource,
+            spForsikringDataSource = TestcontainersSpForsikringDatabase.dataSource,
         )
     }
 
@@ -43,32 +47,42 @@ class VedtakFattetTellerRiverTest {
     fun `lagrer melding og utbetaling for navkjøpt forsikring med 80 prosent fra dag 1`() {
         val meldingId = UUID.randomUUID()
         val behandlingId = UUID.randomUUID()
-        val forsikringsvurderingId =
-            lagreForsikringsvurdering(
-                forsikringer = listOf(Infotrygdforsikring(type = NavKjøptForsikringType.SELVSTENDIG_80_PROSENT_FRA_DAG_1)),
+        val identitetsnummer = lagIdentitetsnummer()
+        val forsikringsvurdering =
+            lagForsikringsvurdering(
+                skjæringstidspunkt = LocalDate.parse("2026-04-06"),
+                identitetsnummer = identitetsnummer,
+                navKjøpteForsikringer =
+                    listOf(
+                        lagVurdertNavKjøptForsikring(
+                            type = NavKjøptForsikringType.SELVSTENDIG_80_PROSENT_FRA_DAG_1,
+                            virkningsdato = LocalDate.parse("2026-01-01"),
+                        ),
+                    ),
             )
+        lagreRåkopiOgForsikringsvurdering(forsikringsvurdering)
 
-        testRapid.sendTestMessage(
+        val testmelding =
             vedtakFattetMelding(
-                forsikringsvurderingId = forsikringsvurderingId,
+                forsikringsvurderingId = forsikringsvurdering.id,
                 meldingId = meldingId,
                 behandlingId = behandlingId,
+                fødselsnummer = identitetsnummer.value,
                 dager = dager(dekningsgrad = 80),
-            ),
-        )
+                vedtakFattetTidspunkt = "2026-07-08T12:34:56.789101112",
+            )
+        testRapid.sendTestMessage(testmelding)
 
         val melding = assertNotNull(hentVedtakFattetMelding(meldingId))
-        assertEquals(forsikringsvurderingId.value, melding.forsikringsvurderingId)
-        assertEquals(TESTFØDSELSNUMMER, melding.identitetsnummer)
+        assertEquals(forsikringsvurdering.id.value, melding.forsikringsvurderingId)
+        assertEquals(identitetsnummer.value, melding.identitetsnummer)
         assertEquals(behandlingId, melding.behandlingId)
-        assertEquals(
-            LocalDateTime.parse(VEDTAK_FATTET_TIDSPUNKT).atZone(OSLO).toInstant(),
-            melding.vedtakFattetTidspunkt,
+        assertEquals(Instant.parse("2026-07-08T10:34:56.789101Z"), melding.vedtakFattetTidspunkt)
+        assertJsonEquals(
+            expectedJson = testmelding,
+            actualJson = melding.json,
+            bortsettFraProperties = RAPIDS_GENERERTE_PROPERTIES,
         )
-        val lagretJson = objectMapper.readTree(melding.json)
-        assertEquals("vedtak_fattet", lagretJson["@event_name"].asText())
-        assertEquals(meldingId.toString(), lagretJson["@id"].asText())
-        assertEquals(3, lagretJson["utbetalingsdager"].size())
 
         val utbetalinger = hentUtbetalingerPerForsikringstype(meldingId)
         assertEquals(1, utbetalinger.size)
@@ -83,14 +97,22 @@ class VedtakFattetTellerRiverTest {
     @Test
     fun `regner ut merutbetaling utenom ventetid for navkjøpt forsikring med 100 prosent fra dag 1`() {
         val meldingId = UUID.randomUUID()
-        val forsikringsvurderingId =
-            lagreForsikringsvurdering(
-                forsikringer = listOf(Infotrygdforsikring(type = NavKjøptForsikringType.SELVSTENDIG_100_PROSENT_FRA_DAG_1)),
+        val forsikringsvurdering =
+            lagForsikringsvurdering(
+                skjæringstidspunkt = LocalDate.parse("2026-04-06"),
+                navKjøpteForsikringer =
+                    listOf(
+                        lagVurdertNavKjøptForsikring(
+                            type = NavKjøptForsikringType.SELVSTENDIG_100_PROSENT_FRA_DAG_1,
+                            virkningsdato = LocalDate.parse("2026-01-01"),
+                        ),
+                    ),
             )
+        lagreRåkopiOgForsikringsvurdering(forsikringsvurdering)
 
         testRapid.sendTestMessage(
             vedtakFattetMelding(
-                forsikringsvurderingId = forsikringsvurderingId,
+                forsikringsvurderingId = forsikringsvurdering.id,
                 meldingId = meldingId,
                 dager = dager(dekningsgrad = 100),
             ),
@@ -106,16 +128,22 @@ class VedtakFattetTellerRiverTest {
     @Test
     fun `teller ikke dager etter opphørsdato for navkjøpt forsikring`() {
         val meldingId = UUID.randomUUID()
-        val forsikringsvurderingId =
-            lagreForsikringsvurdering(
-                forsikringer =
+        val forsikringsvurdering =
+            lagForsikringsvurdering(
+                skjæringstidspunkt = LocalDate.parse("2026-04-06"),
+                navKjøpteForsikringer =
                     listOf(
-                        Infotrygdforsikring(
+                        lagVurdertNavKjøptForsikring(
                             type = NavKjøptForsikringType.SELVSTENDIG_100_PROSENT_FRA_DAG_1,
+                            virkningsdato = LocalDate.parse("2026-01-01"),
+                            opphører = true,
                             opphørsdato = LocalDate.parse("2026-04-22"),
                         ),
                     ),
             )
+        lagreRåkopiOgForsikringsvurdering(forsikringsvurdering)
+        val forsikringsvurderingId =
+            forsikringsvurdering.id
 
         testRapid.sendTestMessage(
             vedtakFattetMelding(
@@ -145,8 +173,15 @@ class VedtakFattetTellerRiverTest {
     @Test
     fun `lagrer utbetaling for kollektiv forsikring`() {
         val meldingId = UUID.randomUUID()
+        val forsikringsvurdering =
+            lagForsikringsvurdering(
+                skjæringstidspunkt = LocalDate.parse("2026-04-06"),
+                spesielleYrkesgrupper = setOf(SpesiellYrkesgruppe.FISKER_BLAD_B),
+                kollektivForsikring = KollektivForsikring.FISKER_BLAD_B,
+            )
+        lagreRåkopiOgForsikringsvurdering(forsikringsvurdering)
         val forsikringsvurderingId =
-            lagreForsikringsvurdering(spesielleYrkesgrupper = setOf(SpesiellYrkesgruppe.FISKER_BLAD_B))
+            forsikringsvurdering.id
 
         testRapid.sendTestMessage(
             vedtakFattetMelding(
@@ -166,14 +201,22 @@ class VedtakFattetTellerRiverTest {
     @Test
     fun `lagrer én rad per forsikringstype når bruker har både kollektiv og navkjøpt tilleggsforsikring`() {
         val meldingId = UUID.randomUUID()
-        val forsikringsvurderingId =
-            lagreForsikringsvurdering(
+        val forsikringsvurdering =
+            lagForsikringsvurdering(
+                skjæringstidspunkt = LocalDate.parse("2026-04-06"),
                 spesielleYrkesgrupper = setOf(SpesiellYrkesgruppe.JORDBRUKER),
-                forsikringer =
+                navKjøpteForsikringer =
                     listOf(
-                        Infotrygdforsikring(type = NavKjøptForsikringType.SELVSTENDIG_JORDBRUKER_100_PROSENT_FRA_DAG_1),
+                        lagVurdertNavKjøptForsikring(
+                            type = NavKjøptForsikringType.SELVSTENDIG_JORDBRUKER_100_PROSENT_FRA_DAG_1,
+                            virkningsdato = LocalDate.parse("2026-01-01"),
+                        ),
                     ),
+                kollektivForsikring = KollektivForsikring.JORDBRUKER,
             )
+        lagreRåkopiOgForsikringsvurdering(forsikringsvurdering)
+        val forsikringsvurderingId =
+            forsikringsvurdering.id
 
         testRapid.sendTestMessage(
             vedtakFattetMelding(
@@ -203,7 +246,10 @@ class VedtakFattetTellerRiverTest {
     @Test
     fun `lagrer melding men ingen utbetaling når vurderingen ikke har forsikring`() {
         val meldingId = UUID.randomUUID()
-        val forsikringsvurderingId = lagreForsikringsvurdering()
+        val forsikringsvurdering = lagForsikringsvurdering(skjæringstidspunkt = LocalDate.parse("2026-04-06"))
+        lagreRåkopiOgForsikringsvurdering(forsikringsvurdering)
+        val forsikringsvurderingId =
+            forsikringsvurdering.id
 
         testRapid.sendTestMessage(
             vedtakFattetMelding(
@@ -220,7 +266,10 @@ class VedtakFattetTellerRiverTest {
     @Test
     fun `feiler og lagrer ingenting når det er utbetalt i ventetiden uten at brukeren har forsikring`() {
         val meldingId = UUID.randomUUID()
-        val forsikringsvurderingId = lagreForsikringsvurdering()
+        val forsikringsvurdering = lagForsikringsvurdering(skjæringstidspunkt = LocalDate.parse("2026-04-06"))
+        lagreRåkopiOgForsikringsvurdering(forsikringsvurdering)
+        val forsikringsvurderingId =
+            forsikringsvurdering.id
 
         assertThrows<IllegalStateException> {
             testRapid.sendTestMessage(
@@ -239,10 +288,20 @@ class VedtakFattetTellerRiverTest {
     @Test
     fun `feiler og lagrer ingenting når utbetalingsdager har annen dekningsgrad enn forsikringen`() {
         val meldingId = UUID.randomUUID()
-        val forsikringsvurderingId =
-            lagreForsikringsvurdering(
-                forsikringer = listOf(Infotrygdforsikring(type = NavKjøptForsikringType.SELVSTENDIG_80_PROSENT_FRA_DAG_1)),
+        val forsikringsvurdering =
+            lagForsikringsvurdering(
+                skjæringstidspunkt = LocalDate.parse("2026-04-06"),
+                navKjøpteForsikringer =
+                    listOf(
+                        lagVurdertNavKjøptForsikring(
+                            type = NavKjøptForsikringType.SELVSTENDIG_80_PROSENT_FRA_DAG_1,
+                            virkningsdato = LocalDate.parse("2026-01-01"),
+                        ),
+                    ),
             )
+        lagreRåkopiOgForsikringsvurdering(forsikringsvurdering)
+        val forsikringsvurderingId =
+            forsikringsvurdering.id
 
         assertThrows<IllegalStateException> {
             testRapid.sendTestMessage(
@@ -261,10 +320,20 @@ class VedtakFattetTellerRiverTest {
     @Test
     fun `feiler og lagrer ingenting når det er utbetalt i ventetiden for forsikring som ikke dekker ventetiden`() {
         val meldingId = UUID.randomUUID()
-        val forsikringsvurderingId =
-            lagreForsikringsvurdering(
-                forsikringer = listOf(Infotrygdforsikring(type = NavKjøptForsikringType.SELVSTENDIG_100_PROSENT_FRA_DAG_17)),
+        val forsikringsvurdering =
+            lagForsikringsvurdering(
+                skjæringstidspunkt = LocalDate.parse("2026-04-06"),
+                navKjøpteForsikringer =
+                    listOf(
+                        lagVurdertNavKjøptForsikring(
+                            type = NavKjøptForsikringType.SELVSTENDIG_100_PROSENT_FRA_DAG_17,
+                            virkningsdato = LocalDate.parse("2026-01-01"),
+                        ),
+                    ),
             )
+        lagreRåkopiOgForsikringsvurdering(forsikringsvurdering)
+        val forsikringsvurderingId =
+            forsikringsvurdering.id
 
         assertThrows<IllegalStateException> {
             testRapid.sendTestMessage(
@@ -283,10 +352,20 @@ class VedtakFattetTellerRiverTest {
     @Test
     fun `lagrer utbetaling for forsikring fra dag 17 når ingenting er utbetalt i ventetiden`() {
         val meldingId = UUID.randomUUID()
-        val forsikringsvurderingId =
-            lagreForsikringsvurdering(
-                forsikringer = listOf(Infotrygdforsikring(type = NavKjøptForsikringType.SELVSTENDIG_100_PROSENT_FRA_DAG_17)),
+        val forsikringsvurdering =
+            lagForsikringsvurdering(
+                skjæringstidspunkt = LocalDate.parse("2026-04-06"),
+                navKjøpteForsikringer =
+                    listOf(
+                        lagVurdertNavKjøptForsikring(
+                            type = NavKjøptForsikringType.SELVSTENDIG_100_PROSENT_FRA_DAG_17,
+                            virkningsdato = LocalDate.parse("2026-01-01"),
+                        ),
+                    ),
             )
+        lagreRåkopiOgForsikringsvurdering(forsikringsvurdering)
+        val forsikringsvurderingId =
+            forsikringsvurdering.id
 
         testRapid.sendTestMessage(
             vedtakFattetMelding(
@@ -319,10 +398,20 @@ class VedtakFattetTellerRiverTest {
     @Test
     fun `hopper over melding som allerede er lagret ned`() {
         val meldingId = UUID.randomUUID()
-        val forsikringsvurderingId =
-            lagreForsikringsvurdering(
-                forsikringer = listOf(Infotrygdforsikring(type = NavKjøptForsikringType.SELVSTENDIG_80_PROSENT_FRA_DAG_1)),
+        val forsikringsvurdering =
+            lagForsikringsvurdering(
+                skjæringstidspunkt = LocalDate.parse("2026-04-06"),
+                navKjøpteForsikringer =
+                    listOf(
+                        lagVurdertNavKjøptForsikring(
+                            type = NavKjøptForsikringType.SELVSTENDIG_80_PROSENT_FRA_DAG_1,
+                            virkningsdato = LocalDate.parse("2026-01-01"),
+                        ),
+                    ),
             )
+        lagreRåkopiOgForsikringsvurdering(forsikringsvurdering)
+        val forsikringsvurderingId =
+            forsikringsvurdering.id
         val melding =
             vedtakFattetMelding(
                 forsikringsvurderingId = forsikringsvurderingId,
@@ -341,19 +430,21 @@ class VedtakFattetTellerRiverTest {
     fun `lagrer melding men ingen utbetaling når melding mangler forsikringsvurderingId`() {
         val meldingId = UUID.randomUUID()
         val behandlingId = UUID.randomUUID()
+        val identitetsnummer = lagIdentitetsnummer()
 
         testRapid.sendTestMessage(
             vedtakFattetMelding(
                 forsikringsvurderingId = null,
                 meldingId = meldingId,
                 behandlingId = behandlingId,
+                fødselsnummer = identitetsnummer.value,
                 dager = dager(dekningsgrad = 80),
             ),
         )
 
         val melding = assertNotNull(hentVedtakFattetMelding(meldingId))
         assertNull(melding.forsikringsvurderingId)
-        assertEquals(TESTFØDSELSNUMMER, melding.identitetsnummer)
+        assertEquals(identitetsnummer.value, melding.identitetsnummer)
         assertEquals(behandlingId, melding.behandlingId)
         assertEquals(1, antallMeldinger())
         assertEquals(emptyList(), hentUtbetalingerPerForsikringstype(meldingId))
@@ -362,10 +453,20 @@ class VedtakFattetTellerRiverTest {
     @Test
     fun `ignorerer melding for annen yrkesaktivitetstype`() {
         val meldingId = UUID.randomUUID()
-        val forsikringsvurderingId =
-            lagreForsikringsvurdering(
-                forsikringer = listOf(Infotrygdforsikring(type = NavKjøptForsikringType.SELVSTENDIG_80_PROSENT_FRA_DAG_1)),
+        val forsikringsvurdering =
+            lagForsikringsvurdering(
+                skjæringstidspunkt = LocalDate.parse("2026-04-06"),
+                navKjøpteForsikringer =
+                    listOf(
+                        lagVurdertNavKjøptForsikring(
+                            type = NavKjøptForsikringType.SELVSTENDIG_80_PROSENT_FRA_DAG_1,
+                            virkningsdato = LocalDate.parse("2026-01-01"),
+                        ),
+                    ),
             )
+        lagreRåkopiOgForsikringsvurdering(forsikringsvurdering)
+        val forsikringsvurderingId =
+            forsikringsvurdering.id
 
         testRapid.sendTestMessage(
             vedtakFattetMelding(
@@ -380,18 +481,21 @@ class VedtakFattetTellerRiverTest {
 
     @Test
     fun `ignorerer melding med annet event_name`() {
-        val forsikringsvurderingId = lagreForsikringsvurdering()
+        val forsikringsvurdering = lagForsikringsvurdering(skjæringstidspunkt = LocalDate.parse("2026-04-06"))
+        lagreRåkopiOgForsikringsvurdering(forsikringsvurdering)
+        val forsikringsvurderingId =
+            forsikringsvurdering.id
 
         testRapid.sendTestMessage(
             """
             {
               "@event_name": "vedtak_fattet_annullert",
               "@id": "${UUID.randomUUID()}",
-              "fødselsnummer": "$TESTFØDSELSNUMMER",
+              "fødselsnummer": "${lagIdentitetsnummer().value}",
               "yrkesaktivitetstype": "SELVSTENDIG",
               "behandlingId": "${UUID.randomUUID()}",
               "forsikringsvurderingId": "${forsikringsvurderingId.value}",
-              "vedtakFattetTidspunkt": "$VEDTAK_FATTET_TIDSPUNKT",
+              "vedtakFattetTidspunkt": "2021-02-03T12:34:56.789101112",
               "utbetalingsdager": []
             }
             """.trimIndent(),
@@ -433,25 +537,18 @@ class VedtakFattetTellerRiverTest {
         forsikringsvurderingId: Forsikringsvurdering.Id?,
         meldingId: UUID = UUID.randomUUID(),
         behandlingId: UUID = UUID.randomUUID(),
-        vedtakFattetTidspunkt: String = VEDTAK_FATTET_TIDSPUNKT,
+        vedtakFattetTidspunkt: String = LocalDateTime.now().format(ISO_LOCAL_DATE_TIME),
         yrkesaktivitetstype: String = "SELVSTENDIG",
+        fødselsnummer: String = lagIdentitetsnummer().value,
         dager: List<Testdag> = dager(dekningsgrad = 80),
     ) = """
         {
           "@event_name": "vedtak_fattet",
           "@id": "$meldingId",
-          "fødselsnummer": "$TESTFØDSELSNUMMER",
-          "aktørId": "2465656615746",
+          "fødselsnummer": "$fødselsnummer",
           "yrkesaktivitetstype": "$yrkesaktivitetstype",
-          "vedtaksperiodeId": "231585ae-93a9-46ea-8613-d5c73173d684",
           "behandlingId": "$behandlingId",
-          "organisasjonsnummer": "SELVSTENDIG",
-          "fom": "2026-04-01",
-          "tom": "2026-04-26",
-          "skjæringstidspunkt": "2026-04-06",
-          "sykepengegrunnlag": 531709.0,
           "vedtakFattetTidspunkt": "$vedtakFattetTidspunkt",
-          "tags": ["Førstegangsbehandling"],
           ${forsikringsvurderingId?.let { """"forsikringsvurderingId": "${it.value}",""" } ?: ""}
           "utbetalingsdager": [
             ${dager.joinToString(",") { it.tilJson() }}
@@ -488,7 +585,7 @@ class VedtakFattetTellerRiverTest {
     )
 
     private fun hentVedtakFattetMelding(id: UUID): VedtakFattetMeldingRad? =
-        sessionOf(dataSource).use { session ->
+        sessionOf(TestcontainersSpForsikringDatabase.dataSource).use { session ->
             session.run(
                 queryOf(
                     """
@@ -510,7 +607,7 @@ class VedtakFattetTellerRiverTest {
         }
 
     private fun hentUtbetalingerPerForsikringstype(vedtakFattetMeldingId: UUID): List<UtbetalingRad> =
-        sessionOf(dataSource).use { session ->
+        sessionOf(TestcontainersSpForsikringDatabase.dataSource).use { session ->
             session.run(
                 queryOf(
                     """
@@ -531,13 +628,11 @@ class VedtakFattetTellerRiverTest {
         }
 
     private fun antallMeldinger(): Int =
-        sessionOf(dataSource).use { session ->
+        sessionOf(TestcontainersSpForsikringDatabase.dataSource).use { session ->
             session.run(queryOf("SELECT COUNT(*) FROM vedtak_fattet_melding").map { it.int(1) }.asSingle)!!
         }
 
     private companion object {
-        const val VEDTAK_FATTET_TIDSPUNKT = "2026-07-01T14:51:09.553706"
         const val VENTETIDSBELØP = 100
-        val OSLO: ZoneId = ZoneId.of("Europe/Oslo")
     }
 }

@@ -1,13 +1,9 @@
 package no.nav.helse.sykepenger.forsikring.kafka
 
-import com.fasterxml.jackson.databind.JsonNode
-import com.fasterxml.jackson.databind.node.ArrayNode
-import com.fasterxml.jackson.databind.node.ObjectNode
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
-import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.github.navikt.tbd_libs.rapids_and_rivers.test_support.TestRapid
 import no.nav.helse.sykepenger.forsikring.shared.testsupport.TestcontainersReplikadatabase
 import no.nav.helse.sykepenger.forsikring.shared.testsupport.TestcontainersSpForsikringDatabase
+import no.nav.helse.sykepenger.forsikring.shared.testsupport.assertJsonEquals
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertDoesNotThrow
@@ -18,8 +14,6 @@ import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 
 internal class ForsikringsvurderingBehovRiverTest {
-    private val objectMapper = jacksonObjectMapper().registerModule(JavaTimeModule())
-
     private val rapid =
         TestRapid().apply {
             ForsikringsvurderingBehovRiver(
@@ -284,44 +278,4 @@ internal class ForsikringsvurderingBehovRiverTest {
             IF12_BETDATO = 20260101,
         )
     }
-
-    private fun assertJsonEquals(
-        expectedJson: String,
-        actualJsonNode: JsonNode,
-        bortsettFraProperties: Set<String> = emptySet(),
-    ) {
-        val expected =
-            objectMapper
-                .readTree(expectedJson)
-                .deepSortedObjectNodeCopy()
-                .apply { bortsettFraProperties.forEach { remove(it) } }
-        val actual =
-            actualJsonNode
-                .deepSortedObjectNodeCopy()
-                .apply { bortsettFraProperties.forEach { remove(it) } }
-        assertEquals(
-            objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(expected),
-            objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(actual),
-        )
-    }
-
-    private fun JsonNode.sortedDeep(): JsonNode =
-        when (this) {
-            is ObjectNode ->
-                objectMapper.createObjectNode().also { sorted ->
-                    properties()
-                        .asSequence()
-                        .sortedBy { (name, _) -> name }
-                        .forEach { (name, value) -> sorted.set<JsonNode>(name, value.sortedDeep()) }
-                }
-
-            is ArrayNode ->
-                objectMapper.createArrayNode().also { sortedArray ->
-                    forEach { sortedArray.add(it.sortedDeep()) }
-                }
-
-            else -> this.deepCopy()
-        }
-
-    private fun JsonNode.deepSortedObjectNodeCopy(): ObjectNode = sortedDeep() as ObjectNode
 }

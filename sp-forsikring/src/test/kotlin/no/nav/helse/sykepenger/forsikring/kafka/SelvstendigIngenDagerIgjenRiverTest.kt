@@ -3,14 +3,16 @@ package no.nav.helse.sykepenger.forsikring.kafka
 import com.github.navikt.tbd_libs.rapids_and_rivers.test_support.TestRapid
 import no.nav.helse.sykepenger.forsikring.domain.Forsikringsvurdering
 import no.nav.helse.sykepenger.forsikring.gosys.Årsak
-import no.nav.helse.sykepenger.forsikring.shared.testsupport.Infotrygdforsikring
 import no.nav.helse.sykepenger.forsikring.shared.testsupport.OppgaveOppsamler
-import no.nav.helse.sykepenger.forsikring.shared.testsupport.TESTFØDSELSNUMMER
 import no.nav.helse.sykepenger.forsikring.shared.testsupport.TestcontainersSpForsikringDatabase
-import no.nav.helse.sykepenger.forsikring.shared.testsupport.lagreForsikringsvurdering
+import no.nav.helse.sykepenger.forsikring.shared.testsupport.lagForsikringsvurdering
+import no.nav.helse.sykepenger.forsikring.shared.testsupport.lagIdentitetsnummer
+import no.nav.helse.sykepenger.forsikring.shared.testsupport.lagVurdertNavKjøptForsikring
+import no.nav.helse.sykepenger.forsikring.shared.testsupport.lagreRåkopiOgForsikringsvurdering
 import org.intellij.lang.annotations.Language
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.assertThrows
+import java.time.LocalDate
 import java.util.*
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -37,21 +39,29 @@ class SelvstendigIngenDagerIgjenRiverTest {
 
     @Test
     fun `oppretter gosysoppgave`() {
-        val forsikringsvurderingId = lagreForsikringsvurdering(forsikringer = listOf(Infotrygdforsikring()))
+        val identitetsnummer = lagIdentitetsnummer()
+        val forsikringsvurdering =
+            lagForsikringsvurdering(
+                skjæringstidspunkt = LocalDate.parse("2026-01-01"),
+                identitetsnummer = identitetsnummer,
+                navKjøpteForsikringer = listOf(lagVurdertNavKjøptForsikring(virkningsdato = LocalDate.parse("2025-06-01"))),
+            )
+        lagreRåkopiOgForsikringsvurdering(forsikringsvurdering)
 
-        testRapid.sendTestMessage(lagEvent(forsikringsvurderingId))
+        testRapid.sendTestMessage(selvstendigIngenDagerIgjenMelding(forsikringsvurdering.id, identitetsnummer.value))
 
         val oppgave = oppgaveOppsamler.sisteOppgave
         assertNotNull(oppgave)
         assertEquals(Årsak.SykepengerettOpphørtPåGrunnAvMaksdatoAlderEllerDød, oppgave.årsak)
-        assertEquals(TESTFØDSELSNUMMER, oppgave.fødselsnummer)
+        assertEquals(identitetsnummer.value, oppgave.fødselsnummer)
     }
 
     @Test
     fun `lager ikke oppgave når vurderingen ikke har forsikring`() {
-        val forsikringsvurderingId = lagreForsikringsvurdering()
+        val forsikringsvurdering = lagForsikringsvurdering(skjæringstidspunkt = LocalDate.parse("2026-01-01"))
+        lagreRåkopiOgForsikringsvurdering(forsikringsvurdering)
 
-        testRapid.sendTestMessage(lagEvent(forsikringsvurderingId))
+        testRapid.sendTestMessage(selvstendigIngenDagerIgjenMelding(forsikringsvurdering.id))
 
         assertNull(oppgaveOppsamler.sisteOppgave)
     }
@@ -63,7 +73,7 @@ class SelvstendigIngenDagerIgjenRiverTest {
             {
                 "@event_name": "selvstendig_ingen_dager_igjen",
                 "@id": "${UUID.randomUUID()}",
-                "fødselsnummer": "$TESTFØDSELSNUMMER",
+                "fødselsnummer": "${lagIdentitetsnummer().value}",
                 "skjæringstidspunkt": "2026-01-01",
                 "behandlingId": "${UUID.randomUUID()}"
             }
@@ -75,18 +85,22 @@ class SelvstendigIngenDagerIgjenRiverTest {
 
     @Test
     fun `kaster error om det ikke finnes vurdering for forsikringsvurderingId`() {
-        assertThrows<IllegalStateException> { testRapid.sendTestMessage(lagEvent(Forsikringsvurdering.Id.ny())) }
+        assertThrows<IllegalStateException> {
+            testRapid.sendTestMessage(selvstendigIngenDagerIgjenMelding(Forsikringsvurdering.Id.ny()))
+        }
 
         assertNull(oppgaveOppsamler.sisteOppgave)
     }
 
     @Language("JSON")
-    private fun lagEvent(forsikringsvurderingId: Forsikringsvurdering.Id) =
-        """
+    private fun selvstendigIngenDagerIgjenMelding(
+        forsikringsvurderingId: Forsikringsvurdering.Id,
+        fødselsnummer: String = lagIdentitetsnummer().value,
+    ) = """
         {
             "@event_name": "selvstendig_ingen_dager_igjen",
             "@id": "${UUID.randomUUID()}",
-            "fødselsnummer": "$TESTFØDSELSNUMMER",
+            "fødselsnummer": "$fødselsnummer",
             "skjæringstidspunkt": "2026-01-01",
             "forsikringsvurderingId": "${forsikringsvurderingId.value}",
             "behandlingId": "${UUID.randomUUID()}"

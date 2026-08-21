@@ -5,15 +5,18 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
 import io.ktor.server.cio.*
 import io.ktor.server.engine.*
+import no.nav.helse.sykepenger.forsikring.domain.KollektivForsikring
 import no.nav.helse.sykepenger.forsikring.domain.NavKjøptForsikringType
 import no.nav.helse.sykepenger.forsikring.domain.SpesiellYrkesgruppe
+import no.nav.helse.sykepenger.forsikring.domain.VurdertNavKjøptForsikring
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.ForsikringsvurderingService
-import no.nav.helse.sykepenger.forsikring.shared.testsupport.Infotrygdforsikring
-import no.nav.helse.sykepenger.forsikring.shared.testsupport.TESTFØDSELSNUMMER
-import no.nav.helse.sykepenger.forsikring.shared.testsupport.TESTSKJÆRINGSTIDSPUNKT
 import no.nav.helse.sykepenger.forsikring.shared.testsupport.TestcontainersReplikadatabase
 import no.nav.helse.sykepenger.forsikring.shared.testsupport.TestcontainersSpForsikringDatabase
-import no.nav.helse.sykepenger.forsikring.shared.testsupport.lagreForsikringsvurdering
+import no.nav.helse.sykepenger.forsikring.shared.testsupport.lagForsikringsvurdering
+import no.nav.helse.sykepenger.forsikring.shared.testsupport.lagIdentitetsnummer
+import no.nav.helse.sykepenger.forsikring.shared.testsupport.lagVurdertNavKjøptForsikring
+import no.nav.helse.sykepenger.forsikring.shared.testsupport.lagreRåkopiOgForsikringsvurdering
+import no.nav.helse.sykepenger.forsikring.shared.testsupport.tilInfotrygdFødselsnummer
 import no.nav.security.mock.oauth2.MockOAuth2Server
 import org.apache.hc.client5.http.fluent.Request
 import org.apache.hc.core5.http.ContentType
@@ -30,8 +33,6 @@ import java.time.LocalDate
 import java.util.*
 
 private const val CLIENT_ID = "sp-forsikring-junit"
-
-private const val INFOTRYGD_FØDSELSNUMMER = 3020112345L
 
 private val testJsonMapper = ObjectMapper().registerModule(JavaTimeModule())
 
@@ -95,14 +96,15 @@ class ForsikringsvurderingApiTest {
     @ParameterizedTest
     @ValueSource(chars = ['1', '3', '4', '5'])
     fun `returnerer harForsikringMedDekningIVentetid true når bruker har dag-1-forsikring`(type: Char) {
+        val identitetsnummer = lagIdentitetsnummer()
         // Forsikringen er ikke betalt, og skal derfor telle med uten at typen valideres mot yrkesaktivitet
         TestcontainersReplikadatabase.insertVedfrivt(
-            IF01_AGNR_FNR = INFOTRYGD_FØDSELSNUMMER,
+            IF01_AGNR_FNR = identitetsnummer.tilInfotrygdFødselsnummer(),
             IF10_TYPE = type,
             IF10_VIRKDATO = 20260101,
         )
 
-        val (statusCode, body) = postForsikringsvurdering(token = bearerToken())
+        val (statusCode, body) = postForsikringsvurdering(identitetsnummer = identitetsnummer.value, token = bearerToken())
 
         assertEquals(200, statusCode) { "Body was: $body" }
         assertTrue(body.contains("\"harForsikringMedDekningIVentetid\":true")) { "Forventet true, fikk: $body" }
@@ -110,13 +112,14 @@ class ForsikringsvurderingApiTest {
 
     @Test
     fun `returnerer harForsikringMedDekningIVentetid false når bruker kun har forsikring fra dag 17`() {
+        val identitetsnummer = lagIdentitetsnummer()
         TestcontainersReplikadatabase.insertVedfrivt(
-            IF01_AGNR_FNR = INFOTRYGD_FØDSELSNUMMER,
+            IF01_AGNR_FNR = identitetsnummer.tilInfotrygdFødselsnummer(),
             IF10_TYPE = '2',
             IF10_VIRKDATO = 20260101,
         )
 
-        val (statusCode, body) = postForsikringsvurdering(token = bearerToken())
+        val (statusCode, body) = postForsikringsvurdering(identitetsnummer = identitetsnummer.value, token = bearerToken())
 
         assertEquals(200, statusCode) { "Body was: $body" }
         assertTrue(body.contains("\"harForsikringMedDekningIVentetid\":false")) { "Forventet false, fikk: $body" }
@@ -124,14 +127,15 @@ class ForsikringsvurderingApiTest {
 
     @Test
     fun `returnerer harForsikringMedDekningIVentetid false når forsikringen er opphørt på skjæringstidspunktet`() {
+        val identitetsnummer = lagIdentitetsnummer()
         TestcontainersReplikadatabase.insertVedfrivt(
-            IF01_AGNR_FNR = INFOTRYGD_FØDSELSNUMMER,
+            IF01_AGNR_FNR = identitetsnummer.tilInfotrygdFødselsnummer(),
             IF10_TYPE = '1',
             IF10_VIRKDATO = 20250601,
             IF10_FORSTOM = 20251231,
         )
 
-        val (statusCode, body) = postForsikringsvurdering(token = bearerToken())
+        val (statusCode, body) = postForsikringsvurdering(identitetsnummer = identitetsnummer.value, token = bearerToken())
 
         assertEquals(200, statusCode) { "Body was: $body" }
         assertTrue(body.contains("\"harForsikringMedDekningIVentetid\":false")) { "Forventet false, fikk: $body" }
@@ -139,13 +143,14 @@ class ForsikringsvurderingApiTest {
 
     @Test
     fun `returnerer harForsikringMedDekningIVentetid false når virkningsdato er etter skjæringstidspunktet`() {
+        val identitetsnummer = lagIdentitetsnummer()
         TestcontainersReplikadatabase.insertVedfrivt(
-            IF01_AGNR_FNR = INFOTRYGD_FØDSELSNUMMER,
+            IF01_AGNR_FNR = identitetsnummer.tilInfotrygdFødselsnummer(),
             IF10_TYPE = '1',
             IF10_VIRKDATO = 20260102,
         )
 
-        val (statusCode, body) = postForsikringsvurdering(token = bearerToken())
+        val (statusCode, body) = postForsikringsvurdering(identitetsnummer = identitetsnummer.value, token = bearerToken())
 
         assertEquals(200, statusCode) { "Body was: $body" }
         assertTrue(body.contains("\"harForsikringMedDekningIVentetid\":false")) { "Forventet false, fikk: $body" }
@@ -182,16 +187,28 @@ class ForsikringsvurderingApiTest {
 
     @Test
     fun `GET forsikringsvurderinger returnerer samlet dekning for nav-kjøpt forsikring`() {
-        val forsikringsvurderingId =
-            lagreForsikringsvurdering(
-                forsikringer = listOf(Infotrygdforsikring(type = NavKjøptForsikringType.SELVSTENDIG_80_PROSENT_FRA_DAG_1)),
+        val identitetsnummer = lagIdentitetsnummer()
+        val forsikringsvurdering =
+            lagForsikringsvurdering(
+                skjæringstidspunkt = LocalDate.parse("2026-01-01"),
+                identitetsnummer = identitetsnummer,
+                navKjøpteForsikringer =
+                    listOf(
+                        lagVurdertNavKjøptForsikring(
+                            type = NavKjøptForsikringType.SELVSTENDIG_80_PROSENT_FRA_DAG_1,
+                            virkningsdato = LocalDate.parse("2025-06-01"),
+                        ),
+                    ),
             )
+        lagreRåkopiOgForsikringsvurdering(forsikringsvurdering)
+        val forsikringsvurderingId =
+            forsikringsvurdering.id
 
         val (statusCode, body) = getForsikringsvurdering(forsikringsvurderingId.value.toString(), bearerToken())
 
         assertEquals(200, statusCode) { "Body was: $body" }
         val json = body.somJson()
-        assertEquals(TESTFØDSELSNUMMER, json["identitetsnummer"].asText())
+        assertEquals(identitetsnummer.value, json["identitetsnummer"].asText())
         assertNotNull(json.asTextOrNull("vurdertTidspunkt")) { "Forventet vurdertTidspunkt, fikk: $body" }
         assertEquals(80, json["samletDekning"]["grad"].asInt())
         assertEquals(1, json["samletDekning"]["fraDag"].asInt())
@@ -199,7 +216,7 @@ class ForsikringsvurderingApiTest {
 
         val forsikring = json["navKjøpteForsikringer"].single()
         assertEquals("80 % fra 1. dag (Nav-kjøpt)", forsikring["navn"].asText())
-        assertEquals(TESTSKJÆRINGSTIDSPUNKT.toString(), forsikring.asTextOrNull("virkningsdato"))
+        assertEquals("2025-06-01", forsikring.asTextOrNull("virkningsdato"))
         assertNull(forsikring.asTextOrNull("opphørsdato"))
         assertTrue(forsikring["lagtTilGrunn"].asBoolean()) { "Forventet lagtTilGrunn=true, fikk: $body" }
         assertEquals("Lagt til grunn", forsikring["konklusjon"]["forklaring"].asText())
@@ -214,10 +231,20 @@ class ForsikringsvurderingApiTest {
 
     @Test
     fun `GET forsikringsvurderinger returnerer fraDag 17 for dag-17-forsikring`() {
-        val forsikringsvurderingId =
-            lagreForsikringsvurdering(
-                forsikringer = listOf(Infotrygdforsikring(type = NavKjøptForsikringType.SELVSTENDIG_100_PROSENT_FRA_DAG_17)),
+        val forsikringsvurdering =
+            lagForsikringsvurdering(
+                skjæringstidspunkt = LocalDate.parse("2026-01-01"),
+                navKjøpteForsikringer =
+                    listOf(
+                        lagVurdertNavKjøptForsikring(
+                            type = NavKjøptForsikringType.SELVSTENDIG_100_PROSENT_FRA_DAG_17,
+                            virkningsdato = LocalDate.parse("2025-06-01"),
+                        ),
+                    ),
             )
+        lagreRåkopiOgForsikringsvurdering(forsikringsvurdering)
+        val forsikringsvurderingId =
+            forsikringsvurdering.id
 
         val (statusCode, body) = getForsikringsvurdering(forsikringsvurderingId.value.toString(), bearerToken())
 
@@ -237,7 +264,10 @@ class ForsikringsvurderingApiTest {
 
     @Test
     fun `GET forsikringsvurderinger returnerer ingen dekning og tom liste når bruker ikke har forsikringer`() {
-        val forsikringsvurderingId = lagreForsikringsvurdering()
+        val forsikringsvurdering = lagForsikringsvurdering(skjæringstidspunkt = LocalDate.parse("2026-01-01"))
+        lagreRåkopiOgForsikringsvurdering(forsikringsvurdering)
+        val forsikringsvurderingId =
+            forsikringsvurdering.id
 
         val (statusCode, body) = getForsikringsvurdering(forsikringsvurderingId.value.toString(), bearerToken())
 
@@ -250,10 +280,15 @@ class ForsikringsvurderingApiTest {
 
     @Test
     fun `GET forsikringsvurderinger returnerer kollektiv forsikring`() {
-        val forsikringsvurderingId =
-            lagreForsikringsvurdering(
+        val forsikringsvurdering =
+            lagForsikringsvurdering(
+                skjæringstidspunkt = LocalDate.parse("2026-01-01"),
                 spesielleYrkesgrupper = setOf(SpesiellYrkesgruppe.FISKER_BLAD_B),
+                kollektivForsikring = KollektivForsikring.FISKER_BLAD_B,
             )
+        lagreRåkopiOgForsikringsvurdering(forsikringsvurdering)
+        val forsikringsvurderingId =
+            forsikringsvurdering.id
 
         val (statusCode, body) = getForsikringsvurdering(forsikringsvurderingId.value.toString(), bearerToken())
 
@@ -282,10 +317,21 @@ class ForsikringsvurderingApiTest {
 
     @Test
     fun `GET forsikringsvurderinger forklarer forsikring som aldri er betalt`() {
-        val forsikringsvurderingId =
-            lagreForsikringsvurdering(
-                forsikringer = listOf(Infotrygdforsikring(erBetalt = false)),
+        val forsikringsvurdering =
+            lagForsikringsvurdering(
+                skjæringstidspunkt = LocalDate.parse("2026-01-01"),
+                navKjøpteForsikringer =
+                    listOf(
+                        lagVurdertNavKjøptForsikring(
+                            virkningsdato = LocalDate.parse("2025-06-01"),
+                            erBetaltNoenGang = false,
+                            konklusjon = VurdertNavKjøptForsikring.Konklusjon.ALDRI_BETALT,
+                        ),
+                    ),
             )
+        lagreRåkopiOgForsikringsvurdering(forsikringsvurdering)
+        val forsikringsvurderingId =
+            forsikringsvurdering.id
 
         val (statusCode, body) = getForsikringsvurdering(forsikringsvurderingId.value.toString(), bearerToken())
 
@@ -302,16 +348,22 @@ class ForsikringsvurderingApiTest {
 
     @Test
     fun `GET forsikringsvurderinger forklarer forsikring som opphørte før skjæringstidspunktet`() {
-        val forsikringsvurderingId =
-            lagreForsikringsvurdering(
-                forsikringer =
+        val forsikringsvurdering =
+            lagForsikringsvurdering(
+                skjæringstidspunkt = LocalDate.parse("2026-01-01"),
+                navKjøpteForsikringer =
                     listOf(
-                        Infotrygdforsikring(
-                            virkningsdato = LocalDate.of(2025, 6, 1),
-                            opphørsdato = LocalDate.of(2025, 12, 31),
+                        lagVurdertNavKjøptForsikring(
+                            virkningsdato = LocalDate.parse("2025-06-01"),
+                            opphører = true,
+                            opphørsdato = LocalDate.parse("2025-12-31"),
+                            konklusjon = VurdertNavKjøptForsikring.Konklusjon.OPPHØRT_PÅ_SKJÆRINGSTIDSPUNKT,
                         ),
                     ),
             )
+        lagreRåkopiOgForsikringsvurdering(forsikringsvurdering)
+        val forsikringsvurderingId =
+            forsikringsvurdering.id
 
         val (statusCode, body) = getForsikringsvurdering(forsikringsvurderingId.value.toString(), bearerToken())
 
@@ -336,10 +388,21 @@ class ForsikringsvurderingApiTest {
 
     @Test
     fun `GET forsikringsvurderinger forklarer forsikring som ikke var gyldig ennå`() {
-        val forsikringsvurderingId =
-            lagreForsikringsvurdering(
-                forsikringer = listOf(Infotrygdforsikring(virkningsdato = TESTSKJÆRINGSTIDSPUNKT.plusDays(14))),
+        val forsikringsvurdering =
+            lagForsikringsvurdering(
+                skjæringstidspunkt = LocalDate.parse("2026-01-01"),
+                navKjøpteForsikringer =
+                    listOf(
+                        lagVurdertNavKjøptForsikring(
+                            virkningsdato = LocalDate.parse("2026-01-15"),
+                            konklusjon =
+                                VurdertNavKjøptForsikring.Konklusjon.SKJÆRINGSTIDSPUNKT_INNEN_28_DAGER_FØR_VIRKNINGSDATO,
+                        ),
+                    ),
             )
+        lagreRåkopiOgForsikringsvurdering(forsikringsvurdering)
+        val forsikringsvurderingId =
+            forsikringsvurdering.id
 
         val (statusCode, body) = getForsikringsvurdering(forsikringsvurderingId.value.toString(), bearerToken())
 
@@ -354,22 +417,27 @@ class ForsikringsvurderingApiTest {
 
     @Test
     fun `GET forsikringsvurderinger returnerer både gjeldende og ekskludert forsikring`() {
-        val forsikringsvurderingId =
-            lagreForsikringsvurdering(
-                forsikringer =
+        val forsikringsvurdering =
+            lagForsikringsvurdering(
+                skjæringstidspunkt = LocalDate.parse("2026-01-01"),
+                navKjøpteForsikringer =
                     listOf(
-                        Infotrygdforsikring(
-                            forsikringssekvensnummer = 0,
+                        lagVurdertNavKjøptForsikring(
                             type = NavKjøptForsikringType.SELVSTENDIG_100_PROSENT_FRA_DAG_17,
-                            virkningsdato = LocalDate.of(2023, 1, 1),
-                            opphørsdato = LocalDate.of(2024, 12, 31),
+                            virkningsdato = LocalDate.parse("2023-01-01"),
+                            opphører = true,
+                            opphørsdato = LocalDate.parse("2024-12-31"),
+                            konklusjon = VurdertNavKjøptForsikring.Konklusjon.OPPHØRT_PÅ_SKJÆRINGSTIDSPUNKT,
                         ),
-                        Infotrygdforsikring(
-                            forsikringssekvensnummer = 1,
+                        lagVurdertNavKjøptForsikring(
                             type = NavKjøptForsikringType.SELVSTENDIG_80_PROSENT_FRA_DAG_1,
+                            virkningsdato = LocalDate.parse("2025-06-01"),
                         ),
                     ),
             )
+        lagreRåkopiOgForsikringsvurdering(forsikringsvurdering)
+        val forsikringsvurderingId =
+            forsikringsvurdering.id
 
         val (statusCode, body) = getForsikringsvurdering(forsikringsvurderingId.value.toString(), bearerToken())
 
@@ -413,11 +481,22 @@ class ForsikringsvurderingApiTest {
 
     @Test
     fun `GET forsikringsvurderinger returnerer både kollektiv og nav-kjøpt tilleggsforsikring`() {
-        val forsikringsvurderingId =
-            lagreForsikringsvurdering(
+        val forsikringsvurdering =
+            lagForsikringsvurdering(
+                skjæringstidspunkt = LocalDate.parse("2026-01-01"),
                 spesielleYrkesgrupper = setOf(SpesiellYrkesgruppe.JORDBRUKER),
-                forsikringer = listOf(Infotrygdforsikring(type = NavKjøptForsikringType.SELVSTENDIG_JORDBRUKER_100_PROSENT_FRA_DAG_1)),
+                navKjøpteForsikringer =
+                    listOf(
+                        lagVurdertNavKjøptForsikring(
+                            type = NavKjøptForsikringType.SELVSTENDIG_JORDBRUKER_100_PROSENT_FRA_DAG_1,
+                            virkningsdato = LocalDate.parse("2025-06-01"),
+                        ),
+                    ),
+                kollektivForsikring = KollektivForsikring.JORDBRUKER,
             )
+        lagreRåkopiOgForsikringsvurdering(forsikringsvurdering)
+        val forsikringsvurderingId =
+            forsikringsvurdering.id
 
         val (statusCode, body) = getForsikringsvurdering(forsikringsvurderingId.value.toString(), bearerToken())
 
@@ -431,10 +510,21 @@ class ForsikringsvurderingApiTest {
 
     @Test
     fun `GET forsikringsvurderinger forklarer forsikring som ikke var gyldig ennå mer enn 28 dager etter skjæringstidspunktet`() {
-        val forsikringsvurderingId =
-            lagreForsikringsvurdering(
-                forsikringer = listOf(Infotrygdforsikring(virkningsdato = TESTSKJÆRINGSTIDSPUNKT.plusDays(29))),
+        val forsikringsvurdering =
+            lagForsikringsvurdering(
+                skjæringstidspunkt = LocalDate.parse("2026-01-01"),
+                navKjøpteForsikringer =
+                    listOf(
+                        lagVurdertNavKjøptForsikring(
+                            virkningsdato = LocalDate.parse("2026-01-30"),
+                            konklusjon =
+                                VurdertNavKjøptForsikring.Konklusjon.SKJÆRINGSTIDSPUNKT_MER_ENN_28_DAGER_FØR_VIRKNINGSDATO,
+                        ),
+                    ),
             )
+        lagreRåkopiOgForsikringsvurdering(forsikringsvurdering)
+        val forsikringsvurderingId =
+            forsikringsvurdering.id
 
         val (statusCode, body) = getForsikringsvurdering(forsikringsvurderingId.value.toString(), bearerToken())
 
@@ -463,10 +553,10 @@ class ForsikringsvurderingApiTest {
             .handleResponse { response -> response.code to (EntityUtils.toString(response.entity) ?: "") }
 
     private fun postForsikringsvurdering(
-        identitetsnummer: String = TESTFØDSELSNUMMER,
+        identitetsnummer: String = lagIdentitetsnummer().value,
         yrkesaktivitetstype: String = "SELVSTENDIG",
         spesielleYrkesgrupper: Set<String> = emptySet(),
-        skjæringstidspunkt: String = TESTSKJÆRINGSTIDSPUNKT.toString(),
+        skjæringstidspunkt: String = "2026-01-01",
         token: String?,
     ): Pair<Int, String> =
         Request

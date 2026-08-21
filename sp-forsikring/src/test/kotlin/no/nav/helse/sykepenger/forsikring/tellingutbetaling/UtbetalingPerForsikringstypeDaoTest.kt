@@ -3,11 +3,10 @@ package no.nav.helse.sykepenger.forsikring.tellingutbetaling
 import kotliquery.TransactionalSession
 import kotliquery.queryOf
 import kotliquery.sessionOf
-import no.nav.helse.sykepenger.forsikring.domain.Identitetsnummer
 import no.nav.helse.sykepenger.forsikring.domain.KollektivForsikring
 import no.nav.helse.sykepenger.forsikring.domain.NavKjøptForsikringType
-import no.nav.helse.sykepenger.forsikring.shared.testsupport.TESTFØDSELSNUMMER
 import no.nav.helse.sykepenger.forsikring.shared.testsupport.TestcontainersSpForsikringDatabase
+import no.nav.helse.sykepenger.forsikring.shared.testsupport.lagIdentitetsnummer
 import no.nav.helse.sykepenger.forsikring.shared.util.inTransaction
 import org.junit.jupiter.api.BeforeEach
 import java.time.Instant
@@ -207,7 +206,7 @@ class UtbetalingPerForsikringstypeDaoTest {
         VedtakFattetMeldingDao(transaction).insert(
             id = meldingId,
             forsikringsvurderingId = null,
-            identitetsnummer = Identitetsnummer.fraString(TESTFØDSELSNUMMER),
+            identitetsnummer = lagIdentitetsnummer(),
             behandlingId = UUID.randomUUID(),
             vedtakFattetTidspunkt = Instant.parse("2026-07-01T12:51:09.553707Z"),
             json = """{"@event_name":"vedtak_fattet"}""",
