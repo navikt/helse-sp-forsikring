@@ -84,6 +84,8 @@ spec:
           namespace: tbd
         - application: speil
           namespace: tbd
+        - application: sp-forsikring-statistikk
+          namespace: tbd
         - application: flex-sykmeldinger-backend
           namespace: flex
     outbound:
