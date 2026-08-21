@@ -10,6 +10,7 @@ import no.nav.helse.sykepenger.forsikring.shared.testsupport.lagIdentitetsnummer
 import no.nav.helse.sykepenger.forsikring.shared.util.inTransaction
 import org.junit.jupiter.api.BeforeEach
 import java.time.Instant
+import java.time.LocalDate
 import java.util.*
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -156,6 +157,92 @@ class UtbetalingPerForsikringstypeDaoTest {
         assertEquals(0, antallUtbetalingerFor(meldingId))
     }
 
+    @Test
+    fun `summerer per forsikringstype innenfor perioden`() {
+        val iPerioden = UUID.randomUUID()
+        val ogsåIPerioden = UUID.randomUUID()
+        val utenforPerioden = UUID.randomUUID()
+
+        dataSource.inTransaction { transaction ->
+            lagreMelding(transaction, iPerioden, Instant.parse("2026-07-01T22:00:00Z"))
+            lagreMelding(transaction, ogsåIPerioden, Instant.parse("2026-07-03T09:00:00Z"))
+            lagreMelding(transaction, utenforPerioden, Instant.parse("2026-07-04T09:00:00Z"))
+
+            val dao = UtbetalingPerForsikringstypeDao(transaction)
+            dao.insert(iPerioden, KollektivForsikring.JORDBRUKER, utbetaltIVentetid = 100, utbetaltUtenomVentetid = 200)
+            dao.insert(
+                iPerioden,
+                NavKjøptForsikringType.SELVSTENDIG_80_PROSENT_FRA_DAG_1,
+                utbetaltIVentetid = 10,
+                utbetaltUtenomVentetid = 20,
+            )
+            dao.insert(ogsåIPerioden, KollektivForsikring.JORDBRUKER, utbetaltIVentetid = 1, utbetaltUtenomVentetid = 2)
+            dao.insert(utenforPerioden, KollektivForsikring.JORDBRUKER, utbetaltIVentetid = 9999, utbetaltUtenomVentetid = 9999)
+        }
+
+        val summer = summerPerForsikringstype(fom = LocalDate.of(2026, 7, 2), tom = LocalDate.of(2026, 7, 3))
+
+        assertEquals(2, summer.size)
+        val kollektiv = assertNotNull(summer.singleOrNull { it.forsikringstype == KollektivForsikring.JORDBRUKER })
+        assertEquals(101, kollektiv.utbetaltIVentetid)
+        assertEquals(202, kollektiv.utbetaltUtenomVentetid)
+        assertEquals(303, kollektiv.totalt)
+
+        val navKjøpt =
+            assertNotNull(summer.singleOrNull { it.forsikringstype == NavKjøptForsikringType.SELVSTENDIG_80_PROSENT_FRA_DAG_1 })
+        assertEquals(10, navKjøpt.utbetaltIVentetid)
+        assertEquals(20, navKjøpt.utbetaltUtenomVentetid)
+        assertEquals(30, navKjøpt.totalt)
+    }
+
+    @Test
+    fun `tar med vedtak fattet på både fom- og tom-dagen i norsk tid`() {
+        val førsteMinuttAvFom = UUID.randomUUID()
+        val sisteMinuttAvTom = UUID.randomUUID()
+        val likeFørFom = UUID.randomUUID()
+        val likeEtterTom = UUID.randomUUID()
+
+        dataSource.inTransaction { transaction ->
+            // 2026-07-02T00:00 norsk tid = 2026-07-01T22:00Z (sommertid)
+            lagreMelding(transaction, likeFørFom, Instant.parse("2026-07-01T21:59:59Z"))
+            lagreMelding(transaction, førsteMinuttAvFom, Instant.parse("2026-07-01T22:00:00Z"))
+            lagreMelding(transaction, sisteMinuttAvTom, Instant.parse("2026-07-03T21:59:59Z"))
+            lagreMelding(transaction, likeEtterTom, Instant.parse("2026-07-03T22:00:00Z"))
+
+            val dao = UtbetalingPerForsikringstypeDao(transaction)
+            listOf(likeFørFom, førsteMinuttAvFom, sisteMinuttAvTom, likeEtterTom).forEach {
+                dao.insert(it, KollektivForsikring.JORDBRUKER, utbetaltIVentetid = 0, utbetaltUtenomVentetid = 1)
+            }
+        }
+
+        val summer = summerPerForsikringstype(fom = LocalDate.of(2026, 7, 2), tom = LocalDate.of(2026, 7, 3))
+
+        assertEquals(2, assertNotNull(summer.singleOrNull()).totalt)
+    }
+
+    @Test
+    fun `returnerer tom liste når ingen vedtak er fattet i perioden`() {
+        val summer = summerPerForsikringstype(fom = LocalDate.of(2026, 7, 2), tom = LocalDate.of(2026, 7, 3))
+
+        assertTrue(summer.isEmpty())
+    }
+
+    @Test
+    fun `avviser periode der fom er etter tom`() {
+        val resultat =
+            runCatching { summerPerForsikringstype(fom = LocalDate.of(2026, 7, 3), tom = LocalDate.of(2026, 7, 2)) }
+
+        assertTrue(resultat.exceptionOrNull() is IllegalArgumentException)
+    }
+
+    private fun summerPerForsikringstype(
+        fom: LocalDate,
+        tom: LocalDate,
+    ): List<SumPerForsikringstype> =
+        dataSource.inTransaction { transaction ->
+            UtbetalingPerForsikringstypeDao(transaction).summerPerForsikringstype(fom = fom, tom = tom)
+        }
+
     private data class UtbetalingPerForsikringstypeRad(
         val id: UUID,
         val vedtakFattetMeldingId: UUID,
@@ -202,13 +289,14 @@ class UtbetalingPerForsikringstypeDaoTest {
     private fun lagreMelding(
         transaction: TransactionalSession,
         meldingId: UUID,
+        vedtakFattetTidspunkt: Instant = Instant.parse("2026-07-01T12:51:09.553707Z"),
     ) {
         VedtakFattetMeldingDao(transaction).insert(
             id = meldingId,
             forsikringsvurderingId = null,
             identitetsnummer = lagIdentitetsnummer(),
             behandlingId = UUID.randomUUID(),
-            vedtakFattetTidspunkt = Instant.parse("2026-07-01T12:51:09.553707Z"),
+            vedtakFattetTidspunkt = vedtakFattetTidspunkt,
             json = """{"@event_name":"vedtak_fattet"}""",
         )
     }

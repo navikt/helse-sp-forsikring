@@ -92,6 +92,7 @@ fun Application.forsikringsvurderingApi(
         authenticate("oidc") {
             flexApi(forsikringsvurderingService)
             spesialistApi(spForsikringDataSource)
+            utbetalingsstatistikkApi(spForsikringDataSource)
         }
     }
 }
