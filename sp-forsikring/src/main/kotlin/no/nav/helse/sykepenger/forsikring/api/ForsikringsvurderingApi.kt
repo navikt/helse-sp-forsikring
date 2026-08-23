@@ -87,10 +87,28 @@ fun Application.forsikringsvurderingApi(
             }
             validate { credentials -> JWTPrincipal(credentials.payload) }
         }
+        jwt("oidc-m2m") {
+            verifier(
+                jwkProvider = JwkProviderBuilder(URI(jwkProviderUri).toURL()).build(),
+                issuer = issuerUrl,
+            ) {
+                withAudience(clientId)
+            }
+            validate { credentials ->
+                // Entra ID setter idtyp=app kun for maskin-til-maskin-token. Token som er
+                // utstedt på vegne av en innlogget bruker mangler claimet, og avvises her.
+                if (credentials.payload.getClaim("idtyp").asString() != "app") {
+                    return@validate null
+                }
+                JWTPrincipal(credentials.payload)
+            }
+        }
     }
     routing {
-        authenticate("oidc") {
+        authenticate("oidc-m2m") {
             flexApi(forsikringsvurderingService)
+        }
+        authenticate("oidc") {
             spesialistApi(spForsikringDataSource)
             utbetalingsstatistikkApi(spForsikringDataSource)
         }

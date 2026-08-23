@@ -3,6 +3,8 @@ db:
   tier: "db-f1-micro"
   extraUsers:
     - "sp-forsikring-opprydding-dev"
+ENTRAID_UUID_SAKSBEHANDLER: cda797bb-ac3b-4440-b661-2cd5eb3edba0 # 0000-CA-Speil-Saksbehandler
+ENTRAID_UUID_SPEIL_LESETILGANG: 216b7219-3906-43c5-8e22-03fb74133b42 # 0000-CA-Speil_Lesetilgang
 gosys:
   baseurl: https://oppgave.dev-fss-pub.nais.io
   scope: api://dev-fss.oppgavehandtering.oppgave/.default

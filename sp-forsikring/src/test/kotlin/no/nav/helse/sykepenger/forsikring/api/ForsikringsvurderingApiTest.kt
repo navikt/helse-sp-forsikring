@@ -186,6 +186,20 @@ class ForsikringsvurderingApiTest {
     }
 
     @Test
+    fun `returnerer 401 med brukertoken fordi flex-apiet kun er for maskin-til-maskin`() {
+        val (statusCode, _) = postForsikringsvurdering(token = brukertoken())
+
+        assertEquals(401, statusCode)
+    }
+
+    @Test
+    fun `GET forsikringsvurderinger slipper gjennom brukertoken fordi spesialist-apiet også brukes av innloggede brukere`() {
+        val (statusCode, _) = getForsikringsvurdering(UUID.randomUUID().toString(), brukertoken())
+
+        assertEquals(404, statusCode)
+    }
+
+    @Test
     fun `GET forsikringsvurderinger returnerer samlet dekning for nav-kjøpt forsikring`() {
         val identitetsnummer = lagIdentitetsnummer()
         val forsikringsvurdering =
@@ -540,7 +554,16 @@ class ForsikringsvurderingApiTest {
     private fun bearerToken(
         issuerId: String = "default",
         audience: String = CLIENT_ID,
-    ): String = mockOAuth2Server.issueToken(issuerId = issuerId, audience = audience).serialize()
+        claims: Map<String, Any> = mapOf("idtyp" to "app"),
+    ): String =
+        mockOAuth2Server
+            .issueToken(
+                issuerId = issuerId,
+                audience = audience,
+                claims = claims,
+            ).serialize()
+
+    private fun brukertoken(): String = bearerToken(claims = mapOf("NAVident" to "A123456"))
 
     private fun getForsikringsvurdering(
         forsikringsvurderingId: String,
