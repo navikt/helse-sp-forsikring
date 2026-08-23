@@ -1,16 +1,14 @@
 package no.nav.helse.sykepenger.forsikring.shared.testsupport
 
-import com.fasterxml.jackson.databind.DeserializationFeature
-import com.fasterxml.jackson.databind.JsonNode
-import com.fasterxml.jackson.databind.node.ArrayNode
-import com.fasterxml.jackson.databind.node.ObjectNode
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
-import com.fasterxml.jackson.module.kotlin.jacksonMapperBuilder
+import tools.jackson.databind.DeserializationFeature
+import tools.jackson.databind.JsonNode
+import tools.jackson.databind.node.ArrayNode
+import tools.jackson.databind.node.ObjectNode
+import tools.jackson.module.kotlin.jacksonMapperBuilder
 import kotlin.test.assertEquals
 
 private val objectMapper =
     jacksonMapperBuilder()
-        .addModule(JavaTimeModule())
         .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
         .build()
 
@@ -51,7 +49,7 @@ private fun JsonNode.sortedDeep(): JsonNode =
                 properties()
                     .asSequence()
                     .sortedBy { (name, _) -> name }
-                    .forEach { (name, value) -> sorted.set<JsonNode>(name, value.sortedDeep()) }
+                    .forEach { (name, value) -> sorted.set(name, value.sortedDeep()) }
             }
 
         is ArrayNode ->

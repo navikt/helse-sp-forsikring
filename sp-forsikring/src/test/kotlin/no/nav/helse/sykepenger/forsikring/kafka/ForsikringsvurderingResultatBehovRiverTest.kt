@@ -1,15 +1,11 @@
 package no.nav.helse.sykepenger.forsikring.kafka
 
-import com.fasterxml.jackson.databind.JsonNode
-import com.fasterxml.jackson.databind.node.ArrayNode
-import com.fasterxml.jackson.databind.node.ObjectNode
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
-import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.github.navikt.tbd_libs.rapids_and_rivers.test_support.TestRapid
 import no.nav.helse.sykepenger.forsikring.shared.testsupport.TestcontainersReplikadatabase
 import no.nav.helse.sykepenger.forsikring.shared.testsupport.TestcontainersReplikadatabase.insertFkonto12
 import no.nav.helse.sykepenger.forsikring.shared.testsupport.TestcontainersReplikadatabase.insertVedfrivt
 import no.nav.helse.sykepenger.forsikring.shared.testsupport.TestcontainersSpForsikringDatabase
+import no.nav.helse.sykepenger.forsikring.shared.testsupport.assertJsonEquals
 import org.intellij.lang.annotations.Language
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -21,8 +17,6 @@ import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 
 internal class ForsikringsvurderingResultatBehovRiverTest {
-    private val objectMapper = jacksonObjectMapper().registerModule(JavaTimeModule())
-
     private val rapid =
         TestRapid().apply {
             ForsikringsvurderingBehovRiver(
@@ -166,7 +160,7 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
         sendForsikringsvurderingResultatBehov(forsikringsvurderingId)
 
         assertEquals(1, rapid.inspektør.size)
-        val returnertId = rapid.inspektør.message(0)["@løsning"]["ForsikringsvurderingResultat"]["forsikringsvurderingId"]?.asText()
+        val returnertId = rapid.inspektør.message(0)["@løsning"]["ForsikringsvurderingResultat"]["forsikringsvurderingId"]?.asString()
         assertNotNull(returnertId) { "Manglet forsikringsvurderingId i løsning" }
         assertEquals(forsikringsvurderingId, returnertId)
     }
@@ -960,7 +954,7 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
 
     private fun popForsikringsvurderingIdFraLøsning(): String {
         assertEquals(1, rapid.inspektør.size)
-        val forsikringsvurderingId = rapid.inspektør.message(0)["@løsning"]["Forsikringsvurdering"]["forsikringsvurderingId"].asText()
+        val forsikringsvurderingId = rapid.inspektør.message(0)["@løsning"]["Forsikringsvurdering"]["forsikringsvurderingId"].asString()
         rapid.reset()
         return forsikringsvurderingId
     }
@@ -998,46 +992,6 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
         assertNotNull(faktisk) { "Manglet villeHattForsikringOmDenVarBetalt i løsning" }
         assertEquals(forventet, faktisk)
     }
-
-    private fun assertJsonEquals(
-        expectedJson: String,
-        actualJsonNode: JsonNode,
-        bortsettFraProperties: Set<String> = emptySet(),
-    ) {
-        val expected =
-            objectMapper
-                .readTree(expectedJson)
-                .deepSortedObjectNodeCopy()
-                .apply { bortsettFraProperties.forEach { remove(it) } }
-        val actual =
-            actualJsonNode
-                .deepSortedObjectNodeCopy()
-                .apply { bortsettFraProperties.forEach { remove(it) } }
-        assertEquals(
-            objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(expected),
-            objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(actual),
-        )
-    }
-
-    private fun JsonNode.sortedDeep(): JsonNode =
-        when (this) {
-            is ObjectNode ->
-                objectMapper.createObjectNode().also { sorted ->
-                    properties()
-                        .asSequence()
-                        .sortedBy { (name, _) -> name }
-                        .forEach { (name, value) -> sorted.set<JsonNode>(name, value.sortedDeep()) }
-                }
-
-            is ArrayNode ->
-                objectMapper.createArrayNode().also { sortedArray ->
-                    forEach { sortedArray.add(it.sortedDeep()) }
-                }
-
-            else -> this.deepCopy()
-        }
-
-    private fun JsonNode.deepSortedObjectNodeCopy(): ObjectNode = sortedDeep() as ObjectNode
 
     private fun insertBetaltVedfrivt(
         IF01_AGNR_FNR: Long,

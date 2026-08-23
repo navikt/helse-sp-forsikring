@@ -81,7 +81,7 @@ internal class ForsikringsvurderingBehovRiverTest {
 
         assertEquals(1, rapid.inspektør.size)
         val løsningMelding = rapid.inspektør.message(0)
-        val forsikringsvurderingId = løsningMelding["@løsning"]["Forsikringsvurdering"]["forsikringsvurderingId"]?.asText()
+        val forsikringsvurderingId = løsningMelding["@løsning"]["Forsikringsvurdering"]["forsikringsvurderingId"]?.asString()
         assertNotNull(forsikringsvurderingId) { "Manglet forsikringsvurderingId" }
         assertDoesNotThrow("forsikringsvurderingId \"${forsikringsvurderingId}\" kunne ikke tolkes som en UUID") {
             UUID.fromString(forsikringsvurderingId)
@@ -208,7 +208,7 @@ internal class ForsikringsvurderingBehovRiverTest {
 
         assertEquals(1, rapid.inspektør.size)
         val løsningMelding = rapid.inspektør.message(0)
-        val forsikringsvurderingId = løsningMelding["@løsning"]["Forsikringsvurdering"]["forsikringsvurderingId"]?.asText()
+        val forsikringsvurderingId = løsningMelding["@løsning"]["Forsikringsvurdering"]["forsikringsvurderingId"]?.asString()
         assertNotNull(forsikringsvurderingId) { "Manglet forsikringsvurderingId" }
         assertEquals(1, TestcontainersSpForsikringDatabase.countRåkopi(forsikringsvurderingId))
         assertEquals(2, TestcontainersSpForsikringDatabase.countRåkopiIF_VEDFRIVT_10(forsikringsvurderingId))
@@ -244,7 +244,7 @@ internal class ForsikringsvurderingBehovRiverTest {
         )
 
         assertEquals(1, rapid.inspektør.size)
-        val forsikringsvurderingId = rapid.inspektør.message(0)["@løsning"]["Forsikringsvurdering"]["forsikringsvurderingId"].asText()
+        val forsikringsvurderingId = rapid.inspektør.message(0)["@løsning"]["Forsikringsvurdering"]["forsikringsvurderingId"].asString()
         val ekskluderinger = TestcontainersSpForsikringDatabase.hentEkskluderinger(UUID.fromString(forsikringsvurderingId))
         assertEquals(4, ekskluderinger.size)
         assertEquals("SKJÆRINGSTIDSPUNKT_INNEN_28_DAGER_FØR_VIRKNINGSDATO", ekskluderinger[1])
