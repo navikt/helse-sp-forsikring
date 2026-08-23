@@ -1,9 +1,9 @@
 package no.nav.helse.sykepenger.forsikring.kafka
 
 import com.github.navikt.tbd_libs.rapids_and_rivers.test_support.TestRapid
+import com.github.navikt.tbd_libs.test.assertJsonEquals
 import no.nav.helse.sykepenger.forsikring.shared.testsupport.TestcontainersReplikadatabase
 import no.nav.helse.sykepenger.forsikring.shared.testsupport.TestcontainersSpForsikringDatabase
-import no.nav.helse.sykepenger.forsikring.shared.testsupport.assertJsonEquals
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertDoesNotThrow
@@ -51,15 +51,13 @@ internal class ForsikringsvurderingBehovRiverTest {
         assertJsonEquals(
             expectedJson = testmelding,
             actualJsonNode = rapid.inspektør.message(0),
-            bortsettFraProperties =
-                setOf(
-                    "@løsning",
-                    "@id",
-                    "@opprettet",
-                    "system_read_count",
-                    "system_participating_services",
-                    "@forårsaket_av",
-                ),
+            bortsettFraStier =
+                TestRapid.GENERERTE_JSONSTIER +
+                    setOf(
+                        "@løsning",
+                        "@id",
+                        "@forårsaket_av",
+                    ),
         )
     }
 

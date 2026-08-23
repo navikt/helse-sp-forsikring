@@ -1,15 +1,14 @@
 package no.nav.helse.sykepenger.forsikring.kafka
 
 import com.github.navikt.tbd_libs.rapids_and_rivers.test_support.TestRapid
+import com.github.navikt.tbd_libs.test.assertJsonEquals
 import kotliquery.queryOf
 import kotliquery.sessionOf
 import no.nav.helse.sykepenger.forsikring.domain.Forsikringsvurdering
 import no.nav.helse.sykepenger.forsikring.domain.KollektivForsikring
 import no.nav.helse.sykepenger.forsikring.domain.NavKjøptForsikringType
 import no.nav.helse.sykepenger.forsikring.domain.SpesiellYrkesgruppe
-import no.nav.helse.sykepenger.forsikring.shared.testsupport.RAPIDS_GENERERTE_PROPERTIES
 import no.nav.helse.sykepenger.forsikring.shared.testsupport.TestcontainersSpForsikringDatabase
-import no.nav.helse.sykepenger.forsikring.shared.testsupport.assertJsonEquals
 import no.nav.helse.sykepenger.forsikring.shared.testsupport.lagForsikringsvurdering
 import no.nav.helse.sykepenger.forsikring.shared.testsupport.lagIdentitetsnummer
 import no.nav.helse.sykepenger.forsikring.shared.testsupport.lagVurdertNavKjøptForsikring
@@ -90,7 +89,7 @@ class VedtakFattetTellerRiverTest {
         assertJsonEquals(
             expectedJson = testmelding,
             actualJson = melding.json,
-            bortsettFraProperties = RAPIDS_GENERERTE_PROPERTIES,
+            bortsettFraStier = TestRapid.GENERERTE_JSONSTIER,
         )
 
         val utbetalinger = hentUtbetalingerPerForsikringstype(meldingId)

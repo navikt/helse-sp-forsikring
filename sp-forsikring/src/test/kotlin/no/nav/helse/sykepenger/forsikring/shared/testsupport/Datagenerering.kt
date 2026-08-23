@@ -14,15 +14,12 @@ import java.math.BigDecimal
 import java.time.Instant
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
-import kotlin.random.Random
 
-fun lagIdentitetsnummer(): Identitetsnummer {
-    val fødselsdato = LocalDate.of(1970, 1, 1).plusDays(Random.nextLong(0, 365L * 40))
-    val personnummer = Random.nextInt(0, 100_000)
-    return Identitetsnummer.fraString(
-        fødselsdato.format(DateTimeFormatter.ofPattern("ddMMyy")) + "%05d".format(personnummer),
+fun lagIdentitetsnummer(): Identitetsnummer =
+    Identitetsnummer.fraString(
+        com.github.navikt.tbd_libs.testdata
+            .lagIdentitetsnummer(),
     )
-}
 
 fun lagForsikringsvurdering(
     skjæringstidspunkt: LocalDate,
