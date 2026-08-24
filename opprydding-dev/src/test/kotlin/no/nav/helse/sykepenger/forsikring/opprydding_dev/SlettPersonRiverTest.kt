@@ -44,12 +44,19 @@ internal class SlettPersonRiverTest {
         insertFkonto12(fkonto12Id, vedfrivt10Id)
         insertForsikringsvurdering(forsikringsvurderingId, råkopiId, fødselsnummer)
         insertNavKjøptForsikring(forsikringsvurderingId, vedfrivt10Id)
+        insertSpesiellYrkesgruppe(forsikringsvurderingId)
+        val vedtakFattetMeldingId = UUID.randomUUID()
+        insertVedtakFattetMelding(vedtakFattetMeldingId, forsikringsvurderingId, fødselsnummer)
+        insertUtbetalingPerForsikringstype(UUID.randomUUID(), vedtakFattetMeldingId)
 
         assertEquals(1, Database.countRåkopi())
         assertEquals(1, Database.countForsikringsvurdering())
         assertEquals(1, Database.countRåkopiIfVedfrivt10())
         assertEquals(1, Database.countRåkopiIfFkonto12())
         assertEquals(1, Database.countNavKjøpteForsikringer())
+        assertEquals(1, Database.countSpesielleYrkesgrupper())
+        assertEquals(1, Database.countVedtakFattetMeldinger())
+        assertEquals(1, Database.countUtbetalingPerForsikringstype())
 
         rapid.sendTestMessage(slettPersonMelding(fødselsnummer))
 
@@ -58,6 +65,23 @@ internal class SlettPersonRiverTest {
         assertEquals(0, Database.countRåkopiIfVedfrivt10())
         assertEquals(0, Database.countRåkopiIfFkonto12())
         assertEquals(0, Database.countNavKjøpteForsikringer())
+        assertEquals(0, Database.countSpesielleYrkesgrupper())
+        assertEquals(0, Database.countVedtakFattetMeldinger())
+        assertEquals(0, Database.countUtbetalingPerForsikringstype())
+    }
+
+    @Test
+    fun `sletter vedtaksdata for person uten råkopi`() {
+        val fødselsnummer = "01020312345"
+
+        val vedtakFattetMeldingId = UUID.randomUUID()
+        insertVedtakFattetMelding(vedtakFattetMeldingId, null, fødselsnummer)
+        insertUtbetalingPerForsikringstype(UUID.randomUUID(), vedtakFattetMeldingId)
+
+        rapid.sendTestMessage(slettPersonMelding(fødselsnummer))
+
+        assertEquals(0, Database.countVedtakFattetMeldinger())
+        assertEquals(0, Database.countUtbetalingPerForsikringstype())
     }
 
     @Test
@@ -98,9 +122,11 @@ internal class SlettPersonRiverTest {
 
         val råkopiId2 = UUID.randomUUID()
         val vedfrivt10Id2 = UUID.randomUUID()
+        val forsikringsvurderingId2 = UUID.randomUUID()
         insertRåkopi(råkopiId2)
         insertVedfrivt10(vedfrivt10Id2, råkopiId2, fnrLong2)
-        insertForsikringsvurdering(UUID.randomUUID(), råkopiId2, fødselsnummer2)
+        insertForsikringsvurdering(forsikringsvurderingId2, råkopiId2, fødselsnummer2)
+        insertVedtakFattetMelding(UUID.randomUUID(), forsikringsvurderingId2, fødselsnummer2)
 
         assertEquals(2, Database.countRåkopi())
 
@@ -109,6 +135,67 @@ internal class SlettPersonRiverTest {
         assertEquals(1, Database.countRåkopi())
         assertEquals(1, Database.countForsikringsvurdering())
         assertEquals(1, Database.countRåkopiIfVedfrivt10())
+        assertEquals(1, Database.countVedtakFattetMeldinger())
+    }
+
+    private fun insertSpesiellYrkesgruppe(forsikringsvurderingId: UUID) {
+        Database.dataSource.connection.use { conn ->
+            conn
+                .prepareStatement(
+                    """
+                INSERT INTO forsikringsvurdering_spesiell_yrkesgruppe (forsikringsvurdering_id, spesiell_yrkesgruppe)
+                VALUES (?, 'FISKER')
+                """,
+                ).use { stmt ->
+                    stmt.setObject(1, forsikringsvurderingId)
+                    stmt.executeUpdate()
+                }
+        }
+    }
+
+    private fun insertVedtakFattetMelding(
+        id: UUID,
+        forsikringsvurderingId: UUID?,
+        fødselsnummer: String,
+    ) {
+        Database.dataSource.connection.use { conn ->
+            conn
+                .prepareStatement(
+                    """
+                INSERT INTO vedtak_fattet_melding
+                    (id, forsikringsvurdering_id, identitetsnummer, behandling_id, vedtak_fattet_tidspunkt, json)
+                VALUES (?, ?, ?, ?, ?, ?::jsonb)
+                """,
+                ).use { stmt ->
+                    stmt.setObject(1, id)
+                    stmt.setObject(2, forsikringsvurderingId)
+                    stmt.setString(3, fødselsnummer)
+                    stmt.setObject(4, UUID.randomUUID())
+                    stmt.setTimestamp(5, Timestamp.from(Instant.now()))
+                    stmt.setString(6, """{"@event_name": "vedtak_fattet"}""")
+                    stmt.executeUpdate()
+                }
+        }
+    }
+
+    private fun insertUtbetalingPerForsikringstype(
+        id: UUID,
+        vedtakFattetMeldingId: UUID,
+    ) {
+        Database.dataSource.connection.use { conn ->
+            conn
+                .prepareStatement(
+                    """
+                INSERT INTO utbetaling_per_forsikringstype
+                    (id, utbetalt_i_ventetid, utbetalt_utenom_ventetid, vedtak_fattet_melding_id, navkjøpt_forsikring_type)
+                VALUES (?, 0, 0, ?, 'SELVSTENDIG_80_PROSENT_FRA_DAG_1')
+                """,
+                ).use { stmt ->
+                    stmt.setObject(1, id)
+                    stmt.setObject(2, vedtakFattetMeldingId)
+                    stmt.executeUpdate()
+                }
+        }
     }
 
     private fun insertRåkopi(id: UUID) {

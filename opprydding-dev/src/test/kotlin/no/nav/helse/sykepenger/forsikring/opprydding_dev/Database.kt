@@ -35,41 +35,28 @@ object Database {
         dataSource.close()
     }
 
-    fun countRåkopi(dataSource: DataSource = this.dataSource): Int =
-        dataSource.connection.use { conn ->
-            conn.prepareStatement("SELECT COUNT(*) FROM råkopi").executeQuery().use { rs ->
-                rs.next()
-                rs.getInt(1)
-            }
-        }
+    fun countRåkopi(dataSource: DataSource = this.dataSource) = countRows("råkopi", dataSource)
 
-    fun countForsikringsvurdering(dataSource: DataSource = this.dataSource): Int =
-        dataSource.connection.use { conn ->
-            conn.prepareStatement("SELECT COUNT(*) FROM forsikringsvurdering").executeQuery().use { rs ->
-                rs.next()
-                rs.getInt(1)
-            }
-        }
+    fun countForsikringsvurdering(dataSource: DataSource = this.dataSource) = countRows("forsikringsvurdering", dataSource)
 
-    fun countRåkopiIfVedfrivt10(dataSource: DataSource = this.dataSource): Int =
-        dataSource.connection.use { conn ->
-            conn.prepareStatement("SELECT COUNT(*) FROM råkopi_IF_VEDFRIVT_10").executeQuery().use { rs ->
-                rs.next()
-                rs.getInt(1)
-            }
-        }
+    fun countRåkopiIfVedfrivt10(dataSource: DataSource = this.dataSource) = countRows("råkopi_IF_VEDFRIVT_10", dataSource)
 
-    fun countRåkopiIfFkonto12(dataSource: DataSource = this.dataSource): Int =
-        dataSource.connection.use { conn ->
-            conn.prepareStatement("SELECT COUNT(*) FROM råkopi_IF_FKONTO_12").executeQuery().use { rs ->
-                rs.next()
-                rs.getInt(1)
-            }
-        }
+    fun countRåkopiIfFkonto12(dataSource: DataSource = this.dataSource) = countRows("råkopi_IF_FKONTO_12", dataSource)
 
-    fun countNavKjøpteForsikringer(dataSource: DataSource = this.dataSource): Int =
+    fun countNavKjøpteForsikringer(dataSource: DataSource = this.dataSource) = countRows("forsikringsvurdering_navkjøpt_forsikring", dataSource)
+
+    fun countSpesielleYrkesgrupper(dataSource: DataSource = this.dataSource) = countRows("forsikringsvurdering_spesiell_yrkesgruppe", dataSource)
+
+    fun countVedtakFattetMeldinger(dataSource: DataSource = this.dataSource) = countRows("vedtak_fattet_melding", dataSource)
+
+    fun countUtbetalingPerForsikringstype(dataSource: DataSource = this.dataSource) = countRows("utbetaling_per_forsikringstype", dataSource)
+
+    private fun countRows(
+        tabell: String,
+        dataSource: DataSource,
+    ): Int =
         dataSource.connection.use { conn ->
-            conn.prepareStatement("SELECT COUNT(*) FROM forsikringsvurdering_navkjøpt_forsikring").executeQuery().use { rs ->
+            conn.prepareStatement("SELECT COUNT(*) FROM $tabell").executeQuery().use { rs ->
                 rs.next()
                 rs.getInt(1)
             }
