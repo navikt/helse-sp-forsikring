@@ -17,6 +17,7 @@ import no.nav.helse.sykepenger.forsikring.shared.logging.MdcKey
 import no.nav.helse.sykepenger.forsikring.shared.logging.loggInfo
 import no.nav.helse.sykepenger.forsikring.tellingutbetaling.UtbetalingPerForsikringstypeDao
 import no.nav.helse.sykepenger.forsikring.tellingutbetaling.VedtakFattetMeldingDao
+import java.math.BigDecimal
 import java.time.Instant
 import java.time.LocalDateTime
 import java.time.ZoneId
@@ -109,20 +110,26 @@ class VedtakFattetTellerRiver(
                 utbetalingPerForsikringstypeDao.insert(
                     vedtakFattetMeldingId = vedtakFattetMelding.id,
                     forsikringstype = kollektivForsikring,
-                    utbetaltIVentetid = fordelingerIVentetid.sumOf { it.påGrunnAvKollektivForsikring },
-                    utbetaltUtenomVentetid = fordelingerUtenomVentetid.sumOf { it.påGrunnAvKollektivForsikring },
+                    utbetaltIVentetid = fordelingerIVentetid.summer { it.påGrunnAvKollektivForsikring },
+                    utbetaltUtenomVentetid = fordelingerUtenomVentetid.summer { it.påGrunnAvKollektivForsikring },
                 )
             }
             if (navKjøptForsikring != null) {
                 utbetalingPerForsikringstypeDao.insert(
                     vedtakFattetMeldingId = vedtakFattetMelding.id,
                     forsikringstype = navKjøptForsikring.type,
-                    utbetaltIVentetid = fordelingerIVentetid.sumOf { it.påGrunnAvNavKjøptForsikring },
-                    utbetaltUtenomVentetid = fordelingerUtenomVentetid.sumOf { it.påGrunnAvNavKjøptForsikring },
+                    utbetaltIVentetid = fordelingerIVentetid.summer { it.påGrunnAvNavKjøptForsikring },
+                    utbetaltUtenomVentetid = fordelingerUtenomVentetid.summer { it.påGrunnAvNavKjøptForsikring },
                 )
             }
         }
     }
 }
+
+/**
+ * Summerer beløpene med full mellomregningspresisjon. Avrunding til to desimaler skjer først når summen
+ * lagres, slik at vi ikke akkumulerer avrundingsfeil per utbetalingsdag.
+ */
+private fun List<FordelingAvBeløpPåUtbetalingsdag>.summer(beløp: (FordelingAvBeløpPåUtbetalingsdag) -> BigDecimal): BigDecimal = fold(BigDecimal.ZERO) { sum, fordeling -> sum + beløp(fordeling) }
 
 private fun LocalDateTime.tilInstantIOslo(): Instant = atZone(ZoneId.of("Europe/Oslo")).toInstant()

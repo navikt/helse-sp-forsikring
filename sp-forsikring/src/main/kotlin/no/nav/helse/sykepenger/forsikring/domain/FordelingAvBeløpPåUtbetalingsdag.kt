@@ -5,11 +5,18 @@ import java.math.RoundingMode
 
 class FordelingAvBeløpPåUtbetalingsdag private constructor(
     val dag: Utbetalingsdag,
-    val uavhengigAvForsikring: Int,
-    val påGrunnAvKollektivForsikring: Int,
-    val påGrunnAvNavKjøptForsikring: Int,
+    val uavhengigAvForsikring: BigDecimal,
+    val påGrunnAvKollektivForsikring: BigDecimal,
+    val påGrunnAvNavKjøptForsikring: BigDecimal,
 ) {
     companion object {
+        /**
+         * Fordelingen per dag er en mellomregning: den summeres opp over alle dagene i et vedtak før beløpet
+         * lagres med to desimaler. Vi regner derfor med rikelig med desimaler her, slik at avrundingsfeil ikke
+         * akkumulerer seg dag for dag.
+         */
+        const val MELLOMREGNINGSSKALA = 10
+
         fun finnFordeling(
             dag: Utbetalingsdag,
             yrkesaktivitetstype: Yrkesaktivitetstype,
@@ -19,9 +26,9 @@ class FordelingAvBeløpPåUtbetalingsdag private constructor(
             if (dag.beløpTilBruker == 0) {
                 return FordelingAvBeløpPåUtbetalingsdag(
                     dag = dag,
-                    uavhengigAvForsikring = 0,
-                    påGrunnAvKollektivForsikring = 0,
-                    påGrunnAvNavKjøptForsikring = 0,
+                    uavhengigAvForsikring = nullBeløp(),
+                    påGrunnAvKollektivForsikring = nullBeløp(),
+                    påGrunnAvNavKjøptForsikring = nullBeløp(),
                 )
             }
 
@@ -61,18 +68,21 @@ class FordelingAvBeløpPåUtbetalingsdag private constructor(
 
             return FordelingAvBeløpPåUtbetalingsdag(
                 dag = dag,
-                uavhengigAvForsikring = dag.beløpTilBruker - kollektivForsikringBeløp - navKjøptForsikringBeløp,
+                uavhengigAvForsikring =
+                    BigDecimal(dag.beløpTilBruker)
+                        .setScale(MELLOMREGNINGSSKALA)
+                        .minus(kollektivForsikringBeløp)
+                        .minus(navKjøptForsikringBeløp),
                 påGrunnAvKollektivForsikring = kollektivForsikringBeløp,
                 påGrunnAvNavKjøptForsikring = navKjøptForsikringBeløp,
             )
         }
 
-        private fun Utbetalingsdag.beløpForGrad(
-            navKjøptTilleggsgrad: Int,
-        ): Int =
+        private fun nullBeløp(): BigDecimal = BigDecimal.ZERO.setScale(MELLOMREGNINGSSKALA)
+
+        private fun Utbetalingsdag.beløpForGrad(grad: Int): BigDecimal =
             BigDecimal(beløpTilBruker)
-                .multiply(BigDecimal(navKjøptTilleggsgrad))
-                .divide(BigDecimal(dekningsgrad), 0, RoundingMode.HALF_UP)
-                .intValueExact()
+                .multiply(BigDecimal(grad))
+                .divide(BigDecimal(dekningsgrad), MELLOMREGNINGSSKALA, RoundingMode.HALF_UP)
     }
 }

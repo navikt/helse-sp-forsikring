@@ -2,6 +2,7 @@ package no.nav.helse.sykepenger.forsikring.domain
 
 import no.nav.helse.sykepenger.forsikring.råkopi.RåkopiIfVedfrivt10
 import org.junit.jupiter.api.assertThrows
+import java.math.BigDecimal
 import java.time.LocalDate
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -11,7 +12,7 @@ class FordelingAvBeløpPåUtbetalingsdagTest {
     fun `uten forsikring tilskrives hele utbetalingen den ordinære dekningen`() {
         val fordeling = fordeling(dag = navdag(beløpTilBruker = 1000, dekningsgrad = 80))
 
-        assertFordeling(fordeling = fordeling, uavhengigAvForsikring = 1000)
+        assertFordeling(fordeling = fordeling, uavhengigAvForsikring = "1000")
     }
 
     @Test
@@ -23,14 +24,14 @@ class FordelingAvBeløpPåUtbetalingsdagTest {
                 dag = ventetidsdag(beløpTilBruker = 100, dekningsgrad = 80),
                 navKjøptForsikring = navKjøptForsikring,
             )
-        assertFordeling(fordeling = iVentetiden, uavhengigAvForsikring = 0, påGrunnAvNavKjøptForsikring = 100)
+        assertFordeling(fordeling = iVentetiden, uavhengigAvForsikring = "0", påGrunnAvNavKjøptForsikring = "100")
 
         val utenomVentetiden =
             fordeling(
                 dag = navdag(beløpTilBruker = 1000, dekningsgrad = 80),
                 navKjøptForsikring = navKjøptForsikring,
             )
-        assertFordeling(fordeling = utenomVentetiden, uavhengigAvForsikring = 1000, påGrunnAvNavKjøptForsikring = 0)
+        assertFordeling(fordeling = utenomVentetiden, uavhengigAvForsikring = "1000", påGrunnAvNavKjøptForsikring = "0")
     }
 
     @Test
@@ -42,7 +43,7 @@ class FordelingAvBeløpPåUtbetalingsdagTest {
             )
 
         // (100 - 80) % av 1000
-        assertFordeling(fordeling = fordeling, uavhengigAvForsikring = 800, påGrunnAvNavKjøptForsikring = 200)
+        assertFordeling(fordeling = fordeling, uavhengigAvForsikring = "800", påGrunnAvNavKjøptForsikring = "200")
     }
 
     @Test
@@ -53,7 +54,7 @@ class FordelingAvBeløpPåUtbetalingsdagTest {
                 kollektivForsikring = KollektivForsikring.FISKER_BLAD_B,
             )
 
-        assertFordeling(fordeling = fordeling, uavhengigAvForsikring = 800, påGrunnAvKollektivForsikring = 200)
+        assertFordeling(fordeling = fordeling, uavhengigAvForsikring = "800", påGrunnAvKollektivForsikring = "200")
     }
 
     @Test
@@ -71,9 +72,9 @@ class FordelingAvBeløpPåUtbetalingsdagTest {
             )
         assertFordeling(
             fordeling = iVentetiden,
-            uavhengigAvForsikring = 0,
-            påGrunnAvKollektivForsikring = 0,
-            påGrunnAvNavKjøptForsikring = 100,
+            uavhengigAvForsikring = "0",
+            påGrunnAvKollektivForsikring = "0",
+            påGrunnAvNavKjøptForsikring = "100",
         )
 
         // Fra dag 17 har den kollektive forsikringen tatt over, og tilleggsforsikringen gir ikke noe ekstra
@@ -85,9 +86,9 @@ class FordelingAvBeløpPåUtbetalingsdagTest {
             )
         assertFordeling(
             fordeling = utenomVentetiden,
-            uavhengigAvForsikring = 800,
-            påGrunnAvKollektivForsikring = 200,
-            påGrunnAvNavKjøptForsikring = 0,
+            uavhengigAvForsikring = "800",
+            påGrunnAvKollektivForsikring = "200",
+            påGrunnAvNavKjøptForsikring = "0",
         )
     }
 
@@ -104,7 +105,7 @@ class FordelingAvBeløpPåUtbetalingsdagTest {
                 dag = navdag(dato = LocalDate.parse("2026-04-22"), beløpTilBruker = 1000, dekningsgrad = 100),
                 navKjøptForsikring = navKjøptForsikring,
             )
-        assertFordeling(fordeling = påOpphørsdatoen, uavhengigAvForsikring = 800, påGrunnAvNavKjøptForsikring = 200)
+        assertFordeling(fordeling = påOpphørsdatoen, uavhengigAvForsikring = "800", påGrunnAvNavKjøptForsikring = "200")
 
         // Etter opphør faller dagen tilbake til ordinær dekning, og dekningsgraden er da 80
         val etterOpphørsdatoen =
@@ -112,26 +113,43 @@ class FordelingAvBeløpPåUtbetalingsdagTest {
                 dag = navdag(dato = LocalDate.parse("2026-04-23"), beløpTilBruker = 1000, dekningsgrad = 80),
                 navKjøptForsikring = navKjøptForsikring,
             )
-        assertFordeling(fordeling = etterOpphørsdatoen, uavhengigAvForsikring = 1000, påGrunnAvNavKjøptForsikring = 0)
+        assertFordeling(fordeling = etterOpphørsdatoen, uavhengigAvForsikring = "1000", påGrunnAvNavKjøptForsikring = "0")
     }
 
     @Test
-    fun `runder av til nærmeste krone`() {
+    fun `beholder desimalene i fordelingen`() {
         val fordeling =
             fordeling(
                 dag = navdag(beløpTilBruker = 1003, dekningsgrad = 100),
                 navKjøptForsikring = gyldigNavKjøptForsikring(type = NavKjøptForsikringType.SELVSTENDIG_100_PROSENT_FRA_DAG_1),
             )
 
-        // (100 - 80) % av 1003 er 200,6, som rundes til 201
-        assertFordeling(fordeling = fordeling, uavhengigAvForsikring = 802, påGrunnAvNavKjøptForsikring = 201)
+        // (100 - 80) % av 1003 er 200,6
+        assertFordeling(fordeling = fordeling, uavhengigAvForsikring = "802.4", påGrunnAvNavKjøptForsikring = "200.6")
+    }
+
+    @Test
+    fun `fordelingen summerer seg opp til hele beløpet som er utbetalt til bruker`() {
+        val fordeling =
+            fordeling(
+                dag = navdag(beløpTilBruker = 1003, dekningsgrad = 100),
+                kollektivForsikring = KollektivForsikring.JORDBRUKER,
+                navKjøptForsikring =
+                    gyldigNavKjøptForsikring(type = NavKjøptForsikringType.SELVSTENDIG_JORDBRUKER_100_PROSENT_FRA_DAG_1),
+            )
+
+        val sum =
+            fordeling.uavhengigAvForsikring +
+                fordeling.påGrunnAvKollektivForsikring +
+                fordeling.påGrunnAvNavKjøptForsikring
+        assertEquals(0, BigDecimal(1003).compareTo(sum), "Summen av fordelingen var $sum")
     }
 
     @Test
     fun `dager uten utbetaling fordeles ikke, uavhengig av dekningsgraden på dagen`() {
         val fordeling = fordeling(dag = navdag(beløpTilBruker = 0, dekningsgrad = 100))
 
-        assertFordeling(fordeling = fordeling, uavhengigAvForsikring = 0)
+        assertFordeling(fordeling = fordeling, uavhengigAvForsikring = "0")
     }
 
     @Test
@@ -185,20 +203,32 @@ class FordelingAvBeløpPåUtbetalingsdagTest {
 
     private fun assertFordeling(
         fordeling: FordelingAvBeløpPåUtbetalingsdag,
-        uavhengigAvForsikring: Int,
-        påGrunnAvKollektivForsikring: Int = 0,
-        påGrunnAvNavKjøptForsikring: Int = 0,
+        uavhengigAvForsikring: String,
+        påGrunnAvKollektivForsikring: String = "0",
+        påGrunnAvNavKjøptForsikring: String = "0",
     ) {
-        assertEquals(uavhengigAvForsikring, fordeling.uavhengigAvForsikring, "Beløp uavhengig av forsikring")
-        assertEquals(
+        assertBeløp(uavhengigAvForsikring, fordeling.uavhengigAvForsikring, "Beløp uavhengig av forsikring")
+        assertBeløp(
             påGrunnAvKollektivForsikring,
             fordeling.påGrunnAvKollektivForsikring,
             "Beløp på grunn av kollektiv forsikring",
         )
-        assertEquals(
+        assertBeløp(
             påGrunnAvNavKjøptForsikring,
             fordeling.påGrunnAvNavKjøptForsikring,
             "Beløp på grunn av nav-kjøpt forsikring",
+        )
+    }
+
+    private fun assertBeløp(
+        forventet: String,
+        faktisk: BigDecimal,
+        beskrivelse: String,
+    ) {
+        assertEquals(
+            0,
+            BigDecimal(forventet).compareTo(faktisk),
+            "$beskrivelse: forventet $forventet, men var ${faktisk.stripTrailingZeros().toPlainString()}",
         )
     }
 

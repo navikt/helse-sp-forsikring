@@ -9,6 +9,7 @@ import no.nav.helse.sykepenger.forsikring.shared.testsupport.TestcontainersSpFor
 import no.nav.helse.sykepenger.forsikring.shared.testsupport.lagIdentitetsnummer
 import no.nav.helse.sykepenger.forsikring.shared.util.inTransaction
 import org.junit.jupiter.api.BeforeEach
+import java.math.BigDecimal
 import java.time.Instant
 import java.time.LocalDate
 import java.util.*
@@ -35,15 +36,15 @@ class UtbetalingPerForsikringstypeDaoTest {
             UtbetalingPerForsikringstypeDao(transaction).insert(
                 vedtakFattetMeldingId = meldingId,
                 forsikringstype = NavKjøptForsikringType.SELVSTENDIG_80_PROSENT_FRA_DAG_1,
-                utbetaltIVentetid = 100,
-                utbetaltUtenomVentetid = 3272,
+                utbetaltIVentetid = kr("100"),
+                utbetaltUtenomVentetid = kr("3272"),
             )
         }
 
         val rad = assertNotNull(hentUtbetalingerFor(meldingId).singleOrNull())
         assertEquals(meldingId, rad.vedtakFattetMeldingId)
-        assertEquals(100, rad.utbetaltIVentetid)
-        assertEquals(3272, rad.utbetaltUtenomVentetid)
+        assertBeløp("100", rad.utbetaltIVentetid)
+        assertBeløp("3272", rad.utbetaltUtenomVentetid)
         assertEquals(NavKjøptForsikringType.SELVSTENDIG_80_PROSENT_FRA_DAG_1.name, rad.navkjøptForsikringType)
         assertNull(rad.kollektivForsikringType)
     }
@@ -57,16 +58,16 @@ class UtbetalingPerForsikringstypeDaoTest {
             UtbetalingPerForsikringstypeDao(transaction).insert(
                 vedtakFattetMeldingId = meldingId,
                 forsikringstype = KollektivForsikring.JORDBRUKER,
-                utbetaltIVentetid = 0,
-                utbetaltUtenomVentetid = 500,
+                utbetaltIVentetid = kr("0"),
+                utbetaltUtenomVentetid = kr("500"),
             )
         }
 
         val rad = assertNotNull(hentUtbetalingerFor(meldingId).singleOrNull())
         assertEquals(KollektivForsikring.JORDBRUKER.name, rad.kollektivForsikringType)
         assertNull(rad.navkjøptForsikringType)
-        assertEquals(0, rad.utbetaltIVentetid)
-        assertEquals(500, rad.utbetaltUtenomVentetid)
+        assertBeløp("0", rad.utbetaltIVentetid)
+        assertBeløp("500", rad.utbetaltUtenomVentetid)
     }
 
     @Test
@@ -79,14 +80,14 @@ class UtbetalingPerForsikringstypeDaoTest {
             dao.insert(
                 vedtakFattetMeldingId = meldingId,
                 forsikringstype = NavKjøptForsikringType.SELVSTENDIG_JORDBRUKER_100_PROSENT_FRA_DAG_1,
-                utbetaltIVentetid = 100,
-                utbetaltUtenomVentetid = 0,
+                utbetaltIVentetid = kr("100"),
+                utbetaltUtenomVentetid = kr("0"),
             )
             dao.insert(
                 vedtakFattetMeldingId = meldingId,
                 forsikringstype = KollektivForsikring.JORDBRUKER,
-                utbetaltIVentetid = 0,
-                utbetaltUtenomVentetid = 3272,
+                utbetaltIVentetid = kr("0"),
+                utbetaltUtenomVentetid = kr("3272"),
             )
         }
 
@@ -113,14 +114,14 @@ class UtbetalingPerForsikringstypeDaoTest {
                 dao.insert(
                     vedtakFattetMeldingId = meldingId,
                     forsikringstype = KollektivForsikring.FISKER_BLAD_B,
-                    utbetaltIVentetid = 100,
-                    utbetaltUtenomVentetid = 3272,
+                    utbetaltIVentetid = kr("100"),
+                    utbetaltUtenomVentetid = kr("3272"),
                 )
                 dao.insert(
                     vedtakFattetMeldingId = UUID.randomUUID(),
                     forsikringstype = KollektivForsikring.FISKER_BLAD_B,
-                    utbetaltIVentetid = 100,
-                    utbetaltUtenomVentetid = 3272,
+                    utbetaltIVentetid = kr("100"),
+                    utbetaltUtenomVentetid = kr("3272"),
                 )
             }
         }
@@ -142,8 +143,8 @@ class UtbetalingPerForsikringstypeDaoTest {
                         dao.insert(
                             vedtakFattetMeldingId = meldingId,
                             forsikringstype = KollektivForsikring.FISKER_BLAD_B,
-                            utbetaltIVentetid = 100,
-                            utbetaltUtenomVentetid = 3272,
+                            utbetaltIVentetid = kr("100"),
+                            utbetaltUtenomVentetid = kr("3272"),
                         )
                     }
                 }
@@ -169,30 +170,30 @@ class UtbetalingPerForsikringstypeDaoTest {
             lagreMelding(transaction, utenforPerioden, Instant.parse("2026-07-04T09:00:00Z"))
 
             val dao = UtbetalingPerForsikringstypeDao(transaction)
-            dao.insert(iPerioden, KollektivForsikring.JORDBRUKER, utbetaltIVentetid = 100, utbetaltUtenomVentetid = 200)
+            dao.insert(iPerioden, KollektivForsikring.JORDBRUKER, utbetaltIVentetid = kr("100"), utbetaltUtenomVentetid = kr("200"))
             dao.insert(
                 iPerioden,
                 NavKjøptForsikringType.SELVSTENDIG_80_PROSENT_FRA_DAG_1,
-                utbetaltIVentetid = 10,
-                utbetaltUtenomVentetid = 20,
+                utbetaltIVentetid = kr("10"),
+                utbetaltUtenomVentetid = kr("20"),
             )
-            dao.insert(ogsåIPerioden, KollektivForsikring.JORDBRUKER, utbetaltIVentetid = 1, utbetaltUtenomVentetid = 2)
-            dao.insert(utenforPerioden, KollektivForsikring.JORDBRUKER, utbetaltIVentetid = 9999, utbetaltUtenomVentetid = 9999)
+            dao.insert(ogsåIPerioden, KollektivForsikring.JORDBRUKER, utbetaltIVentetid = kr("1"), utbetaltUtenomVentetid = kr("2"))
+            dao.insert(utenforPerioden, KollektivForsikring.JORDBRUKER, utbetaltIVentetid = kr("9999"), utbetaltUtenomVentetid = kr("9999"))
         }
 
         val summer = summerPerForsikringstype(fom = LocalDate.of(2026, 7, 2), tom = LocalDate.of(2026, 7, 3))
 
         assertEquals(2, summer.size)
         val kollektiv = assertNotNull(summer.singleOrNull { it.forsikringstype == KollektivForsikring.JORDBRUKER })
-        assertEquals(101, kollektiv.utbetaltIVentetid)
-        assertEquals(202, kollektiv.utbetaltUtenomVentetid)
-        assertEquals(303, kollektiv.totalt)
+        assertBeløp("101", kollektiv.utbetaltIVentetid)
+        assertBeløp("202", kollektiv.utbetaltUtenomVentetid)
+        assertBeløp("303", kollektiv.totalt)
 
         val navKjøpt =
             assertNotNull(summer.singleOrNull { it.forsikringstype == NavKjøptForsikringType.SELVSTENDIG_80_PROSENT_FRA_DAG_1 })
-        assertEquals(10, navKjøpt.utbetaltIVentetid)
-        assertEquals(20, navKjøpt.utbetaltUtenomVentetid)
-        assertEquals(30, navKjøpt.totalt)
+        assertBeløp("10", navKjøpt.utbetaltIVentetid)
+        assertBeløp("20", navKjøpt.utbetaltUtenomVentetid)
+        assertBeløp("30", navKjøpt.totalt)
     }
 
     @Test
@@ -211,13 +212,13 @@ class UtbetalingPerForsikringstypeDaoTest {
 
             val dao = UtbetalingPerForsikringstypeDao(transaction)
             listOf(likeFørFom, førsteMinuttAvFom, sisteMinuttAvTom, likeEtterTom).forEach {
-                dao.insert(it, KollektivForsikring.JORDBRUKER, utbetaltIVentetid = 0, utbetaltUtenomVentetid = 1)
+                dao.insert(it, KollektivForsikring.JORDBRUKER, utbetaltIVentetid = kr("0"), utbetaltUtenomVentetid = kr("1"))
             }
         }
 
         val summer = summerPerForsikringstype(fom = LocalDate.of(2026, 7, 2), tom = LocalDate.of(2026, 7, 3))
 
-        assertEquals(2, assertNotNull(summer.singleOrNull()).totalt)
+        assertBeløp("2", assertNotNull(summer.singleOrNull()).totalt)
     }
 
     @Test
@@ -235,6 +236,77 @@ class UtbetalingPerForsikringstypeDaoTest {
         assertTrue(resultat.exceptionOrNull() is IllegalArgumentException)
     }
 
+    @Test
+    fun `lagrer beløp med to desimaler`() {
+        val meldingId = UUID.randomUUID()
+
+        dataSource.inTransaction { transaction ->
+            lagreMelding(transaction, meldingId)
+            UtbetalingPerForsikringstypeDao(transaction).insert(
+                vedtakFattetMeldingId = meldingId,
+                forsikringstype = KollektivForsikring.JORDBRUKER,
+                utbetaltIVentetid = kr("1234.56"),
+                utbetaltUtenomVentetid = kr("0.05"),
+            )
+        }
+
+        val rad = assertNotNull(hentUtbetalingerFor(meldingId).singleOrNull())
+        assertBeløp("1234.56", rad.utbetaltIVentetid)
+        assertBeløp("0.05", rad.utbetaltUtenomVentetid)
+    }
+
+    @Test
+    fun `runder av til to desimaler når beløpet har flere desimaler`() {
+        val meldingId = UUID.randomUUID()
+
+        dataSource.inTransaction { transaction ->
+            lagreMelding(transaction, meldingId)
+            UtbetalingPerForsikringstypeDao(transaction).insert(
+                vedtakFattetMeldingId = meldingId,
+                forsikringstype = KollektivForsikring.JORDBRUKER,
+                utbetaltIVentetid = kr("100.005"),
+                utbetaltUtenomVentetid = kr("99.994"),
+            )
+        }
+
+        val rad = assertNotNull(hentUtbetalingerFor(meldingId).singleOrNull())
+        assertBeløp("100.01", rad.utbetaltIVentetid)
+        assertBeløp("99.99", rad.utbetaltUtenomVentetid)
+    }
+
+    @Test
+    fun `summerer desimalbeløp uten å miste presisjon`() {
+        val førsteMelding = UUID.randomUUID()
+        val andreMelding = UUID.randomUUID()
+
+        dataSource.inTransaction { transaction ->
+            lagreMelding(transaction, førsteMelding, Instant.parse("2026-07-02T09:00:00Z"))
+            lagreMelding(transaction, andreMelding, Instant.parse("2026-07-03T09:00:00Z"))
+
+            val dao = UtbetalingPerForsikringstypeDao(transaction)
+            dao.insert(førsteMelding, KollektivForsikring.JORDBRUKER, kr("0.10"), kr("1200.55"))
+            dao.insert(andreMelding, KollektivForsikring.JORDBRUKER, kr("0.15"), kr("0.45"))
+        }
+
+        val summer = summerPerForsikringstype(fom = LocalDate.of(2026, 7, 2), tom = LocalDate.of(2026, 7, 3))
+
+        val kollektiv = assertNotNull(summer.singleOrNull())
+        assertBeløp("0.25", kollektiv.utbetaltIVentetid)
+        assertBeløp("1201.00", kollektiv.utbetaltUtenomVentetid)
+        assertBeløp("1201.25", kollektiv.totalt)
+    }
+
+    private fun kr(beløp: String): BigDecimal = BigDecimal(beløp)
+
+    private fun assertBeløp(
+        forventet: String,
+        faktisk: BigDecimal,
+    ) = assertEquals(
+        0,
+        BigDecimal(forventet).compareTo(faktisk),
+        "Forventet $forventet, men var ${faktisk.toPlainString()}",
+    )
+
     private fun summerPerForsikringstype(
         fom: LocalDate,
         tom: LocalDate,
@@ -246,8 +318,8 @@ class UtbetalingPerForsikringstypeDaoTest {
     private data class UtbetalingPerForsikringstypeRad(
         val id: UUID,
         val vedtakFattetMeldingId: UUID,
-        val utbetaltIVentetid: Int,
-        val utbetaltUtenomVentetid: Int,
+        val utbetaltIVentetid: BigDecimal,
+        val utbetaltUtenomVentetid: BigDecimal,
         val kollektivForsikringType: String?,
         val navkjøptForsikringType: String?,
     )
@@ -267,8 +339,8 @@ class UtbetalingPerForsikringstypeDaoTest {
                     UtbetalingPerForsikringstypeRad(
                         id = row.uuid("id"),
                         vedtakFattetMeldingId = row.uuid("vedtak_fattet_melding_id"),
-                        utbetaltIVentetid = row.int("utbetalt_i_ventetid"),
-                        utbetaltUtenomVentetid = row.int("utbetalt_utenom_ventetid"),
+                        utbetaltIVentetid = row.bigDecimal("utbetalt_i_ventetid"),
+                        utbetaltUtenomVentetid = row.bigDecimal("utbetalt_utenom_ventetid"),
                         kollektivForsikringType = row.stringOrNull("kollektiv_forsikring_type"),
                         navkjøptForsikringType = row.stringOrNull("navkjøpt_forsikring_type"),
                     )

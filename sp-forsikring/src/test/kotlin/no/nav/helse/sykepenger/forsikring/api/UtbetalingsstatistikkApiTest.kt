@@ -24,6 +24,7 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
+import java.math.BigDecimal
 import java.net.ServerSocket
 import java.time.Instant
 import java.util.*
@@ -66,12 +67,12 @@ class UtbetalingsstatistikkApiTest {
     fun `summerer utbetalinger per forsikringstype for perioden`() {
         lagreUtbetaling(
             vedtakFattetTidspunkt = Instant.parse("2026-07-02T09:00:00Z"),
-            KollektivForsikring.JORDBRUKER to (100 to 200),
-            NavKjøptForsikringType.SELVSTENDIG_80_PROSENT_FRA_DAG_1 to (10 to 20),
+            KollektivForsikring.JORDBRUKER to ("100" to "200"),
+            NavKjøptForsikringType.SELVSTENDIG_80_PROSENT_FRA_DAG_1 to ("10" to "20"),
         )
         lagreUtbetaling(
             vedtakFattetTidspunkt = Instant.parse("2026-07-03T09:00:00Z"),
-            KollektivForsikring.JORDBRUKER to (1 to 2),
+            KollektivForsikring.JORDBRUKER to ("1" to "2"),
         )
 
         val (statusCode, body) = hentUtbetalteSummer(fom = "2026-07-02", tom = "2026-07-03", token = bearerToken())
@@ -86,17 +87,39 @@ class UtbetalingsstatistikkApiTest {
 
         val kollektiv = assertNotNull(perForsikringstype.finn(KollektivForsikring.JORDBRUKER))
         assertEquals("KOLLEKTIV", kollektiv["kategori"].asText())
-        assertEquals(101, kollektiv["utbetaltIVentetid"].asLong())
-        assertEquals(202, kollektiv["utbetaltUtenomVentetid"].asLong())
-        assertEquals(303, kollektiv["totalt"].asLong())
+        assertBeløp("101", kollektiv["utbetaltIVentetid"])
+        assertBeløp("202", kollektiv["utbetaltUtenomVentetid"])
+        assertBeløp("303", kollektiv["totalt"])
 
         val navKjøpt = assertNotNull(perForsikringstype.finn(NavKjøptForsikringType.SELVSTENDIG_80_PROSENT_FRA_DAG_1))
         assertEquals("NAV_KJØPT", navKjøpt["kategori"].asText())
-        assertEquals(10, navKjøpt["utbetaltIVentetid"].asLong())
-        assertEquals(20, navKjøpt["utbetaltUtenomVentetid"].asLong())
-        assertEquals(30, navKjøpt["totalt"].asLong())
+        assertBeløp("10", navKjøpt["utbetaltIVentetid"])
+        assertBeløp("20", navKjøpt["utbetaltUtenomVentetid"])
+        assertBeløp("30", navKjøpt["totalt"])
 
         assertNullsummer(perForsikringstype, unntatt = setOf(KollektivForsikring.JORDBRUKER, NavKjøptForsikringType.SELVSTENDIG_80_PROSENT_FRA_DAG_1))
+    }
+
+    @Test
+    fun `svarer med beløp med to desimaler`() {
+        lagreUtbetaling(
+            vedtakFattetTidspunkt = Instant.parse("2026-07-02T09:00:00Z"),
+            KollektivForsikring.JORDBRUKER to ("0.10" to "1200.55"),
+        )
+        lagreUtbetaling(
+            vedtakFattetTidspunkt = Instant.parse("2026-07-03T09:00:00Z"),
+            KollektivForsikring.JORDBRUKER to ("0.15" to "0.45"),
+        )
+
+        val (statusCode, body) = hentUtbetalteSummer(fom = "2026-07-02", tom = "2026-07-03", token = bearerToken())
+
+        assertEquals(200, statusCode) { "Body was: $body" }
+        val perForsikringstype = objectMapper.readTree(body)["perForsikringstype"]
+        val kollektiv = assertNotNull(perForsikringstype.finn(KollektivForsikring.JORDBRUKER))
+        assertBeløp("0.25", kollektiv["utbetaltIVentetid"])
+        assertBeløp("1201.00", kollektiv["utbetaltUtenomVentetid"])
+        assertBeløp("1201.25", kollektiv["totalt"])
+        assertNullsummer(perForsikringstype, unntatt = setOf(KollektivForsikring.JORDBRUKER))
     }
 
     @Test
@@ -121,16 +144,16 @@ class UtbetalingsstatistikkApiTest {
         lagreUtbetaling(
             // 2026-07-01T23:59:59 norsk tid, altså dagen før fom
             vedtakFattetTidspunkt = Instant.parse("2026-07-01T21:59:59Z"),
-            KollektivForsikring.JORDBRUKER to (500 to 500),
+            KollektivForsikring.JORDBRUKER to ("500" to "500"),
         )
         lagreUtbetaling(
             // 2026-07-04T00:00:00 norsk tid, altså dagen etter tom
             vedtakFattetTidspunkt = Instant.parse("2026-07-03T22:00:00Z"),
-            KollektivForsikring.JORDBRUKER to (700 to 700),
+            KollektivForsikring.JORDBRUKER to ("700" to "700"),
         )
         lagreUtbetaling(
             vedtakFattetTidspunkt = Instant.parse("2026-07-01T22:00:00Z"),
-            KollektivForsikring.JORDBRUKER to (1 to 2),
+            KollektivForsikring.JORDBRUKER to ("1" to "2"),
         )
 
         val (statusCode, body) = hentUtbetalteSummer(fom = "2026-07-02", tom = "2026-07-03", token = bearerToken())
@@ -139,9 +162,9 @@ class UtbetalingsstatistikkApiTest {
         val perForsikringstype = objectMapper.readTree(body)["perForsikringstype"]
         assertEquals(7, perForsikringstype.size())
         val kollektiv = assertNotNull(perForsikringstype.finn(KollektivForsikring.JORDBRUKER))
-        assertEquals(1, kollektiv["utbetaltIVentetid"].asLong())
-        assertEquals(2, kollektiv["utbetaltUtenomVentetid"].asLong())
-        assertEquals(3, kollektiv["totalt"].asLong())
+        assertBeløp("1", kollektiv["utbetaltIVentetid"])
+        assertBeløp("2", kollektiv["utbetaltUtenomVentetid"])
+        assertBeløp("3", kollektiv["totalt"])
         assertNullsummer(perForsikringstype, unntatt = setOf(KollektivForsikring.JORDBRUKER))
     }
 
@@ -159,11 +182,11 @@ class UtbetalingsstatistikkApiTest {
     fun `summerer én enkelt dag når fom og tom er like`() {
         lagreUtbetaling(
             vedtakFattetTidspunkt = Instant.parse("2026-07-02T09:00:00Z"),
-            KollektivForsikring.JORDBRUKER to (10 to 20),
+            KollektivForsikring.JORDBRUKER to ("10" to "20"),
         )
         lagreUtbetaling(
             vedtakFattetTidspunkt = Instant.parse("2026-07-03T09:00:00Z"),
-            KollektivForsikring.JORDBRUKER to (900 to 900),
+            KollektivForsikring.JORDBRUKER to ("900" to "900"),
         )
 
         val (statusCode, body) = hentUtbetalteSummer(fom = "2026-07-02", tom = "2026-07-02", token = bearerToken())
@@ -172,7 +195,7 @@ class UtbetalingsstatistikkApiTest {
         val perForsikringstype = objectMapper.readTree(body)["perForsikringstype"]
         assertEquals(7, perForsikringstype.size())
         val kollektiv = assertNotNull(perForsikringstype.finn(KollektivForsikring.JORDBRUKER))
-        assertEquals(30, kollektiv["totalt"].asLong())
+        assertBeløp("30", kollektiv["totalt"])
         assertNullsummer(perForsikringstype, unntatt = setOf(KollektivForsikring.JORDBRUKER))
     }
 
@@ -232,11 +255,21 @@ class UtbetalingsstatistikkApiTest {
             .filterNot { it["forsikringstype"].asText() in unntattNavn }
             .forEach { rad ->
                 val navn = rad["forsikringstype"].asText()
-                assertEquals(0, rad["utbetaltIVentetid"].asLong()) { "Forventet 0 i ventetid for $navn" }
-                assertEquals(0, rad["utbetaltUtenomVentetid"].asLong()) { "Forventet 0 utenom ventetid for $navn" }
-                assertEquals(0, rad["totalt"].asLong()) { "Forventet 0 totalt for $navn" }
+                assertBeløp("0", rad["utbetaltIVentetid"], "Forventet 0 i ventetid for $navn")
+                assertBeløp("0", rad["utbetaltUtenomVentetid"], "Forventet 0 utenom ventetid for $navn")
+                assertBeløp("0", rad["totalt"], "Forventet 0 totalt for $navn")
             }
     }
+
+    private fun assertBeløp(
+        forventet: String,
+        faktisk: JsonNode,
+        beskrivelse: String = "Feil beløp",
+    ) = assertEquals(
+        0,
+        BigDecimal(forventet).compareTo(faktisk.decimalValue()),
+        "$beskrivelse: forventet $forventet, men var ${faktisk.asText()}",
+    )
 
     private fun Forsikringstype.navn(): String =
         when (this) {
@@ -248,7 +281,7 @@ class UtbetalingsstatistikkApiTest {
 
     private fun lagreUtbetaling(
         vedtakFattetTidspunkt: Instant,
-        vararg utbetalinger: Pair<Forsikringstype, Pair<Int, Int>>,
+        vararg utbetalinger: Pair<Forsikringstype, Pair<String, String>>,
     ) {
         val meldingId = UUID.randomUUID()
         TestcontainersSpForsikringDatabase.dataSource.inTransaction { transaction ->
@@ -259,8 +292,8 @@ class UtbetalingsstatistikkApiTest {
                 dao.insert(
                     vedtakFattetMeldingId = meldingId,
                     forsikringstype = forsikringstype,
-                    utbetaltIVentetid = iVentetid,
-                    utbetaltUtenomVentetid = utenomVentetid,
+                    utbetaltIVentetid = BigDecimal(iVentetid),
+                    utbetaltUtenomVentetid = BigDecimal(utenomVentetid),
                 )
             }
         }

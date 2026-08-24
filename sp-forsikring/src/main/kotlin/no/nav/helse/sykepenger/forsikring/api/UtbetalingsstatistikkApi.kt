@@ -9,8 +9,10 @@ import no.nav.helse.sykepenger.forsikring.domain.KollektivForsikring
 import no.nav.helse.sykepenger.forsikring.domain.NavKjøptForsikringType
 import no.nav.helse.sykepenger.forsikring.shared.logging.loggInfo
 import no.nav.helse.sykepenger.forsikring.shared.util.inTransaction
+import no.nav.helse.sykepenger.forsikring.tellingutbetaling.BELØPSSKALA
 import no.nav.helse.sykepenger.forsikring.tellingutbetaling.SumPerForsikringstype
 import no.nav.helse.sykepenger.forsikring.tellingutbetaling.UtbetalingPerForsikringstypeDao
+import java.math.BigDecimal
 import java.time.LocalDate
 import java.time.format.DateTimeParseException
 import javax.sql.DataSource
@@ -80,6 +82,8 @@ private fun ugyldigDatoProblem(
         instance = instance,
     )
 
+private val NULLBELØP: BigDecimal = BigDecimal.ZERO.setScale(BELØPSSKALA)
+
 private fun SumPerForsikringstype.tilApi(): UtbetalingsutbetaltesummerResponse.PerForsikringstype =
     UtbetalingsutbetaltesummerResponse.PerForsikringstype(
         kategori = forsikringstype.kategori(),
@@ -93,9 +97,9 @@ private fun Forsikringstype.utenUtbetalinger(): UtbetalingsutbetaltesummerRespon
     UtbetalingsutbetaltesummerResponse.PerForsikringstype(
         kategori = kategori(),
         forsikringstype = navn(),
-        utbetaltIVentetid = 0,
-        utbetaltUtenomVentetid = 0,
-        totalt = 0,
+        utbetaltIVentetid = NULLBELØP,
+        utbetaltUtenomVentetid = NULLBELØP,
+        totalt = NULLBELØP,
     )
 
 private fun Forsikringstype.kategori(): UtbetalingsutbetaltesummerResponse.Forsikringskategori =
@@ -123,8 +127,8 @@ data class UtbetalingsutbetaltesummerResponse(
     data class PerForsikringstype(
         val kategori: Forsikringskategori,
         val forsikringstype: String,
-        val utbetaltIVentetid: Long,
-        val utbetaltUtenomVentetid: Long,
-        val totalt: Long,
+        val utbetaltIVentetid: BigDecimal,
+        val utbetaltUtenomVentetid: BigDecimal,
+        val totalt: BigDecimal,
     )
 }

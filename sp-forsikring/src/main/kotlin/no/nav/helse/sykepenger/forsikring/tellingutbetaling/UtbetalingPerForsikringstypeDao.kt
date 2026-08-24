@@ -6,11 +6,16 @@ import no.nav.helse.sykepenger.forsikring.domain.Forsikringstype
 import no.nav.helse.sykepenger.forsikring.domain.KollektivForsikring
 import no.nav.helse.sykepenger.forsikring.domain.NavKjøptForsikringType
 import org.intellij.lang.annotations.Language
+import java.math.BigDecimal
+import java.math.RoundingMode
 import java.time.LocalDate
 import java.time.ZoneId
 import java.util.*
 
 private val OSLO = ZoneId.of("Europe/Oslo")
+
+/** Beløp lagres med to desimaler, altså med presisjon ned til øret. */
+const val BELØPSSKALA = 2
 
 class UtbetalingPerForsikringstypeDao(
     private val spForsikringTransactionalSession: TransactionalSession,
@@ -57,8 +62,8 @@ class UtbetalingPerForsikringstypeDao(
                             navKjøpt != null -> NavKjøptForsikringType.valueOf(navKjøpt)
                             else -> error("Rad i utbetaling_per_forsikringstype mangler forsikringstype")
                         },
-                    utbetaltIVentetid = row.long("utbetalt_i_ventetid"),
-                    utbetaltUtenomVentetid = row.long("utbetalt_utenom_ventetid"),
+                    utbetaltIVentetid = row.bigDecimal("utbetalt_i_ventetid").setScale(BELØPSSKALA),
+                    utbetaltUtenomVentetid = row.bigDecimal("utbetalt_utenom_ventetid").setScale(BELØPSSKALA),
                 )
             }.asList,
         )
@@ -67,8 +72,8 @@ class UtbetalingPerForsikringstypeDao(
     fun insert(
         vedtakFattetMeldingId: UUID,
         forsikringstype: Forsikringstype,
-        utbetaltIVentetid: Int,
-        utbetaltUtenomVentetid: Int,
+        utbetaltIVentetid: BigDecimal,
+        utbetaltUtenomVentetid: BigDecimal,
     ) {
         @Language("PostgreSQL")
         val statement = """
@@ -85,8 +90,8 @@ class UtbetalingPerForsikringstypeDao(
                 mapOf(
                     "id" to UUID.randomUUID(),
                     "vedtak_fattet_melding_id" to vedtakFattetMeldingId,
-                    "utbetalt_i_ventetid" to utbetaltIVentetid,
-                    "utbetalt_utenom_ventetid" to utbetaltUtenomVentetid,
+                    "utbetalt_i_ventetid" to utbetaltIVentetid.setScale(BELØPSSKALA, RoundingMode.HALF_UP),
+                    "utbetalt_utenom_ventetid" to utbetaltUtenomVentetid.setScale(BELØPSSKALA, RoundingMode.HALF_UP),
                     "kollektiv_forsikring_type" to
                         when (forsikringstype) {
                             is KollektivForsikring -> forsikringstype.name
@@ -105,8 +110,8 @@ class UtbetalingPerForsikringstypeDao(
 
 data class SumPerForsikringstype(
     val forsikringstype: Forsikringstype,
-    val utbetaltIVentetid: Long,
-    val utbetaltUtenomVentetid: Long,
+    val utbetaltIVentetid: BigDecimal,
+    val utbetaltUtenomVentetid: BigDecimal,
 ) {
-    val totalt: Long = utbetaltIVentetid + utbetaltUtenomVentetid
+    val totalt: BigDecimal = (utbetaltIVentetid + utbetaltUtenomVentetid).setScale(BELØPSSKALA)
 }

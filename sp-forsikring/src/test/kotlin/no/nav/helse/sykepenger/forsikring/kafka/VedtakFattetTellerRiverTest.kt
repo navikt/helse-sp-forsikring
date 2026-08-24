@@ -15,6 +15,7 @@ import no.nav.helse.sykepenger.forsikring.shared.testsupport.lagVurdertNavKjøpt
 import no.nav.helse.sykepenger.forsikring.shared.testsupport.lagreRåkopiOgForsikringsvurdering
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.assertThrows
+import java.math.BigDecimal
 import java.time.DayOfWeek
 import java.time.Instant
 import java.time.LocalDate
@@ -97,8 +98,8 @@ class VedtakFattetTellerRiverTest {
         val utbetaling = utbetalinger.single()
         assertEquals(NavKjøptForsikringType.SELVSTENDIG_80_PROSENT_FRA_DAG_1.name, utbetaling.navkjøptForsikringType)
         assertNull(utbetaling.kollektivForsikringType)
-        assertEquals(1200, utbetaling.utbetaltIVentetid)
-        assertEquals(0, utbetaling.utbetaltUtenomVentetid)
+        assertBeløp("1200", utbetaling.utbetaltIVentetid)
+        assertBeløp("0", utbetaling.utbetaltUtenomVentetid)
     }
 
     private fun utbetalingsdagerForPeriode(
@@ -158,9 +159,39 @@ class VedtakFattetTellerRiverTest {
 
         val utbetaling = hentUtbetalingerPerForsikringstype(meldingId).single()
         assertEquals(NavKjøptForsikringType.SELVSTENDIG_100_PROSENT_FRA_DAG_1.name, utbetaling.navkjøptForsikringType)
-        assertEquals(100, utbetaling.utbetaltIVentetid)
+        assertBeløp("100", utbetaling.utbetaltIVentetid)
         // (100 - 80) % av 2000
-        assertEquals(400, utbetaling.utbetaltUtenomVentetid)
+        assertBeløp("400", utbetaling.utbetaltUtenomVentetid)
+    }
+
+    @Test
+    fun `lagrer merutbetalingen med desimaler når fordelingen ikke går opp i hele kroner`() {
+        val meldingId = UUID.randomUUID()
+        val forsikringsvurdering =
+            lagForsikringsvurdering(
+                skjæringstidspunkt = LocalDate.parse("2026-04-06"),
+                navKjøpteForsikringer =
+                    listOf(
+                        lagVurdertNavKjøptForsikring(
+                            type = NavKjøptForsikringType.SELVSTENDIG_100_PROSENT_FRA_DAG_1,
+                            virkningsdato = LocalDate.parse("2026-01-01"),
+                        ),
+                    ),
+            )
+        lagreRåkopiOgForsikringsvurdering(forsikringsvurdering)
+
+        testRapid.sendTestMessage(
+            vedtakFattetMelding(
+                forsikringsvurderingId = forsikringsvurdering.id,
+                meldingId = meldingId,
+                dager = dager(dekningIVentetid = 100, beløpIVentetid = 100, beløpUtenforVentetid = 1003),
+            ),
+        )
+
+        val utbetaling = hentUtbetalingerPerForsikringstype(meldingId).single()
+        assertBeløp("100", utbetaling.utbetaltIVentetid)
+        // (100 - 80) % av 1003 er 200,6 per dag, altså 401,20 for de to dagene utenom ventetiden
+        assertBeløp("401.20", utbetaling.utbetaltUtenomVentetid)
     }
 
     @Test
@@ -213,9 +244,9 @@ class VedtakFattetTellerRiverTest {
         )
 
         val utbetaling = hentUtbetalingerPerForsikringstype(meldingId).single()
-        assertEquals(100, utbetaling.utbetaltIVentetid)
+        assertBeløp("100", utbetaling.utbetaltIVentetid)
         // (100 - 80) % av 1000
-        assertEquals(200, utbetaling.utbetaltUtenomVentetid)
+        assertBeløp("200", utbetaling.utbetaltUtenomVentetid)
     }
 
     @Test
@@ -242,8 +273,8 @@ class VedtakFattetTellerRiverTest {
         val utbetaling = hentUtbetalingerPerForsikringstype(meldingId).single()
         assertEquals(KollektivForsikring.FISKER_BLAD_B.name, utbetaling.kollektivForsikringType)
         assertNull(utbetaling.navkjøptForsikringType)
-        assertEquals(100, utbetaling.utbetaltIVentetid)
-        assertEquals(400, utbetaling.utbetaltUtenomVentetid)
+        assertBeløp("100", utbetaling.utbetaltIVentetid)
+        assertBeløp("400", utbetaling.utbetaltUtenomVentetid)
     }
 
     @Test
@@ -282,13 +313,13 @@ class VedtakFattetTellerRiverTest {
                     it.navkjøptForsikringType == NavKjøptForsikringType.SELVSTENDIG_JORDBRUKER_100_PROSENT_FRA_DAG_1.name
                 },
             )
-        assertEquals(100, navkjøpt.utbetaltIVentetid)
-        assertEquals(0, navkjøpt.utbetaltUtenomVentetid)
+        assertBeløp("100", navkjøpt.utbetaltIVentetid)
+        assertBeløp("0", navkjøpt.utbetaltUtenomVentetid)
 
         val kollektiv =
             assertNotNull(utbetalinger.singleOrNull { it.kollektivForsikringType == KollektivForsikring.JORDBRUKER.name })
-        assertEquals(0, kollektiv.utbetaltIVentetid)
-        assertEquals(400, kollektiv.utbetaltUtenomVentetid)
+        assertBeløp("0", kollektiv.utbetaltIVentetid)
+        assertBeløp("400", kollektiv.utbetaltUtenomVentetid)
     }
 
     @Test
@@ -425,8 +456,8 @@ class VedtakFattetTellerRiverTest {
 
         val utbetaling = hentUtbetalingerPerForsikringstype(meldingId).single()
         assertEquals(NavKjøptForsikringType.SELVSTENDIG_100_PROSENT_FRA_DAG_17.name, utbetaling.navkjøptForsikringType)
-        assertEquals(0, utbetaling.utbetaltIVentetid)
-        assertEquals(400, utbetaling.utbetaltUtenomVentetid)
+        assertBeløp("0", utbetaling.utbetaltIVentetid)
+        assertBeløp("400", utbetaling.utbetaltUtenomVentetid)
     }
 
     @Test
@@ -665,10 +696,19 @@ class VedtakFattetTellerRiverTest {
         }
 
     private data class UtbetalingDto(
-        val utbetaltIVentetid: Int,
-        val utbetaltUtenomVentetid: Int,
+        val utbetaltIVentetid: BigDecimal,
+        val utbetaltUtenomVentetid: BigDecimal,
         val kollektivForsikringType: String?,
         val navkjøptForsikringType: String?,
+    )
+
+    private fun assertBeløp(
+        forventet: String,
+        faktisk: BigDecimal,
+    ) = assertEquals(
+        0,
+        BigDecimal(forventet).compareTo(faktisk),
+        "Forventet $forventet, men var ${faktisk.toPlainString()}",
     )
 
     private fun hentUtbetalingerPerForsikringstype(vedtakFattetMeldingId: UUID): List<UtbetalingDto> =
@@ -680,8 +720,8 @@ class VedtakFattetTellerRiverTest {
                     mapOf("vedtak_fattet_melding_id" to vedtakFattetMeldingId),
                 ).map { row ->
                     UtbetalingDto(
-                        utbetaltIVentetid = row.int("utbetalt_i_ventetid"),
-                        utbetaltUtenomVentetid = row.int("utbetalt_utenom_ventetid"),
+                        utbetaltIVentetid = row.bigDecimal("utbetalt_i_ventetid"),
+                        utbetaltUtenomVentetid = row.bigDecimal("utbetalt_utenom_ventetid"),
                         kollektivForsikringType = row.stringOrNull("kollektiv_forsikring_type"),
                         navkjøptForsikringType = row.stringOrNull("navkjøpt_forsikring_type"),
                     )
