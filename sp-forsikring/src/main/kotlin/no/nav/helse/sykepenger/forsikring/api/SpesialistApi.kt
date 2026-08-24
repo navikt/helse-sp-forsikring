@@ -89,7 +89,7 @@ fun Route.spesialistApi(spForsikringDataSource: DataSource) {
     }
 }
 
-private fun VurdertNavKjøptForsikring.navKjøptForsikringNavn(): String = "${type.dekning.grad} % fra ${type.dekning.fraDag}. dag (Nav-kjøpt)"
+private fun VurdertNavKjøptForsikring.navKjøptForsikringNavn(): String = "${type.dekning.grad} % fra ${type.dekning.fraDag}. dag (Individuell)"
 
 private fun VurdertNavKjøptForsikring.Konklusjon.forklaring(): String =
     when (this) {
