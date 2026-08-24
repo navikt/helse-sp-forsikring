@@ -229,7 +229,7 @@ class ForsikringsvurderingApiTest {
         assertTrue(json["kollektivForsikring"].isNull) { "Forventet ingen kollektiv forsikring, fikk: $body" }
 
         val forsikring = json["navKjøpteForsikringer"].single()
-        assertEquals("80 % fra 1. dag (Individuell)", forsikring["navn"].asText())
+        assertEquals(NavKjøptForsikringType.SELVSTENDIG_80_PROSENT_FRA_DAG_1.navn, forsikring["navn"].asText())
         assertEquals("2025-06-01", forsikring.asTextOrNull("virkningsdato"))
         assertNull(forsikring.asTextOrNull("opphørsdato"))
         assertTrue(forsikring["lagtTilGrunn"].asBoolean()) { "Forventet lagtTilGrunn=true, fikk: $body" }
@@ -266,7 +266,7 @@ class ForsikringsvurderingApiTest {
         val json = body.somJson()
         assertEquals(100, json["samletDekning"]["grad"].asInt())
         assertEquals(17, json["samletDekning"]["fraDag"].asInt())
-        assertEquals("100 % fra 17. dag (Individuell)", json["navKjøpteForsikringer"].single()["navn"].asText())
+        assertEquals(NavKjøptForsikringType.SELVSTENDIG_100_PROSENT_FRA_DAG_17.navn, json["navKjøpteForsikringer"].single()["navn"].asText())
         assertFolketrygdlovenreferanse(
             forventetKapittel = 8,
             forventetParagrafIKapittel = 36,
@@ -312,7 +312,7 @@ class ForsikringsvurderingApiTest {
         assertEquals(1, json["samletDekning"]["fraDag"].asInt())
 
         val kollektivForsikring = json["kollektivForsikring"]
-        assertEquals("100 % fra 1. dag (Kollektiv)", kollektivForsikring["navn"].asText())
+        assertEquals(KollektivForsikring.FISKER_BLAD_B.navn, kollektivForsikring["navn"].asText())
         assertFolketrygdlovenreferanse(
             forventetKapittel = 8,
             forventetParagrafIKapittel = 36,
@@ -462,10 +462,10 @@ class ForsikringsvurderingApiTest {
         val forsikringer = json["navKjøpteForsikringer"].associateBy { it["navn"].asText() }
         assertEquals(2, forsikringer.size) { "Forventet to nav-kjøpte forsikringer, fikk: $body" }
 
-        val gjeldende = forsikringer.getValue("80 % fra 1. dag (Individuell)")
+        val gjeldende = forsikringer.getValue(NavKjøptForsikringType.SELVSTENDIG_80_PROSENT_FRA_DAG_1.navn)
         assertTrue(gjeldende["lagtTilGrunn"].asBoolean()) { "Forventet lagtTilGrunn=true, fikk: $body" }
 
-        val ekskludert = forsikringer.getValue("100 % fra 17. dag (Individuell)")
+        val ekskludert = forsikringer.getValue(NavKjøptForsikringType.SELVSTENDIG_100_PROSENT_FRA_DAG_17.navn)
         assertFalse(ekskludert["lagtTilGrunn"].asBoolean()) { "Forventet lagtTilGrunn=false, fikk: $body" }
         assertEquals("Forsikringen opphørte før skjæringstidspunktet", ekskludert["konklusjon"]["forklaring"].asText())
     }
@@ -518,7 +518,10 @@ class ForsikringsvurderingApiTest {
         val json = body.somJson()
         assertEquals(100, json["samletDekning"]["grad"].asInt())
         assertEquals(1, json["samletDekning"]["fraDag"].asInt())
-        assertEquals("100 % fra 1. dag (Individuell)", json["navKjøpteForsikringer"].single()["navn"].asText())
+        assertEquals(
+            NavKjøptForsikringType.SELVSTENDIG_JORDBRUKER_100_PROSENT_FRA_DAG_1.navn,
+            json["navKjøpteForsikringer"].single()["navn"].asText(),
+        )
         assertFalse(json["kollektivForsikring"].isNull) { "Forventet kollektiv forsikring, fikk: $body" }
     }
 

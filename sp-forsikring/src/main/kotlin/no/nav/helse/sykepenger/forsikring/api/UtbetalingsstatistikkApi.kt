@@ -51,9 +51,10 @@ fun Route.utbetalingsstatistikkApi(spForsikringDataSource: DataSource) {
                 fom = fom,
                 tom = tom,
                 perForsikringstype =
-                    (KollektivForsikring.entries + NavKjøptForsikringType.entries).map { forsikringstype ->
-                        summerFraDatabasen[forsikringstype]?.tilApi() ?: forsikringstype.utenUtbetalinger()
-                    },
+                    (KollektivForsikring.entries + NavKjøptForsikringType.entries)
+                        .map { forsikringstype ->
+                            summerFraDatabasen[forsikringstype]?.tilApi() ?: forsikringstype.utenUtbetalinger()
+                        }.sortedBy { it.navn },
             )
 
         loggInfo("Svarer på GET /api/utbetalinger/utbetaltesummer", "response" to response)
@@ -86,8 +87,7 @@ private val NULLBELØP: BigDecimal = BigDecimal.ZERO.setScale(BELØPSSKALA)
 
 private fun SumPerForsikringstype.tilApi(): UtbetalingsutbetaltesummerResponse.PerForsikringstype =
     UtbetalingsutbetaltesummerResponse.PerForsikringstype(
-        kategori = forsikringstype.kategori(),
-        forsikringstype = forsikringstype.navn(),
+        navn = forsikringstype.navn,
         utbetaltIVentetid = utbetaltIVentetid,
         utbetaltUtenomVentetid = utbetaltUtenomVentetid,
         totalt = totalt,
@@ -95,38 +95,19 @@ private fun SumPerForsikringstype.tilApi(): UtbetalingsutbetaltesummerResponse.P
 
 private fun Forsikringstype.utenUtbetalinger(): UtbetalingsutbetaltesummerResponse.PerForsikringstype =
     UtbetalingsutbetaltesummerResponse.PerForsikringstype(
-        kategori = kategori(),
-        forsikringstype = navn(),
+        navn = navn,
         utbetaltIVentetid = NULLBELØP,
         utbetaltUtenomVentetid = NULLBELØP,
         totalt = NULLBELØP,
     )
-
-private fun Forsikringstype.kategori(): UtbetalingsutbetaltesummerResponse.Forsikringskategori =
-    when (this) {
-        is KollektivForsikring -> UtbetalingsutbetaltesummerResponse.Forsikringskategori.KOLLEKTIV
-        is NavKjøptForsikringType -> UtbetalingsutbetaltesummerResponse.Forsikringskategori.NAV_KJØPT
-    }
-
-private fun Forsikringstype.navn(): String =
-    when (this) {
-        is KollektivForsikring -> name
-        is NavKjøptForsikringType -> name
-    }
 
 data class UtbetalingsutbetaltesummerResponse(
     val fom: LocalDate,
     val tom: LocalDate,
     val perForsikringstype: List<PerForsikringstype>,
 ) {
-    enum class Forsikringskategori {
-        KOLLEKTIV,
-        NAV_KJØPT,
-    }
-
     data class PerForsikringstype(
-        val kategori: Forsikringskategori,
-        val forsikringstype: String,
+        val navn: String,
         val utbetaltIVentetid: BigDecimal,
         val utbetaltUtenomVentetid: BigDecimal,
         val totalt: BigDecimal,

@@ -86,13 +86,11 @@ class UtbetalingsstatistikkApiTest {
         assertEquals(7, perForsikringstype.size())
 
         val kollektiv = assertNotNull(perForsikringstype.finn(KollektivForsikring.JORDBRUKER))
-        assertEquals("KOLLEKTIV", kollektiv["kategori"].asText())
         assertBeløp("101", kollektiv["utbetaltIVentetid"])
         assertBeløp("202", kollektiv["utbetaltUtenomVentetid"])
         assertBeløp("303", kollektiv["totalt"])
 
         val navKjøpt = assertNotNull(perForsikringstype.finn(NavKjøptForsikringType.SELVSTENDIG_80_PROSENT_FRA_DAG_1))
-        assertEquals("NAV_KJØPT", navKjøpt["kategori"].asText())
         assertBeløp("10", navKjøpt["utbetaltIVentetid"])
         assertBeløp("20", navKjøpt["utbetaltUtenomVentetid"])
         assertBeløp("30", navKjøpt["totalt"])
@@ -123,20 +121,14 @@ class UtbetalingsstatistikkApiTest {
     }
 
     @Test
-    fun `lister ut alle sju forsikringstypene med riktig kategori`() {
+    fun `lister ut alle sju forsikringstypene sortert på navn`() {
         val (statusCode, body) = hentUtbetalteSummer(fom = "2026-07-02", tom = "2026-07-03", token = bearerToken())
 
         assertEquals(200, statusCode) { "Body was: $body" }
         val perForsikringstype = objectMapper.readTree(body)["perForsikringstype"]
 
-        assertEquals(
-            (KollektivForsikring.entries.map { it.name } + NavKjøptForsikringType.entries.map { it.name }),
-            perForsikringstype.map { it["forsikringstype"].asText() },
-        )
-        assertEquals(
-            KollektivForsikring.entries.map { "KOLLEKTIV" } + NavKjøptForsikringType.entries.map { "NAV_KJØPT" },
-            perForsikringstype.map { it["kategori"].asText() },
-        )
+        val forventedeNavn = (KollektivForsikring.entries + NavKjøptForsikringType.entries).map { it.navn }.sorted()
+        assertEquals(forventedeNavn, perForsikringstype.map { it["navn"].asText() })
     }
 
     @Test
@@ -250,11 +242,11 @@ class UtbetalingsstatistikkApiTest {
         perForsikringstype: JsonNode,
         unntatt: Set<Forsikringstype>,
     ) {
-        val unntattNavn = unntatt.map { it.navn() }.toSet()
+        val unntattNavn = unntatt.map { it.navn }.toSet()
         perForsikringstype
-            .filterNot { it["forsikringstype"].asText() in unntattNavn }
+            .filterNot { it["navn"].asText() in unntattNavn }
             .forEach { rad ->
-                val navn = rad["forsikringstype"].asText()
+                val navn = rad["navn"].asText()
                 assertBeløp("0", rad["utbetaltIVentetid"], "Forventet 0 i ventetid for $navn")
                 assertBeløp("0", rad["utbetaltUtenomVentetid"], "Forventet 0 utenom ventetid for $navn")
                 assertBeløp("0", rad["totalt"], "Forventet 0 totalt for $navn")
@@ -271,13 +263,7 @@ class UtbetalingsstatistikkApiTest {
         "$beskrivelse: forventet $forventet, men var ${faktisk.asText()}",
     )
 
-    private fun Forsikringstype.navn(): String =
-        when (this) {
-            is KollektivForsikring -> name
-            is NavKjøptForsikringType -> name
-        }
-
-    private fun JsonNode.finn(forsikringstype: Forsikringstype): JsonNode? = singleOrNull { it["forsikringstype"].asText() == forsikringstype.navn() }
+    private fun JsonNode.finn(forsikringstype: Forsikringstype): JsonNode? = singleOrNull { it["navn"].asText() == forsikringstype.navn }
 
     private fun lagreUtbetaling(
         vedtakFattetTidspunkt: Instant,

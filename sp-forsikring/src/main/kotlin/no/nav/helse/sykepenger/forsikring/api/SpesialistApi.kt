@@ -58,7 +58,7 @@ fun Route.spesialistApi(spForsikringDataSource: DataSource) {
                 kollektivForsikring =
                     forsikringsvurdering.kollektivForsikring?.let {
                         SpesialistForsikringsvurderingResponse.KollektivForsikring(
-                            navn = "${it.dekning.grad} % fra ${it.dekning.fraDag}. dag (Kollektiv)",
+                            navn = it.navn,
                             dekningFolketrygdlovenreferanse = it.dekning.folketrygdlovenreferanse.tilApiFolketrygdlovenReferanse(),
                             kollektivFolketrygdlovenreferanse = KollektivForsikring.KOLLEKTIV_FORSIKRING_GENERELL_FOLKETRYGDLOVENREFERANSE.tilApiFolketrygdlovenReferanse(),
                         )
@@ -66,7 +66,7 @@ fun Route.spesialistApi(spForsikringDataSource: DataSource) {
                 navKjøpteForsikringer =
                     forsikringsvurdering.navKjøpteForsikringer.map { forsikring ->
                         NavKjøptForsikring(
-                            navn = forsikring.navKjøptForsikringNavn(),
+                            navn = forsikring.type.navn,
                             dekningFolketrygdlovenreferanse =
                                 forsikring.type.dekning.folketrygdlovenreferanse
                                     .tilApiFolketrygdlovenReferanse(),
@@ -88,8 +88,6 @@ fun Route.spesialistApi(spForsikringDataSource: DataSource) {
         call.respond(response)
     }
 }
-
-private fun VurdertNavKjøptForsikring.navKjøptForsikringNavn(): String = "${type.dekning.grad} % fra ${type.dekning.fraDag}. dag (Individuell)"
 
 private fun VurdertNavKjøptForsikring.Konklusjon.forklaring(): String =
     when (this) {
