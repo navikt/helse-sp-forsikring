@@ -37,10 +37,16 @@ enum class IndividuellForsikringType(
     fun passerMed(
         yrkesaktivitetstype: Yrkesaktivitetstype,
         spesielleYrkesgrupper: Set<SpesiellYrkesgruppe>,
-    ): Boolean =
-        yrkesaktivitetstype == this.yrkesaktivitetstype &&
-            (
-                tilleggsforsikringFor == null ||
-                    spesielleYrkesgrupper.any { it in tilleggsforsikringFor.spesielleYrkesgrupper }
-            )
+    ): Boolean = yrkesaktivitetstype == this.yrkesaktivitetstype && passerMedSpesielleYrkesgrupper(spesielleYrkesgrupper)
+
+    // En spesiell yrkesgruppe gir kollektiv forsikring, og det begrenser hvilke individuelle forsikringer som kan
+    // tegnes: kun en tilleggsforsikring til den kollektive forsikringen alle de spesielle yrkesgruppene hører til.
+    // Uten spesiell yrkesgruppe kan man på sin side ikke ha en tilleggsforsikring til en kollektiv forsikring.
+    private fun passerMedSpesielleYrkesgrupper(spesielleYrkesgrupper: Set<SpesiellYrkesgruppe>): Boolean =
+        if (spesielleYrkesgrupper.isEmpty()) {
+            tilleggsforsikringFor == null
+        } else {
+            tilleggsforsikringFor != null &&
+                spesielleYrkesgrupper.all { it in tilleggsforsikringFor.spesielleYrkesgrupper }
+        }
 }

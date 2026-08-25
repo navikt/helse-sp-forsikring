@@ -30,30 +30,21 @@ class Forsikringsvurdering private constructor(
         }
         val gjeldendeIndividuellForsikring = gyldigeIndividuelleForsikringer.firstOrNull()
 
-        // Det er bare mulig å ha både kollektiv og individuell forsikring
-        // dersom den individuelle er en tilleggsforsikring for den kollektive
-        if (kollektivForsikring != null && gjeldendeIndividuellForsikring != null) {
-            if (gjeldendeIndividuellForsikring.type.tilleggsforsikringFor == kollektivForsikring) {
-                if (gjeldendeIndividuellForsikring.type.dekning.fraDag < kollektivForsikring.dekning.fraDag &&
-                    gjeldendeIndividuellForsikring.opphørsdato != null &&
-                    gjeldendeIndividuellForsikring.opphørsdato.isBefore(
-                        gjeldendeIndividuellForsikring.virkningsdato
-                            .plusDays(kollektivForsikring.dekning.fraDag.toLong())
-                            .minusDays(2),
-                    )
-                ) {
-                    error(
-                        "Tilleggsforsikringen opphører i ventetiden." +
-                            " Slike hull i dekningen av tilleggsforsikring og kollektiv forsikring støttes ikke av Spleis per nå.",
-                    )
-                }
-            } else {
-                error(
-                    "Bruker har en ugyldig kombinasjon av kollektiv og individuell forsikring." +
-                        " Kan ikke fortsette med dette, siden det er tvetydig hvilken forsikring som bidrar" +
-                        " til økt utbetaling (med tanke på senere justering av premiesats)",
-                )
-            }
+        // Støtter ikke hull mellom dekningen til tilleggsforsikringen og den kollektive forsikringen
+        if (kollektivForsikring != null &&
+            gjeldendeIndividuellForsikring != null &&
+            gjeldendeIndividuellForsikring.type.dekning.fraDag < kollektivForsikring.dekning.fraDag &&
+            gjeldendeIndividuellForsikring.opphørsdato != null &&
+            gjeldendeIndividuellForsikring.opphørsdato.isBefore(
+                gjeldendeIndividuellForsikring.virkningsdato
+                    .plusDays(kollektivForsikring.dekning.fraDag.toLong())
+                    .minusDays(2),
+            )
+        ) {
+            error(
+                "Tilleggsforsikringen opphører i ventetiden." +
+                    " Slike hull i dekningen av tilleggsforsikring og kollektiv forsikring støttes ikke av Spleis per nå.",
+            )
         }
     }
 

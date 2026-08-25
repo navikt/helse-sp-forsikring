@@ -74,16 +74,69 @@ internal class ForsikringsvurderingTest {
         assertEquals(Forsikringsdekning.HUNDRE_PROSENT_FRA_DAG_1, vurdering.dekning())
     }
 
-    @Test
-    fun `ugyldig kombinasjon av kollektiv og individuell forsikring feiler`() {
-        assertThrows<IllegalStateException> {
+    @ParameterizedTest(name = "fisker blad B med forsikringstype {0}", quoteTextArguments = false)
+    @CsvSource(
+        "SELVSTENDIG_80_PROSENT_FRA_DAG_1",
+        "SELVSTENDIG_100_PROSENT_FRA_DAG_17",
+        "SELVSTENDIG_100_PROSENT_FRA_DAG_1",
+        "SELVSTENDIG_JORDBRUKER_100_PROSENT_FRA_DAG_1",
+    )
+    fun `fisker blad B kan ikke ha noen individuell forsikring`(type: IndividuellForsikringType) {
+        val vurdering =
             vurdering(
                 spesielleYrkesgrupper = setOf(SpesiellYrkesgruppe.FISKER_BLAD_B),
                 kollektiveForsikringer = setOf(KollektivForsikring.FISKER_BLAD_B),
-                individuelleForsikringer =
-                    listOf(individuellForsikring(type = IndividuellForsikringType.SELVSTENDIG_100_PROSENT_FRA_DAG_1)),
+                individuelleForsikringer = listOf(individuellForsikring(type = type)),
             )
-        }
+
+        assertFalse(vurdering.harIndividuellForsikring())
+        assertTrue(vurdering.harForsikringSomIkkePasserMedSøknadstype())
+        assertEquals(
+            VurdertIndividuellForsikring.Konklusjon.PASSER_IKKE_MED_SØKNADSTYPE,
+            vurdering.individuelleForsikringer.single().konklusjon,
+        )
+    }
+
+    @ParameterizedTest(name = "{0} med forsikringstype {1}", quoteTextArguments = false)
+    @CsvSource(
+        "JORDBRUKER, SELVSTENDIG_80_PROSENT_FRA_DAG_1",
+        "JORDBRUKER, SELVSTENDIG_100_PROSENT_FRA_DAG_17",
+        "JORDBRUKER, SELVSTENDIG_100_PROSENT_FRA_DAG_1",
+        "REINDRIFTER, SELVSTENDIG_80_PROSENT_FRA_DAG_1",
+        "REINDRIFTER, SELVSTENDIG_100_PROSENT_FRA_DAG_17",
+        "REINDRIFTER, SELVSTENDIG_100_PROSENT_FRA_DAG_1",
+    )
+    fun `jordbruker kan ikke ha annen individuell forsikring enn tilleggsforsikringen for jordbruker`(
+        spesiellYrkesgruppe: SpesiellYrkesgruppe,
+        type: IndividuellForsikringType,
+    ) {
+        val vurdering =
+            vurdering(
+                spesielleYrkesgrupper = setOf(spesiellYrkesgruppe),
+                kollektiveForsikringer = setOf(KollektivForsikring.JORDBRUKER),
+                individuelleForsikringer = listOf(individuellForsikring(type = type)),
+            )
+
+        assertFalse(vurdering.harIndividuellForsikring())
+        assertTrue(vurdering.harForsikringSomIkkePasserMedSøknadstype())
+        assertEquals(
+            VurdertIndividuellForsikring.Konklusjon.PASSER_IKKE_MED_SØKNADSTYPE,
+            vurdering.individuelleForsikringer.single().konklusjon,
+        )
+    }
+
+    @Test
+    fun `reindrifter kan ha tilleggsforsikringen for jordbruker`() {
+        val vurdering =
+            vurdering(
+                spesielleYrkesgrupper = setOf(SpesiellYrkesgruppe.REINDRIFTER),
+                kollektiveForsikringer = setOf(KollektivForsikring.JORDBRUKER),
+                individuelleForsikringer =
+                    listOf(individuellForsikring(type = IndividuellForsikringType.SELVSTENDIG_JORDBRUKER_100_PROSENT_FRA_DAG_1)),
+            )
+
+        assertTrue(vurdering.harIndividuellForsikring())
+        assertEquals(Forsikringsdekning.HUNDRE_PROSENT_FRA_DAG_1, vurdering.dekning())
     }
 
     @Test
