@@ -3,7 +3,7 @@
 Denne applikasjonen svarer Spleis på hva slags forsikring en bruker har, til bruk for å regne ut
 tilleggssykepenger (Folketrygdloven § 8-36 og § 8-39).
 
-## Kjøpte Nav-forsikringstyper i Infotrygd
+## Typer for individuelle forsikringer i Infotrygd
 Det er fem forskjellige typer forsikringer dennne appen finner svar om fra Infotrygd. De er ligger som type 1 til 5 i dataen fra Infotrygd.
 Hva de tallene betyr vises i dette skjermbildet:
 

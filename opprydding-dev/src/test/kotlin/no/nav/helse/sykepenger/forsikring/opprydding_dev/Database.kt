@@ -43,7 +43,7 @@ object Database {
 
     fun countRåkopiIfFkonto12(dataSource: DataSource = this.dataSource) = countRows("råkopi_IF_FKONTO_12", dataSource)
 
-    fun countNavKjøpteForsikringer(dataSource: DataSource = this.dataSource) = countRows("forsikringsvurdering_navkjøpt_forsikring", dataSource)
+    fun countIndividuelleForsikringer(dataSource: DataSource = this.dataSource) = countRows("forsikringsvurdering_individuell_forsikring", dataSource)
 
     fun countSpesielleYrkesgrupper(dataSource: DataSource = this.dataSource) = countRows("forsikringsvurdering_spesiell_yrkesgruppe", dataSource)
 

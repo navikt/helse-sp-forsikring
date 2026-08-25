@@ -133,7 +133,7 @@ internal class SlettPersonRiver(
         identitetsnummer: String,
     ) {
         listOf(
-            "forsikringsvurdering_navkjøpt_forsikring",
+            "forsikringsvurdering_individuell_forsikring",
             "forsikringsvurdering_spesiell_yrkesgruppe",
         ).forEach { tabell ->
             tx.run(

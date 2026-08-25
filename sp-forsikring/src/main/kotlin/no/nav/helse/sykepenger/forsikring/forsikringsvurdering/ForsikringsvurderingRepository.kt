@@ -19,14 +19,14 @@ class ForsikringsvurderingRepository(
         forsikringsvurdering.spesielleYrkesgrupper.forEach { spesiellYrkesgruppe ->
             lagreSpesiellYrkesgruppe(forsikringsvurdering.id, spesiellYrkesgruppe)
         }
-        forsikringsvurdering.navKjøpteForsikringer.forEach { navKjøptForsikring ->
-            lagreNavKjøptForsikring(forsikringsvurdering.id, navKjøptForsikring)
+        forsikringsvurdering.individuelleForsikringer.forEach { individuellForsikring ->
+            lagreIndividuellForsikring(forsikringsvurdering.id, individuellForsikring)
         }
     }
 
     fun hent(id: Forsikringsvurdering.Id): Forsikringsvurdering? {
         val spesielleYrkesgrupper = hentSpesielleYrkesgrupper(id)
-        val navKjøpteForsikringer = hentNavKjøpteForsikringer(id)
+        val individuelleForsikringer = hentIndividuelleForsikringer(id)
 
         @Language("PostgreSQL")
         val statement = """
@@ -49,7 +49,7 @@ class ForsikringsvurderingRepository(
                         spesielleYrkesgrupper = spesielleYrkesgrupper,
                         skjæringstidspunkt = row.localDate("skjæringstidspunkt"),
                         råkopiId = Id(row.uuid("råkopi_id")),
-                        navKjøpteForsikringer = navKjøpteForsikringer,
+                        individuelleForsikringer = individuelleForsikringer,
                         kollektivForsikring =
                             row
                                 .stringOrNull("kollektiv_forsikring")
@@ -75,7 +75,7 @@ class ForsikringsvurderingRepository(
             ).toSet()
     }
 
-    private fun hentNavKjøpteForsikringer(id: Forsikringsvurdering.Id): List<VurdertNavKjøptForsikring> {
+    private fun hentIndividuelleForsikringer(id: Forsikringsvurdering.Id): List<VurdertIndividuellForsikring> {
         @Language("PostgreSQL")
         val statement = """
             SELECT råkopi_IF_VEDFRIVT_10_id,
@@ -86,13 +86,13 @@ class ForsikringsvurderingRepository(
                    premiegrunnlag,
                    er_betalt_noen_gang,
                    konklusjon
-            FROM forsikringsvurdering_navkjøpt_forsikring
+            FROM forsikringsvurdering_individuell_forsikring
             WHERE forsikringsvurdering_id = :forsikringsvurdering_id
         """
         return spForsikringTransactionalSession.run(
             queryOf(statement, mapOf("forsikringsvurdering_id" to id.value))
                 .map { row ->
-                    VurdertNavKjøptForsikring.fraLagring(
+                    VurdertIndividuellForsikring.fraLagring(
                         råkopiIfVedfrivt10Id = RåkopiIfVedfrivt10.Id(row.uuid("råkopi_IF_VEDFRIVT_10_id")),
                         type = enumValueOf(row.string("type")),
                         virkningsdato = row.localDate("virkningsdato"),
@@ -140,12 +140,12 @@ class ForsikringsvurderingRepository(
                     "opphorsdato" to forsikringsvurdering.opphørsdato(),
                     "rakopi_IF_VEDFRIVT_10_id" to
                         forsikringsvurdering
-                            .gjeldendeNavKjøptForsikring()
+                            .gjeldendeIndividuellForsikring()
                             ?.råkopiIfVedfrivt10Id
                             ?.value,
                     "forsikringskategori" to
                         when {
-                            forsikringsvurdering.harNavKjøptForsikring() -> "NAVKJØPT"
+                            forsikringsvurdering.harIndividuellForsikring() -> "INDIVIDUELL"
                             forsikringsvurdering.harKollektivForsikring() -> "KOLLEKTIV"
                             else -> null
                         },
@@ -174,13 +174,13 @@ class ForsikringsvurderingRepository(
         )
     }
 
-    private fun lagreNavKjøptForsikring(
+    private fun lagreIndividuellForsikring(
         forsikringsvurderingId: Forsikringsvurdering.Id,
-        navKjøptForsikring: VurdertNavKjøptForsikring,
+        individuellForsikring: VurdertIndividuellForsikring,
     ) {
         @Language("PostgreSQL")
         val statement = """
-            INSERT INTO forsikringsvurdering_navkjøpt_forsikring
+            INSERT INTO forsikringsvurdering_individuell_forsikring
                 (forsikringsvurdering_id, råkopi_IF_VEDFRIVT_10_id, type, virkningsdato, opphører,
                  opphørsdato, premiegrunnlag, er_betalt_noen_gang, konklusjon)
             VALUES
@@ -192,14 +192,14 @@ class ForsikringsvurderingRepository(
                 statement,
                 mapOf(
                     "forsikringsvurdering_id" to forsikringsvurderingId.value,
-                    "rakopi_IF_VEDFRIVT_10_id" to navKjøptForsikring.råkopiIfVedfrivt10Id.value,
-                    "type" to navKjøptForsikring.type.name,
-                    "virkningsdato" to navKjøptForsikring.virkningsdato,
-                    "opphorer" to navKjøptForsikring.opphører,
-                    "opphorsdato" to navKjøptForsikring.opphørsdato,
-                    "premiegrunnlag" to navKjøptForsikring.premiegrunnlag,
-                    "er_betalt_noen_gang" to navKjøptForsikring.erBetaltNoenGang,
-                    "konklusjon" to navKjøptForsikring.konklusjon.name,
+                    "rakopi_IF_VEDFRIVT_10_id" to individuellForsikring.råkopiIfVedfrivt10Id.value,
+                    "type" to individuellForsikring.type.name,
+                    "virkningsdato" to individuellForsikring.virkningsdato,
+                    "opphorer" to individuellForsikring.opphører,
+                    "opphorsdato" to individuellForsikring.opphørsdato,
+                    "premiegrunnlag" to individuellForsikring.premiegrunnlag,
+                    "er_betalt_noen_gang" to individuellForsikring.erBetaltNoenGang,
+                    "konklusjon" to individuellForsikring.konklusjon.name,
                 ),
             ).asUpdate,
         )

@@ -2,10 +2,10 @@ package no.nav.helse.sykepenger.forsikring.shared.testsupport
 
 import no.nav.helse.sykepenger.forsikring.domain.Forsikringsvurdering
 import no.nav.helse.sykepenger.forsikring.domain.Identitetsnummer
+import no.nav.helse.sykepenger.forsikring.domain.IndividuellForsikringType
 import no.nav.helse.sykepenger.forsikring.domain.KollektivForsikring
-import no.nav.helse.sykepenger.forsikring.domain.NavKjøptForsikringType
 import no.nav.helse.sykepenger.forsikring.domain.SpesiellYrkesgruppe
-import no.nav.helse.sykepenger.forsikring.domain.VurdertNavKjøptForsikring
+import no.nav.helse.sykepenger.forsikring.domain.VurdertIndividuellForsikring
 import no.nav.helse.sykepenger.forsikring.domain.Yrkesaktivitetstype
 import no.nav.helse.sykepenger.forsikring.råkopi.Råkopi
 import no.nav.helse.sykepenger.forsikring.råkopi.RåkopiIfFkonto12
@@ -28,7 +28,7 @@ fun lagForsikringsvurdering(
     yrkesaktivitetstype: Yrkesaktivitetstype = Yrkesaktivitetstype.SELVSTENDIG,
     spesielleYrkesgrupper: Set<SpesiellYrkesgruppe> = emptySet(),
     råkopiId: Råkopi.Id = Råkopi.Id.ny(),
-    navKjøpteForsikringer: List<VurdertNavKjøptForsikring> = emptyList(),
+    individuelleForsikringer: List<VurdertIndividuellForsikring> = emptyList(),
     kollektivForsikring: KollektivForsikring? = null,
     vurdertTidspunkt: Instant = Instant.now(),
 ): Forsikringsvurdering =
@@ -39,22 +39,22 @@ fun lagForsikringsvurdering(
         spesielleYrkesgrupper = spesielleYrkesgrupper,
         skjæringstidspunkt = skjæringstidspunkt,
         råkopiId = råkopiId,
-        navKjøpteForsikringer = navKjøpteForsikringer,
+        individuelleForsikringer = individuelleForsikringer,
         kollektivForsikring = kollektivForsikring,
         vurdertTidspunkt = vurdertTidspunkt,
     )
 
-fun lagVurdertNavKjøptForsikring(
+fun lagVurdertIndividuellForsikring(
     virkningsdato: LocalDate,
     råkopiIfVedfrivt10Id: RåkopiIfVedfrivt10.Id = RåkopiIfVedfrivt10.Id.ny(),
-    type: NavKjøptForsikringType = NavKjøptForsikringType.SELVSTENDIG_80_PROSENT_FRA_DAG_1,
+    type: IndividuellForsikringType = IndividuellForsikringType.SELVSTENDIG_80_PROSENT_FRA_DAG_1,
     opphører: Boolean = false,
     opphørsdato: LocalDate? = null,
     premiegrunnlag: Int = 0,
     erBetaltNoenGang: Boolean = true,
-    konklusjon: VurdertNavKjøptForsikring.Konklusjon = VurdertNavKjøptForsikring.Konklusjon.GYLDIG,
-): VurdertNavKjøptForsikring =
-    VurdertNavKjøptForsikring.fraLagring(
+    konklusjon: VurdertIndividuellForsikring.Konklusjon = VurdertIndividuellForsikring.Konklusjon.GYLDIG,
+): VurdertIndividuellForsikring =
+    VurdertIndividuellForsikring.fraLagring(
         råkopiIfVedfrivt10Id = råkopiIfVedfrivt10Id,
         type = type,
         virkningsdato = virkningsdato,
@@ -186,32 +186,32 @@ fun lagRåkopiFor(forsikringsvurdering: Forsikringsvurdering): Råkopi =
     lagRåkopi(
         id = forsikringsvurdering.råkopiId,
         ifVedfrivt10er =
-            forsikringsvurdering.navKjøpteForsikringer.mapIndexed { indeks, navKjøptForsikring ->
+            forsikringsvurdering.individuelleForsikringer.mapIndexed { indeks, individuellForsikring ->
                 lagRåkopiIfVedfrivt10(
                     IF01_AGNR_FNR = forsikringsvurdering.identitetsnummer.tilInfotrygdFødselsnummer(),
-                    id = navKjøptForsikring.råkopiIfVedfrivt10Id,
+                    id = individuellForsikring.råkopiIfVedfrivt10Id,
                     IF10_FORSFOM_SEQ = indeks,
-                    IF10_VIRKDATO = navKjøptForsikring.virkningsdato.tilInfotrygddato(),
+                    IF10_VIRKDATO = individuellForsikring.virkningsdato.tilInfotrygddato(),
                     IF10_TYPE =
-                        when (navKjøptForsikring.type) {
-                            NavKjøptForsikringType.SELVSTENDIG_80_PROSENT_FRA_DAG_1 -> '1'
-                            NavKjøptForsikringType.SELVSTENDIG_100_PROSENT_FRA_DAG_17 -> '2'
-                            NavKjøptForsikringType.SELVSTENDIG_100_PROSENT_FRA_DAG_1 -> '3'
-                            NavKjøptForsikringType.SELVSTENDIG_JORDBRUKER_100_PROSENT_FRA_DAG_1 -> '4'
-                            NavKjøptForsikringType.FRILANSER_100_PROSENT_FRA_DAG_1 -> '5'
+                        when (individuellForsikring.type) {
+                            IndividuellForsikringType.SELVSTENDIG_80_PROSENT_FRA_DAG_1 -> '1'
+                            IndividuellForsikringType.SELVSTENDIG_100_PROSENT_FRA_DAG_17 -> '2'
+                            IndividuellForsikringType.SELVSTENDIG_100_PROSENT_FRA_DAG_1 -> '3'
+                            IndividuellForsikringType.SELVSTENDIG_JORDBRUKER_100_PROSENT_FRA_DAG_1 -> '4'
+                            IndividuellForsikringType.FRILANSER_100_PROSENT_FRA_DAG_1 -> '5'
                         },
-                    IF10_PREMGRL = navKjøptForsikring.premiegrunnlag,
-                    IF10_FORSTOM = navKjøptForsikring.opphørsdato.tilInfotrygddato(),
+                    IF10_PREMGRL = individuellForsikring.premiegrunnlag,
+                    IF10_FORSTOM = individuellForsikring.opphørsdato.tilInfotrygddato(),
                 )
             },
         ifFKonto12er =
-            forsikringsvurdering.navKjøpteForsikringer
-                .mapIndexedNotNull { indeks, navKjøptForsikring ->
-                    if (navKjøptForsikring.erBetaltNoenGang) {
+            forsikringsvurdering.individuelleForsikringer
+                .mapIndexedNotNull { indeks, individuellForsikring ->
+                    if (individuellForsikring.erBetaltNoenGang) {
                         lagRåkopiIfFkonto12(
                             IF01_AGNR_FNR = forsikringsvurdering.identitetsnummer.tilInfotrygdFødselsnummer(),
                             IF10_FORSFOM_SEQ = indeks,
-                            IF12_BETDATO = navKjøptForsikring.virkningsdato.tilInfotrygddato(),
+                            IF12_BETDATO = individuellForsikring.virkningsdato.tilInfotrygddato(),
                         )
                     } else {
                         null

@@ -3,8 +3,8 @@ package no.nav.helse.sykepenger.forsikring.tellingutbetaling
 import kotliquery.TransactionalSession
 import kotliquery.queryOf
 import kotliquery.sessionOf
+import no.nav.helse.sykepenger.forsikring.domain.IndividuellForsikringType
 import no.nav.helse.sykepenger.forsikring.domain.KollektivForsikring
-import no.nav.helse.sykepenger.forsikring.domain.NavKjøptForsikringType
 import no.nav.helse.sykepenger.forsikring.shared.testsupport.TestcontainersSpForsikringDatabase
 import no.nav.helse.sykepenger.forsikring.shared.testsupport.lagIdentitetsnummer
 import no.nav.helse.sykepenger.forsikring.shared.util.inTransaction
@@ -28,14 +28,14 @@ class UtbetalingPerForsikringstypeDaoTest {
     }
 
     @Test
-    fun `lagrer utbetaling for navkjøpt forsikring`() {
+    fun `lagrer utbetaling for individuell forsikring`() {
         val meldingId = UUID.randomUUID()
 
         dataSource.inTransaction { transaction ->
             lagreMelding(transaction, meldingId)
             UtbetalingPerForsikringstypeDao(transaction).insert(
                 vedtakFattetMeldingId = meldingId,
-                forsikringstype = NavKjøptForsikringType.SELVSTENDIG_80_PROSENT_FRA_DAG_1,
+                forsikringstype = IndividuellForsikringType.SELVSTENDIG_80_PROSENT_FRA_DAG_1,
                 utbetaltIVentetid = kr("100"),
                 utbetaltUtenomVentetid = kr("3272"),
             )
@@ -45,7 +45,7 @@ class UtbetalingPerForsikringstypeDaoTest {
         assertEquals(meldingId, rad.vedtakFattetMeldingId)
         assertBeløp("100", rad.utbetaltIVentetid)
         assertBeløp("3272", rad.utbetaltUtenomVentetid)
-        assertEquals(NavKjøptForsikringType.SELVSTENDIG_80_PROSENT_FRA_DAG_1.name, rad.navkjøptForsikringType)
+        assertEquals(IndividuellForsikringType.SELVSTENDIG_80_PROSENT_FRA_DAG_1.name, rad.individuellForsikringType)
         assertNull(rad.kollektivForsikringType)
     }
 
@@ -65,7 +65,7 @@ class UtbetalingPerForsikringstypeDaoTest {
 
         val rad = assertNotNull(hentUtbetalingerFor(meldingId).singleOrNull())
         assertEquals(KollektivForsikring.JORDBRUKER.name, rad.kollektivForsikringType)
-        assertNull(rad.navkjøptForsikringType)
+        assertNull(rad.individuellForsikringType)
         assertBeløp("0", rad.utbetaltIVentetid)
         assertBeløp("500", rad.utbetaltUtenomVentetid)
     }
@@ -79,7 +79,7 @@ class UtbetalingPerForsikringstypeDaoTest {
             val dao = UtbetalingPerForsikringstypeDao(transaction)
             dao.insert(
                 vedtakFattetMeldingId = meldingId,
-                forsikringstype = NavKjøptForsikringType.SELVSTENDIG_JORDBRUKER_100_PROSENT_FRA_DAG_1,
+                forsikringstype = IndividuellForsikringType.SELVSTENDIG_JORDBRUKER_100_PROSENT_FRA_DAG_1,
                 utbetaltIVentetid = kr("100"),
                 utbetaltUtenomVentetid = kr("0"),
             )
@@ -94,8 +94,8 @@ class UtbetalingPerForsikringstypeDaoTest {
         assertEquals(2, antallUtbetalingerFor(meldingId))
         val rader = hentUtbetalingerFor(meldingId)
         assertEquals(
-            NavKjøptForsikringType.SELVSTENDIG_JORDBRUKER_100_PROSENT_FRA_DAG_1.name,
-            rader.single { it.navkjøptForsikringType != null }.navkjøptForsikringType,
+            IndividuellForsikringType.SELVSTENDIG_JORDBRUKER_100_PROSENT_FRA_DAG_1.name,
+            rader.single { it.individuellForsikringType != null }.individuellForsikringType,
         )
         assertEquals(
             KollektivForsikring.JORDBRUKER.name,
@@ -173,7 +173,7 @@ class UtbetalingPerForsikringstypeDaoTest {
             dao.insert(iPerioden, KollektivForsikring.JORDBRUKER, utbetaltIVentetid = kr("100"), utbetaltUtenomVentetid = kr("200"))
             dao.insert(
                 iPerioden,
-                NavKjøptForsikringType.SELVSTENDIG_80_PROSENT_FRA_DAG_1,
+                IndividuellForsikringType.SELVSTENDIG_80_PROSENT_FRA_DAG_1,
                 utbetaltIVentetid = kr("10"),
                 utbetaltUtenomVentetid = kr("20"),
             )
@@ -189,11 +189,11 @@ class UtbetalingPerForsikringstypeDaoTest {
         assertBeløp("202", kollektiv.utbetaltUtenomVentetid)
         assertBeløp("303", kollektiv.totalt)
 
-        val navKjøpt =
-            assertNotNull(summer.singleOrNull { it.forsikringstype == NavKjøptForsikringType.SELVSTENDIG_80_PROSENT_FRA_DAG_1 })
-        assertBeløp("10", navKjøpt.utbetaltIVentetid)
-        assertBeløp("20", navKjøpt.utbetaltUtenomVentetid)
-        assertBeløp("30", navKjøpt.totalt)
+        val individuell =
+            assertNotNull(summer.singleOrNull { it.forsikringstype == IndividuellForsikringType.SELVSTENDIG_80_PROSENT_FRA_DAG_1 })
+        assertBeløp("10", individuell.utbetaltIVentetid)
+        assertBeløp("20", individuell.utbetaltUtenomVentetid)
+        assertBeløp("30", individuell.totalt)
     }
 
     @Test
@@ -321,7 +321,7 @@ class UtbetalingPerForsikringstypeDaoTest {
         val utbetaltIVentetid: BigDecimal,
         val utbetaltUtenomVentetid: BigDecimal,
         val kollektivForsikringType: String?,
-        val navkjøptForsikringType: String?,
+        val individuellForsikringType: String?,
     )
 
     private fun hentUtbetalingerFor(vedtakFattetMeldingId: UUID): List<UtbetalingPerForsikringstypeRad> =
@@ -330,7 +330,7 @@ class UtbetalingPerForsikringstypeDaoTest {
                 queryOf(
                     """
                     SELECT id, vedtak_fattet_melding_id, utbetalt_i_ventetid, utbetalt_utenom_ventetid,
-                           kollektiv_forsikring_type, navkjøpt_forsikring_type
+                           kollektiv_forsikring_type, individuell_forsikring_type
                     FROM utbetaling_per_forsikringstype
                     WHERE vedtak_fattet_melding_id = ?
                     """.trimIndent(),
@@ -342,7 +342,7 @@ class UtbetalingPerForsikringstypeDaoTest {
                         utbetaltIVentetid = row.bigDecimal("utbetalt_i_ventetid"),
                         utbetaltUtenomVentetid = row.bigDecimal("utbetalt_utenom_ventetid"),
                         kollektivForsikringType = row.stringOrNull("kollektiv_forsikring_type"),
-                        navkjøptForsikringType = row.stringOrNull("navkjøpt_forsikring_type"),
+                        individuellForsikringType = row.stringOrNull("individuell_forsikring_type"),
                     )
                 }.asList,
             )

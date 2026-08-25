@@ -14,14 +14,14 @@ import kotlin.test.assertTrue
 
 internal class ForsikringsvurderingTest {
     @Test
-    fun `gyldig nav-kjøpt forsikring gir forsikring med dekning`() {
+    fun `gyldig individuell forsikring gir forsikring med dekning`() {
         val vurdering =
             vurdering(
-                navKjøpteForsikringer = listOf(navKjøptForsikring(type = NavKjøptForsikringType.SELVSTENDIG_100_PROSENT_FRA_DAG_17)),
+                individuelleForsikringer = listOf(individuellForsikring(type = IndividuellForsikringType.SELVSTENDIG_100_PROSENT_FRA_DAG_17)),
             )
 
         assertTrue(vurdering.harForsikring())
-        assertTrue(vurdering.harNavKjøptForsikring())
+        assertTrue(vurdering.harIndividuellForsikring())
         assertFalse(vurdering.harKollektivForsikring())
         assertEquals(Forsikringsdekning.HUNDRE_PROSENT_FRA_DAG_17, vurdering.dekning())
         assertNull(vurdering.opphørsdato())
@@ -32,10 +32,10 @@ internal class ForsikringsvurderingTest {
         val opphørsdato = LocalDate.of(2026, 3, 31)
         val vurdering =
             vurdering(
-                navKjøpteForsikringer =
+                individuelleForsikringer =
                     listOf(
-                        navKjøptForsikring(
-                            type = NavKjøptForsikringType.SELVSTENDIG_100_PROSENT_FRA_DAG_17,
+                        individuellForsikring(
+                            type = IndividuellForsikringType.SELVSTENDIG_100_PROSENT_FRA_DAG_17,
                             opphørsdato = opphørsdato,
                         ),
                     ),
@@ -46,7 +46,7 @@ internal class ForsikringsvurderingTest {
     }
 
     @Test
-    fun `kollektiv forsikring gir forsikring uten nav-kjøpt forsikring`() {
+    fun `kollektiv forsikring gir forsikring uten individuell forsikring`() {
         val vurdering =
             vurdering(
                 spesielleYrkesgrupper = setOf(SpesiellYrkesgruppe.FISKER_BLAD_B),
@@ -55,33 +55,33 @@ internal class ForsikringsvurderingTest {
 
         assertTrue(vurdering.harForsikring())
         assertTrue(vurdering.harKollektivForsikring())
-        assertFalse(vurdering.harNavKjøptForsikring())
+        assertFalse(vurdering.harIndividuellForsikring())
         assertEquals(Forsikringsdekning.HUNDRE_PROSENT_FRA_DAG_1, vurdering.dekning())
     }
 
     @Test
-    fun `nav-kjøpt tilleggsforsikring for jordbruker gir dekning fra første dag`() {
+    fun `individuell tilleggsforsikring for jordbruker gir dekning fra første dag`() {
         val vurdering =
             vurdering(
                 spesielleYrkesgrupper = setOf(SpesiellYrkesgruppe.JORDBRUKER),
                 kollektiveForsikringer = setOf(KollektivForsikring.JORDBRUKER),
-                navKjøpteForsikringer =
-                    listOf(navKjøptForsikring(type = NavKjøptForsikringType.SELVSTENDIG_JORDBRUKER_100_PROSENT_FRA_DAG_1)),
+                individuelleForsikringer =
+                    listOf(individuellForsikring(type = IndividuellForsikringType.SELVSTENDIG_JORDBRUKER_100_PROSENT_FRA_DAG_1)),
             )
 
-        assertTrue(vurdering.harNavKjøptForsikring())
+        assertTrue(vurdering.harIndividuellForsikring())
         assertTrue(vurdering.harKollektivForsikring())
         assertEquals(Forsikringsdekning.HUNDRE_PROSENT_FRA_DAG_1, vurdering.dekning())
     }
 
     @Test
-    fun `ugyldig kombinasjon av kollektiv og nav-kjøpt forsikring feiler`() {
+    fun `ugyldig kombinasjon av kollektiv og individuell forsikring feiler`() {
         assertThrows<IllegalStateException> {
             vurdering(
                 spesielleYrkesgrupper = setOf(SpesiellYrkesgruppe.FISKER_BLAD_B),
                 kollektiveForsikringer = setOf(KollektivForsikring.FISKER_BLAD_B),
-                navKjøpteForsikringer =
-                    listOf(navKjøptForsikring(type = NavKjøptForsikringType.SELVSTENDIG_100_PROSENT_FRA_DAG_1)),
+                individuelleForsikringer =
+                    listOf(individuellForsikring(type = IndividuellForsikringType.SELVSTENDIG_100_PROSENT_FRA_DAG_1)),
             )
         }
     }
@@ -98,13 +98,13 @@ internal class ForsikringsvurderingTest {
     }
 
     @Test
-    fun `mer enn én gyldig nav-kjøpt forsikring feiler`() {
+    fun `mer enn én gyldig individuell forsikring feiler`() {
         assertThrows<IllegalStateException> {
             vurdering(
-                navKjøpteForsikringer =
+                individuelleForsikringer =
                     listOf(
-                        navKjøptForsikring(type = NavKjøptForsikringType.SELVSTENDIG_80_PROSENT_FRA_DAG_1),
-                        navKjøptForsikring(type = NavKjøptForsikringType.SELVSTENDIG_100_PROSENT_FRA_DAG_17),
+                        individuellForsikring(type = IndividuellForsikringType.SELVSTENDIG_80_PROSENT_FRA_DAG_1),
+                        individuellForsikring(type = IndividuellForsikringType.SELVSTENDIG_100_PROSENT_FRA_DAG_17),
                     ),
             )
         }
@@ -121,24 +121,24 @@ internal class ForsikringsvurderingTest {
         "FRILANS, SELVSTENDIG_100_PROSENT_FRA_DAG_1",
         "ARBEIDSLEDIG, SELVSTENDIG_100_PROSENT_FRA_DAG_1",
     )
-    fun `nav-kjøpt forsikring som ikke passer yrkesaktivitetstypen feiler`(
+    fun `individuell forsikring som ikke passer yrkesaktivitetstypen feiler`(
         yrkesaktivitetstype: Yrkesaktivitetstype,
-        type: NavKjøptForsikringType,
+        type: IndividuellForsikringType,
     ) {
-        assertThrows<NavKjøptForsikringType.Valideringsfeil> {
+        assertThrows<IndividuellForsikringType.Valideringsfeil> {
             vurdering(
                 yrkesaktivitetstype = yrkesaktivitetstype,
-                navKjøpteForsikringer = listOf(navKjøptForsikring(type = type)),
+                individuelleForsikringer = listOf(individuellForsikring(type = type)),
             )
         }
     }
 
     @Test
     fun `jordbrukerforsikring uten jordbruker som spesiell yrkesgruppe feiler`() {
-        assertThrows<NavKjøptForsikringType.Valideringsfeil> {
+        assertThrows<IndividuellForsikringType.Valideringsfeil> {
             vurdering(
-                navKjøpteForsikringer =
-                    listOf(navKjøptForsikring(type = NavKjøptForsikringType.SELVSTENDIG_JORDBRUKER_100_PROSENT_FRA_DAG_1)),
+                individuelleForsikringer =
+                    listOf(individuellForsikring(type = IndividuellForsikringType.SELVSTENDIG_JORDBRUKER_100_PROSENT_FRA_DAG_1)),
             )
         }
     }
@@ -147,13 +147,13 @@ internal class ForsikringsvurderingTest {
     fun `forsikring med virkningsdato innen 28 dager etter skjæringstidspunktet er i opptjeningstiden`() {
         val vurdering =
             vurdering(
-                navKjøpteForsikringer = listOf(navKjøptForsikring(virkningsdato = SKJÆRINGSTIDSPUNKT.plusDays(1))),
+                individuelleForsikringer = listOf(individuellForsikring(virkningsdato = SKJÆRINGSTIDSPUNKT.plusDays(1))),
             )
 
         assertFalse(vurdering.harForsikring())
         assertEquals(
-            VurdertNavKjøptForsikring.Konklusjon.SKJÆRINGSTIDSPUNKT_INNEN_28_DAGER_FØR_VIRKNINGSDATO,
-            vurdering.navKjøpteForsikringer.single().konklusjon,
+            VurdertIndividuellForsikring.Konklusjon.SKJÆRINGSTIDSPUNKT_INNEN_28_DAGER_FØR_VIRKNINGSDATO,
+            vurdering.individuelleForsikringer.single().konklusjon,
         )
     }
 
@@ -161,13 +161,13 @@ internal class ForsikringsvurderingTest {
     fun `forsikring med virkningsdato mer enn 28 dager etter skjæringstidspunktet er ikke virksom`() {
         val vurdering =
             vurdering(
-                navKjøpteForsikringer = listOf(navKjøptForsikring(virkningsdato = SKJÆRINGSTIDSPUNKT.plusDays(29))),
+                individuelleForsikringer = listOf(individuellForsikring(virkningsdato = SKJÆRINGSTIDSPUNKT.plusDays(29))),
             )
 
         assertFalse(vurdering.harForsikring())
         assertEquals(
-            VurdertNavKjøptForsikring.Konklusjon.SKJÆRINGSTIDSPUNKT_MER_ENN_28_DAGER_FØR_VIRKNINGSDATO,
-            vurdering.navKjøpteForsikringer.single().konklusjon,
+            VurdertIndividuellForsikring.Konklusjon.SKJÆRINGSTIDSPUNKT_MER_ENN_28_DAGER_FØR_VIRKNINGSDATO,
+            vurdering.individuelleForsikringer.single().konklusjon,
         )
     }
 
@@ -175,9 +175,9 @@ internal class ForsikringsvurderingTest {
     fun `forsikring som opphørte før skjæringstidspunktet gir ikke forsikring`() {
         val vurdering =
             vurdering(
-                navKjøpteForsikringer =
+                individuelleForsikringer =
                     listOf(
-                        navKjøptForsikring(
+                        individuellForsikring(
                             virkningsdato = SKJÆRINGSTIDSPUNKT.minusYears(1),
                             opphørsdato = SKJÆRINGSTIDSPUNKT.minusDays(1),
                         ),
@@ -186,8 +186,8 @@ internal class ForsikringsvurderingTest {
 
         assertFalse(vurdering.harForsikring())
         assertEquals(
-            VurdertNavKjøptForsikring.Konklusjon.OPPHØRT_PÅ_SKJÆRINGSTIDSPUNKT,
-            vurdering.navKjøpteForsikringer.single().konklusjon,
+            VurdertIndividuellForsikring.Konklusjon.OPPHØRT_PÅ_SKJÆRINGSTIDSPUNKT,
+            vurdering.individuelleForsikringer.single().konklusjon,
         )
     }
 
@@ -195,14 +195,14 @@ internal class ForsikringsvurderingTest {
     fun `forsikring som aldri er betalt gir ikke forsikring, men ville gitt det om den var betalt`() {
         val vurdering =
             vurdering(
-                navKjøpteForsikringer = listOf(navKjøptForsikring(erBetaltNoenGang = false)),
+                individuelleForsikringer = listOf(individuellForsikring(erBetaltNoenGang = false)),
             )
 
         assertFalse(vurdering.harForsikring())
         assertTrue(vurdering.villeHattForsikringOmDenVarBetalt())
         assertEquals(
-            VurdertNavKjøptForsikring.Konklusjon.ALDRI_BETALT,
-            vurdering.navKjøpteForsikringer.single().konklusjon,
+            VurdertIndividuellForsikring.Konklusjon.ALDRI_BETALT,
+            vurdering.individuelleForsikringer.single().konklusjon,
         )
     }
 
@@ -210,10 +210,10 @@ internal class ForsikringsvurderingTest {
     fun `ubetalt forsikring fra dag 1 gir dekning i ventetiden uavhengig av betaling`() {
         val vurdering =
             vurdering(
-                navKjøpteForsikringer =
+                individuelleForsikringer =
                     listOf(
-                        navKjøptForsikring(
-                            type = NavKjøptForsikringType.SELVSTENDIG_80_PROSENT_FRA_DAG_1,
+                        individuellForsikring(
+                            type = IndividuellForsikringType.SELVSTENDIG_80_PROSENT_FRA_DAG_1,
                             erBetaltNoenGang = false,
                         ),
                     ),
@@ -226,7 +226,7 @@ internal class ForsikringsvurderingTest {
     fun `forsikring fra dag 17 gir ikke dekning i ventetiden`() {
         val vurdering =
             vurdering(
-                navKjøpteForsikringer = listOf(navKjøptForsikring(type = NavKjøptForsikringType.SELVSTENDIG_100_PROSENT_FRA_DAG_17)),
+                individuelleForsikringer = listOf(individuellForsikring(type = IndividuellForsikringType.SELVSTENDIG_100_PROSENT_FRA_DAG_17)),
             )
 
         assertFalse(vurdering.harDekningIVentetidUavhengigAvBetaling())
@@ -237,7 +237,7 @@ internal class ForsikringsvurderingTest {
         spesielleYrkesgrupper: Set<SpesiellYrkesgruppe> = emptySet(),
         skjæringstidspunkt: LocalDate = SKJÆRINGSTIDSPUNKT,
         kollektiveForsikringer: Set<KollektivForsikring> = emptySet(),
-        navKjøpteForsikringer: List<NavKjøptForsikring> = emptyList(),
+        individuelleForsikringer: List<IndividuellForsikring> = emptyList(),
     ): Forsikringsvurdering =
         Forsikringsvurdering.utførVurdering(
             identitetsnummer = Identitetsnummer.fraString(FØDSELSNUMMER),
@@ -246,17 +246,17 @@ internal class ForsikringsvurderingTest {
             skjæringstidspunkt = skjæringstidspunkt,
             råkopiId = Råkopi.Id.ny(),
             kollektiveForsikringer = kollektiveForsikringer,
-            navKjøpteForsikringer = navKjøpteForsikringer,
+            individuelleForsikringer = individuelleForsikringer,
         )
 
-    private fun navKjøptForsikring(
-        type: NavKjøptForsikringType = NavKjøptForsikringType.SELVSTENDIG_80_PROSENT_FRA_DAG_1,
+    private fun individuellForsikring(
+        type: IndividuellForsikringType = IndividuellForsikringType.SELVSTENDIG_80_PROSENT_FRA_DAG_1,
         virkningsdato: LocalDate = SKJÆRINGSTIDSPUNKT,
         opphørsdato: LocalDate? = null,
         premiegrunnlag: Int = 200000,
         erBetaltNoenGang: Boolean = true,
-    ): NavKjøptForsikring =
-        NavKjøptForsikring.ny(
+    ): IndividuellForsikring =
+        IndividuellForsikring.ny(
             råkopiIfVedfrivt10Id = RåkopiIfVedfrivt10.Id.ny(),
             type = type,
             virkningsdato = virkningsdato,

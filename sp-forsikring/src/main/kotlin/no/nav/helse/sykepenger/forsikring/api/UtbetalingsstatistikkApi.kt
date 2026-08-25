@@ -5,8 +5,8 @@ import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import no.nav.helse.sykepenger.forsikring.domain.Forsikringstype
+import no.nav.helse.sykepenger.forsikring.domain.IndividuellForsikringType
 import no.nav.helse.sykepenger.forsikring.domain.KollektivForsikring
-import no.nav.helse.sykepenger.forsikring.domain.NavKjøptForsikringType
 import no.nav.helse.sykepenger.forsikring.shared.logging.loggInfo
 import no.nav.helse.sykepenger.forsikring.shared.util.inTransaction
 import no.nav.helse.sykepenger.forsikring.tellingutbetaling.BELØPSSKALA
@@ -51,7 +51,7 @@ fun Route.utbetalingsstatistikkApi(spForsikringDataSource: DataSource) {
                 fom = fom,
                 tom = tom,
                 perForsikringstype =
-                    (KollektivForsikring.entries + NavKjøptForsikringType.entries)
+                    (KollektivForsikring.entries + IndividuellForsikringType.entries)
                         .map { forsikringstype ->
                             summerFraDatabasen[forsikringstype]?.tilApi() ?: forsikringstype.utenUtbetalinger()
                         }.sortedBy { it.navn },

@@ -3,8 +3,8 @@ package no.nav.helse.sykepenger.forsikring.tellingutbetaling
 import kotliquery.TransactionalSession
 import kotliquery.queryOf
 import no.nav.helse.sykepenger.forsikring.domain.Forsikringstype
+import no.nav.helse.sykepenger.forsikring.domain.IndividuellForsikringType
 import no.nav.helse.sykepenger.forsikring.domain.KollektivForsikring
-import no.nav.helse.sykepenger.forsikring.domain.NavKjøptForsikringType
 import org.intellij.lang.annotations.Language
 import java.math.BigDecimal
 import java.math.RoundingMode
@@ -36,14 +36,14 @@ class UtbetalingPerForsikringstypeDao(
         @Language("PostgreSQL")
         val statement = """
             SELECT upf.kollektiv_forsikring_type,
-                   upf.navkjøpt_forsikring_type,
+                   upf.individuell_forsikring_type,
                    SUM(upf.utbetalt_i_ventetid)      AS utbetalt_i_ventetid,
                    SUM(upf.utbetalt_utenom_ventetid) AS utbetalt_utenom_ventetid
             FROM utbetaling_per_forsikringstype upf
                      INNER JOIN vedtak_fattet_melding vfm ON vfm.id = upf.vedtak_fattet_melding_id
             WHERE vfm.vedtak_fattet_tidspunkt >= :fra
               AND vfm.vedtak_fattet_tidspunkt < :til
-            GROUP BY upf.kollektiv_forsikring_type, upf.navkjøpt_forsikring_type
+            GROUP BY upf.kollektiv_forsikring_type, upf.individuell_forsikring_type
         """
         return spForsikringTransactionalSession.run(
             queryOf(
@@ -54,12 +54,12 @@ class UtbetalingPerForsikringstypeDao(
                 ),
             ).map { row ->
                 val kollektiv = row.stringOrNull("kollektiv_forsikring_type")
-                val navKjøpt = row.stringOrNull("navkjøpt_forsikring_type")
+                val individuell = row.stringOrNull("individuell_forsikring_type")
                 SumPerForsikringstype(
                     forsikringstype =
                         when {
                             kollektiv != null -> KollektivForsikring.valueOf(kollektiv)
-                            navKjøpt != null -> NavKjøptForsikringType.valueOf(navKjøpt)
+                            individuell != null -> IndividuellForsikringType.valueOf(individuell)
                             else -> error("Rad i utbetaling_per_forsikringstype mangler forsikringstype")
                         },
                     utbetaltIVentetid = row.bigDecimal("utbetalt_i_ventetid").setScale(BELØPSSKALA),
@@ -79,10 +79,10 @@ class UtbetalingPerForsikringstypeDao(
         val statement = """
             INSERT INTO utbetaling_per_forsikringstype (id, vedtak_fattet_melding_id, utbetalt_i_ventetid,
                                                         utbetalt_utenom_ventetid, kollektiv_forsikring_type,
-                                                        navkjøpt_forsikring_type)
+                                                        individuell_forsikring_type)
             VALUES (:id, :vedtak_fattet_melding_id, :utbetalt_i_ventetid,
                     :utbetalt_utenom_ventetid, :kollektiv_forsikring_type,
-                    :navkjopt_forsikring_type)
+                    :individuell_forsikring_type)
         """
         spForsikringTransactionalSession.run(
             queryOf(
@@ -95,12 +95,12 @@ class UtbetalingPerForsikringstypeDao(
                     "kollektiv_forsikring_type" to
                         when (forsikringstype) {
                             is KollektivForsikring -> forsikringstype.name
-                            is NavKjøptForsikringType -> null
+                            is IndividuellForsikringType -> null
                         },
-                    "navkjopt_forsikring_type" to
+                    "individuell_forsikring_type" to
                         when (forsikringstype) {
                             is KollektivForsikring -> null
-                            is NavKjøptForsikringType -> forsikringstype.name
+                            is IndividuellForsikringType -> forsikringstype.name
                         },
                 ),
             ).asUpdate,

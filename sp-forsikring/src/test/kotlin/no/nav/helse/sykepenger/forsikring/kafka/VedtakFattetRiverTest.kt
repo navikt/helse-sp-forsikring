@@ -2,15 +2,15 @@ package no.nav.helse.sykepenger.forsikring.kafka
 
 import com.github.navikt.tbd_libs.rapids_and_rivers.test_support.TestRapid
 import no.nav.helse.sykepenger.forsikring.domain.Forsikringsvurdering
+import no.nav.helse.sykepenger.forsikring.domain.IndividuellForsikringType
 import no.nav.helse.sykepenger.forsikring.domain.KollektivForsikring
-import no.nav.helse.sykepenger.forsikring.domain.NavKjøptForsikringType
 import no.nav.helse.sykepenger.forsikring.domain.SpesiellYrkesgruppe
 import no.nav.helse.sykepenger.forsikring.gosys.Årsak
 import no.nav.helse.sykepenger.forsikring.shared.testsupport.OppgaveOppsamler
 import no.nav.helse.sykepenger.forsikring.shared.testsupport.TestcontainersSpForsikringDatabase
 import no.nav.helse.sykepenger.forsikring.shared.testsupport.lagForsikringsvurdering
 import no.nav.helse.sykepenger.forsikring.shared.testsupport.lagIdentitetsnummer
-import no.nav.helse.sykepenger.forsikring.shared.testsupport.lagVurdertNavKjøptForsikring
+import no.nav.helse.sykepenger.forsikring.shared.testsupport.lagVurdertIndividuellForsikring
 import no.nav.helse.sykepenger.forsikring.shared.testsupport.lagreRåkopiOgForsikringsvurdering
 import org.intellij.lang.annotations.Language
 import org.junit.jupiter.api.BeforeEach
@@ -50,10 +50,10 @@ class VedtakFattetRiverTest {
             lagForsikringsvurdering(
                 skjæringstidspunkt = LocalDate.parse("2026-01-01"),
                 identitetsnummer = identitetsnummer,
-                navKjøpteForsikringer =
+                individuelleForsikringer =
                     listOf(
-                        lagVurdertNavKjøptForsikring(
-                            type = NavKjøptForsikringType.SELVSTENDIG_100_PROSENT_FRA_DAG_1,
+                        lagVurdertIndividuellForsikring(
+                            type = IndividuellForsikringType.SELVSTENDIG_100_PROSENT_FRA_DAG_1,
                             virkningsdato = LocalDate.parse("2025-06-01"),
                             premiegrunnlag = premiegrunnlag,
                         ),
@@ -79,10 +79,10 @@ class VedtakFattetRiverTest {
         val forsikringsvurdering =
             lagForsikringsvurdering(
                 skjæringstidspunkt = LocalDate.parse("2026-01-01"),
-                navKjøpteForsikringer =
+                individuelleForsikringer =
                     listOf(
-                        lagVurdertNavKjøptForsikring(
-                            type = NavKjøptForsikringType.SELVSTENDIG_100_PROSENT_FRA_DAG_1,
+                        lagVurdertIndividuellForsikring(
+                            type = IndividuellForsikringType.SELVSTENDIG_100_PROSENT_FRA_DAG_1,
                             virkningsdato = LocalDate.parse("2025-06-01"),
                             premiegrunnlag = 400000,
                         ),

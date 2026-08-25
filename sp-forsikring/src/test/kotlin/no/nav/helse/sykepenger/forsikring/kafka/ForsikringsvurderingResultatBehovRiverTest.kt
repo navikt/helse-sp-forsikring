@@ -88,6 +88,7 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
                     "grad": 100
                 },
                 "opphørsdato": null,
+                "harIndividuellForsikring": true,
                 "forsikringskategori": "NAVKJØPT"
             }
             """.trimIndent(),
@@ -125,6 +126,7 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
                     "grad": 100
                 },
                 "opphørsdato": "2026-05-31",
+                "harIndividuellForsikring": true,
                 "forsikringskategori": "NAVKJØPT"
             }
             """.trimIndent(),
@@ -145,6 +147,7 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
                 "villeHattForsikringOmDenVarBetalt": false,
                 "dekning": null,
                 "opphørsdato": null,
+                "harIndividuellForsikring": false,
                 "forsikringskategori": null
             }
             """.trimIndent(),
@@ -238,6 +241,7 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
                     "grad": 100
                 },
                 "opphørsdato": null,
+                "harIndividuellForsikring": false,
                 "forsikringskategori": "KOLLEKTIV"
             }
             """.trimIndent(),
@@ -335,6 +339,7 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
                 "villeHattForsikringOmDenVarBetalt": false,
                 "dekning": { "grad": $grad, "iVentetid": $iVentetid },
                 "opphørsdato": null,
+                "harIndividuellForsikring": ${forsikringskategori == "NAVKJØPT"},
                 "forsikringskategori": "$forsikringskategori"
             }
             """.trimIndent()
@@ -375,6 +380,7 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
                 "villeHattForsikringOmDenVarBetalt": false,
                 "dekning": null,
                 "opphørsdato": null,
+                "harIndividuellForsikring": false,
                 "forsikringskategori": null
             }
             """.trimIndent()
@@ -406,6 +412,7 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
                 "villeHattForsikringOmDenVarBetalt": false,
                 "dekning": null,
                 "opphørsdato": null,
+                "harIndividuellForsikring": false,
                 "forsikringskategori": null
             }
             """.trimIndent()
@@ -413,7 +420,7 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
     }
 
     @Test
-    fun `svarer ikke på behov når bruker har flere gyldige nav-kjøpte forsikringer`() {
+    fun `svarer ikke på behov når bruker har flere gyldige individuelle forsikringer`() {
         insertBetaltVedfrivt(IF01_AGNR_FNR = 3020112345L, IF10_FORSFOM_SEQ = 1, IF10_TYPE = '2') // grad=100, fraDag=17
         insertBetaltVedfrivt(IF01_AGNR_FNR = 3020112345L, IF10_FORSFOM_SEQ = 2, IF10_TYPE = '3') // grad=100, fraDag=1
 
@@ -464,6 +471,7 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
                 "villeHattForsikringOmDenVarBetalt": false,
                 "dekning": null,
                 "opphørsdato": null,
+                "harIndividuellForsikring": false,
                 "forsikringskategori": null
             }
             """.trimIndent()
@@ -499,6 +507,7 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
                 "villeHattForsikringOmDenVarBetalt": false,
                 "dekning": { "grad": 100, "iVentetid": false },
                 "opphørsdato": "2026-01-01",
+                "harIndividuellForsikring": true,
                 "forsikringskategori": "NAVKJØPT"
             }
             """.trimIndent()
@@ -534,6 +543,7 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
                 "villeHattForsikringOmDenVarBetalt": false,
                 "dekning": { "grad": 100, "iVentetid": false },
                 "opphørsdato": "2026-01-02",
+                "harIndividuellForsikring": true,
                 "forsikringskategori": "NAVKJØPT"
             }
             """.trimIndent()
@@ -569,6 +579,7 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
                 "villeHattForsikringOmDenVarBetalt": false,
                 "dekning": { "grad": 100, "iVentetid": false },
                 "opphørsdato": null,
+                "harIndividuellForsikring": true,
                 "forsikringskategori": "NAVKJØPT"
             }
             """.trimIndent()
@@ -604,6 +615,7 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
                 "villeHattForsikringOmDenVarBetalt": false,
                 "dekning": null,
                 "opphørsdato": null,
+                "harIndividuellForsikring": false,
                 "forsikringskategori": null
             }
             """.trimIndent()
@@ -639,6 +651,7 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
                 "villeHattForsikringOmDenVarBetalt": false,
                 "dekning": { "grad": 100, "iVentetid": false },
                 "opphørsdato": null,
+                "harIndividuellForsikring": true,
                 "forsikringskategori": "NAVKJØPT"
             }
             """.trimIndent()
@@ -674,6 +687,7 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
                 "villeHattForsikringOmDenVarBetalt": false,
                 "dekning": { "grad": 100, "iVentetid": false },
                 "opphørsdato": null,
+                "harIndividuellForsikring": true,
                 "forsikringskategori": "NAVKJØPT"
             }
             """.trimIndent()
@@ -705,6 +719,7 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
                 "villeHattForsikringOmDenVarBetalt": true,
                 "dekning": null,
                 "opphørsdato": null,
+                "harIndividuellForsikring": false,
                 "forsikringskategori": null
             }
             """.trimIndent()
@@ -737,6 +752,7 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
                 "villeHattForsikringOmDenVarBetalt": true,
                 "dekning": null,
                 "opphørsdato": null,
+                "harIndividuellForsikring": false,
                 "forsikringskategori": null
             }
             """.trimIndent()
@@ -769,6 +785,7 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
                 "villeHattForsikringOmDenVarBetalt": true,
                 "dekning": null,
                 "opphørsdato": null,
+                "harIndividuellForsikring": false,
                 "forsikringskategori": null
             }
             """.trimIndent()
@@ -805,6 +822,7 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
                 "villeHattForsikringOmDenVarBetalt": false,
                 "dekning": null,
                 "opphørsdato": null,
+                "harIndividuellForsikring": false,
                 "forsikringskategori": null
             }
             """.trimIndent()
@@ -841,6 +859,7 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
                 "villeHattForsikringOmDenVarBetalt": false,
                 "dekning": null,
                 "opphørsdato": null,
+                "harIndividuellForsikring": false,
                 "forsikringskategori": null
             }
             """.trimIndent()
@@ -877,6 +896,7 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
                 "villeHattForsikringOmDenVarBetalt": false,
                 "dekning": { "grad": 100, "iVentetid": false },
                 "opphørsdato": null,
+                "harIndividuellForsikring": true,
                 "forsikringskategori": "NAVKJØPT"
             }
             """.trimIndent()
@@ -913,6 +933,7 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
                 "villeHattForsikringOmDenVarBetalt": false,
                 "dekning": { "grad": 100, "iVentetid": false },
                 "opphørsdato": null,
+                "harIndividuellForsikring": true,
                 "forsikringskategori": "NAVKJØPT"
             }
             """.trimIndent()

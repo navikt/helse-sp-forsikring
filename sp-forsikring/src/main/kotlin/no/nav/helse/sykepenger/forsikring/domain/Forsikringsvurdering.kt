@@ -13,31 +13,31 @@ class Forsikringsvurdering private constructor(
     val spesielleYrkesgrupper: Set<SpesiellYrkesgruppe>,
     val skjæringstidspunkt: LocalDate,
     val råkopiId: Råkopi.Id,
-    val navKjøpteForsikringer: List<VurdertNavKjøptForsikring>,
+    val individuelleForsikringer: List<VurdertIndividuellForsikring>,
     val kollektivForsikring: KollektivForsikring?,
     val vurdertTidspunkt: Instant,
 ) {
     init {
-        val gyldigeNavKjøpteForsikringer = navKjøpteForsikringer.filter { it.erGyldig() }
+        val gyldigeIndividuelleForsikringer = individuelleForsikringer.filter { it.erGyldig() }
 
-        // Støtter ikke overlappende nav-kjøpte forsikringer
-        if (gyldigeNavKjøpteForsikringer.size > 1) {
+        // Støtter ikke overlappende individuelle forsikringer
+        if (gyldigeIndividuelleForsikringer.size > 1) {
             error(
-                "Fant flere nav-kjøpte forsikringer som var gyldige for skjæringstidspunktet." +
+                "Fant flere individuelle forsikringer som var gyldige for skjæringstidspunktet." +
                     " Kan ikke fortsette med dette, siden det er tvetydig hvilken forsikring som bidrar" +
                     " til økt utbetaling (med tanke på senere justering av premiesats)",
             )
         }
-        val gjeldendeNavKjøptForsikring = gyldigeNavKjøpteForsikringer.firstOrNull()
+        val gjeldendeIndividuellForsikring = gyldigeIndividuelleForsikringer.firstOrNull()
 
-        // Det er bare mulig å ha både kollektiv og Nav-kjøpt forsikring
-        // dersom den Nav-kjøpte er en tilleggsforsikring for den kollektive
-        if (kollektivForsikring != null && gjeldendeNavKjøptForsikring != null) {
-            if (gjeldendeNavKjøptForsikring.type.tilleggsforsikringFor == kollektivForsikring) {
-                if (gjeldendeNavKjøptForsikring.type.dekning.fraDag < kollektivForsikring.dekning.fraDag &&
-                    gjeldendeNavKjøptForsikring.opphørsdato != null &&
-                    gjeldendeNavKjøptForsikring.opphørsdato.isBefore(
-                        gjeldendeNavKjøptForsikring.virkningsdato
+        // Det er bare mulig å ha både kollektiv og individuell forsikring
+        // dersom den individuelle er en tilleggsforsikring for den kollektive
+        if (kollektivForsikring != null && gjeldendeIndividuellForsikring != null) {
+            if (gjeldendeIndividuellForsikring.type.tilleggsforsikringFor == kollektivForsikring) {
+                if (gjeldendeIndividuellForsikring.type.dekning.fraDag < kollektivForsikring.dekning.fraDag &&
+                    gjeldendeIndividuellForsikring.opphørsdato != null &&
+                    gjeldendeIndividuellForsikring.opphørsdato.isBefore(
+                        gjeldendeIndividuellForsikring.virkningsdato
                             .plusDays(kollektivForsikring.dekning.fraDag.toLong())
                             .minusDays(2),
                     )
@@ -49,7 +49,7 @@ class Forsikringsvurdering private constructor(
                 }
             } else {
                 error(
-                    "Bruker har en ugyldig kombinasjon av kollektiv og nav-kjøpt forsikring." +
+                    "Bruker har en ugyldig kombinasjon av kollektiv og individuell forsikring." +
                         " Kan ikke fortsette med dette, siden det er tvetydig hvilken forsikring som bidrar" +
                         " til økt utbetaling (med tanke på senere justering av premiesats)",
                 )
@@ -57,28 +57,28 @@ class Forsikringsvurdering private constructor(
         }
     }
 
-    fun harForsikring(): Boolean = navKjøpteForsikringer.any { it.erGyldig() } || kollektivForsikring != null
+    fun harForsikring(): Boolean = individuelleForsikringer.any { it.erGyldig() } || kollektivForsikring != null
 
-    fun villeHattForsikringOmDenVarBetalt(): Boolean = navKjøpteForsikringer.any { it.konklusjon == VurdertNavKjøptForsikring.Konklusjon.ALDRI_BETALT }
+    fun villeHattForsikringOmDenVarBetalt(): Boolean = individuelleForsikringer.any { it.konklusjon == VurdertIndividuellForsikring.Konklusjon.ALDRI_BETALT }
 
-    fun gjeldendeNavKjøptForsikring(): VurdertNavKjøptForsikring? = navKjøpteForsikringer.singleOrNull { it.erGyldig() }
+    fun gjeldendeIndividuellForsikring(): VurdertIndividuellForsikring? = individuelleForsikringer.singleOrNull { it.erGyldig() }
 
     fun dekning(): Forsikringsdekning? =
         listOfNotNull(
-            gjeldendeNavKjøptForsikring()?.type?.dekning,
+            gjeldendeIndividuellForsikring()?.type?.dekning,
             kollektivForsikring?.dekning,
         ).minByOrNull { it.fraDag }
 
-    fun opphørsdato(): LocalDate? = gjeldendeNavKjøptForsikring()?.opphørsdato
+    fun opphørsdato(): LocalDate? = gjeldendeIndividuellForsikring()?.opphørsdato
 
-    fun harNavKjøptForsikring() = gjeldendeNavKjøptForsikring() != null
+    fun harIndividuellForsikring() = gjeldendeIndividuellForsikring() != null
 
     fun harKollektivForsikring() = kollektivForsikring != null
 
     fun harDekningIVentetidUavhengigAvBetaling(): Boolean =
         kollektivForsikring?.dekning?.fraDag == 1 ||
-            navKjøpteForsikringer
-                .filter { it.erGyldig() || it.konklusjon == VurdertNavKjøptForsikring.Konklusjon.ALDRI_BETALT }
+            individuelleForsikringer
+                .filter { it.erGyldig() || it.konklusjon == VurdertIndividuellForsikring.Konklusjon.ALDRI_BETALT }
                 .any { it.type.dekning.fraDag == 1 }
 
     companion object {
@@ -89,7 +89,7 @@ class Forsikringsvurdering private constructor(
             skjæringstidspunkt: LocalDate,
             råkopiId: Råkopi.Id,
             kollektiveForsikringer: Set<KollektivForsikring>,
-            navKjøpteForsikringer: List<NavKjøptForsikring>,
+            individuelleForsikringer: List<IndividuellForsikring>,
         ): Forsikringsvurdering =
             Forsikringsvurdering(
                 id = Id.ny(),
@@ -98,8 +98,8 @@ class Forsikringsvurdering private constructor(
                 spesielleYrkesgrupper = spesielleYrkesgrupper,
                 skjæringstidspunkt = skjæringstidspunkt,
                 råkopiId = råkopiId,
-                navKjøpteForsikringer =
-                    navKjøpteForsikringer.map {
+                individuelleForsikringer =
+                    individuelleForsikringer.map {
                         it.vurder(
                             skjæringstidspunkt = skjæringstidspunkt,
                             yrkesaktivitetstype = yrkesaktivitetstype,
@@ -127,7 +127,7 @@ class Forsikringsvurdering private constructor(
             spesielleYrkesgrupper: Set<SpesiellYrkesgruppe>,
             skjæringstidspunkt: LocalDate,
             råkopiId: Råkopi.Id,
-            navKjøpteForsikringer: List<VurdertNavKjøptForsikring>,
+            individuelleForsikringer: List<VurdertIndividuellForsikring>,
             kollektivForsikring: KollektivForsikring?,
             vurdertTidspunkt: Instant,
         ) = Forsikringsvurdering(
@@ -137,7 +137,7 @@ class Forsikringsvurdering private constructor(
             spesielleYrkesgrupper = spesielleYrkesgrupper,
             skjæringstidspunkt = skjæringstidspunkt,
             råkopiId = råkopiId,
-            navKjøpteForsikringer = navKjøpteForsikringer,
+            individuelleForsikringer = individuelleForsikringer,
             kollektivForsikring = kollektivForsikring,
             vurdertTidspunkt = vurdertTidspunkt,
         )

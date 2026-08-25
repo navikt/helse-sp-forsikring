@@ -7,7 +7,7 @@ class FordelingAvBeløpPåUtbetalingsdag private constructor(
     val dag: Utbetalingsdag,
     val uavhengigAvForsikring: BigDecimal,
     val påGrunnAvKollektivForsikring: BigDecimal,
-    val påGrunnAvNavKjøptForsikring: BigDecimal,
+    val påGrunnAvIndividuellForsikring: BigDecimal,
 ) {
     companion object {
         /**
@@ -21,14 +21,14 @@ class FordelingAvBeløpPåUtbetalingsdag private constructor(
             dag: Utbetalingsdag,
             yrkesaktivitetstype: Yrkesaktivitetstype,
             kollektivForsikring: KollektivForsikring?,
-            navKjøptForsikring: VurdertNavKjøptForsikring?,
+            individuellForsikring: VurdertIndividuellForsikring?,
         ): FordelingAvBeløpPåUtbetalingsdag {
             if (dag.beløpTilBruker == 0) {
                 return FordelingAvBeløpPåUtbetalingsdag(
                     dag = dag,
                     uavhengigAvForsikring = nullBeløp(),
                     påGrunnAvKollektivForsikring = nullBeløp(),
-                    påGrunnAvNavKjøptForsikring = nullBeløp(),
+                    påGrunnAvIndividuellForsikring = nullBeløp(),
                 )
             }
 
@@ -44,14 +44,14 @@ class FordelingAvBeløpPåUtbetalingsdag private constructor(
                     ?.let { it.dekning.grad - ordinærGrad }
                     ?: 0
 
-            val navKjøptTilleggsgrad =
-                navKjøptForsikring
+            val individuellTilleggsgrad =
+                individuellForsikring
                     ?.takeUnless { dag.erIVentetid && !it.type.dekning.iVentetid() }
                     ?.takeUnless { it.erOpphørtPå(dag.dato) }
                     ?.let { it.type.dekning.grad - ordinærGrad - kollektivTilleggsgrad }
                     ?: 0
 
-            val forventetDekningsgrad = (ordinærGrad + kollektivTilleggsgrad + navKjøptTilleggsgrad)
+            val forventetDekningsgrad = (ordinærGrad + kollektivTilleggsgrad + individuellTilleggsgrad)
 
             check(forventetDekningsgrad != 0) {
                 // Spleis sender per nå ordinær dekningsgrad i disse tilfellene, så vi kan ikke se på den, men vi
@@ -63,7 +63,7 @@ class FordelingAvBeløpPåUtbetalingsdag private constructor(
                 "Forventet at dag med dato ${dag.dato} hadde en dekningsgrad på $forventetDekningsgrad, men den var ${dag.dekningsgrad}"
             }
 
-            val navKjøptForsikringBeløp = dag.beløpForGrad(navKjøptTilleggsgrad)
+            val individuellForsikringBeløp = dag.beløpForGrad(individuellTilleggsgrad)
             val kollektivForsikringBeløp = dag.beløpForGrad(kollektivTilleggsgrad)
 
             return FordelingAvBeløpPåUtbetalingsdag(
@@ -72,9 +72,9 @@ class FordelingAvBeløpPåUtbetalingsdag private constructor(
                     BigDecimal(dag.beløpTilBruker)
                         .setScale(MELLOMREGNINGSSKALA)
                         .minus(kollektivForsikringBeløp)
-                        .minus(navKjøptForsikringBeløp),
+                        .minus(individuellForsikringBeløp),
                 påGrunnAvKollektivForsikring = kollektivForsikringBeløp,
-                påGrunnAvNavKjøptForsikring = navKjøptForsikringBeløp,
+                påGrunnAvIndividuellForsikring = individuellForsikringBeløp,
             )
         }
 

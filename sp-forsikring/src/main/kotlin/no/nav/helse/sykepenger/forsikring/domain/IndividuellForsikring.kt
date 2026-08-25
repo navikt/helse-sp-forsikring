@@ -3,9 +3,9 @@ package no.nav.helse.sykepenger.forsikring.domain
 import no.nav.helse.sykepenger.forsikring.råkopi.RåkopiIfVedfrivt10
 import java.time.LocalDate
 
-class NavKjøptForsikring(
+class IndividuellForsikring(
     val råkopiIfVedfrivt10Id: RåkopiIfVedfrivt10.Id,
-    val type: NavKjøptForsikringType,
+    val type: IndividuellForsikringType,
     val virkningsdato: LocalDate,
     val opphører: Boolean,
     val opphørsdato: LocalDate?,
@@ -16,31 +16,31 @@ class NavKjøptForsikring(
         skjæringstidspunkt: LocalDate,
         yrkesaktivitetstype: Yrkesaktivitetstype,
         spesielleYrkesgrupper: Set<SpesiellYrkesgruppe>,
-    ): VurdertNavKjøptForsikring =
-        VurdertNavKjøptForsikring.fraNavKjøptForsikringMedKonklusjon(
-            navKjøptForsikring = this,
+    ): VurdertIndividuellForsikring =
+        VurdertIndividuellForsikring.fraIndividuellForsikringMedKonklusjon(
+            individuellForsikring = this,
             yrkesaktivitetstype = yrkesaktivitetstype,
             spesielleYrkesgrupper = spesielleYrkesgrupper,
             konklusjon =
                 when {
                     // Skjæringstidspunkt må ikke være i opptjeningstid [IF10_FORSFOM, IF10_VIRKDATO)
                     erInnen28DagerFørVirkningsdato(skjæringstidspunkt) ->
-                        VurdertNavKjøptForsikring.Konklusjon.SKJÆRINGSTIDSPUNKT_INNEN_28_DAGER_FØR_VIRKNINGSDATO
+                        VurdertIndividuellForsikring.Konklusjon.SKJÆRINGSTIDSPUNKT_INNEN_28_DAGER_FØR_VIRKNINGSDATO
 
                     // Skjæringstidspunkt må være etter eller lik virkningsdato
                     !harVirkningPå(skjæringstidspunkt) ->
-                        VurdertNavKjøptForsikring.Konklusjon.SKJÆRINGSTIDSPUNKT_MER_ENN_28_DAGER_FØR_VIRKNINGSDATO
+                        VurdertIndividuellForsikring.Konklusjon.SKJÆRINGSTIDSPUNKT_MER_ENN_28_DAGER_FØR_VIRKNINGSDATO
 
                     // Skjæringstidspunkt må være før eller lik opphørsdato (hvis det er en opphørsdato)
                     erOpphørtPå(skjæringstidspunkt) ->
-                        VurdertNavKjøptForsikring.Konklusjon.OPPHØRT_PÅ_SKJÆRINGSTIDSPUNKT
+                        VurdertIndividuellForsikring.Konklusjon.OPPHØRT_PÅ_SKJÆRINGSTIDSPUNKT
 
                     // Forsikringen må være betalt noen gang
                     !erBetaltNoenGang ->
-                        VurdertNavKjøptForsikring.Konklusjon.ALDRI_BETALT
+                        VurdertIndividuellForsikring.Konklusjon.ALDRI_BETALT
 
                     else ->
-                        VurdertNavKjøptForsikring.Konklusjon.GYLDIG
+                        VurdertIndividuellForsikring.Konklusjon.GYLDIG
                 },
         )
 
@@ -53,14 +53,14 @@ class NavKjøptForsikring(
     companion object {
         fun ny(
             råkopiIfVedfrivt10Id: RåkopiIfVedfrivt10.Id,
-            type: NavKjøptForsikringType,
+            type: IndividuellForsikringType,
             virkningsdato: LocalDate,
             opphører: Boolean,
             opphørsdato: LocalDate?,
             premiegrunnlag: Int,
             erBetaltNoenGang: Boolean,
-        ): NavKjøptForsikring =
-            NavKjøptForsikring(
+        ): IndividuellForsikring =
+            IndividuellForsikring(
                 råkopiIfVedfrivt10Id = råkopiIfVedfrivt10Id,
                 type = type,
                 virkningsdato = virkningsdato,

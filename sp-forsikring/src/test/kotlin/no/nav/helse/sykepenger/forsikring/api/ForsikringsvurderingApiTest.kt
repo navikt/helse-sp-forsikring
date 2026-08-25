@@ -5,16 +5,16 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
 import io.ktor.server.cio.*
 import io.ktor.server.engine.*
+import no.nav.helse.sykepenger.forsikring.domain.IndividuellForsikringType
 import no.nav.helse.sykepenger.forsikring.domain.KollektivForsikring
-import no.nav.helse.sykepenger.forsikring.domain.NavKjøptForsikringType
 import no.nav.helse.sykepenger.forsikring.domain.SpesiellYrkesgruppe
-import no.nav.helse.sykepenger.forsikring.domain.VurdertNavKjøptForsikring
+import no.nav.helse.sykepenger.forsikring.domain.VurdertIndividuellForsikring
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.ForsikringsvurderingService
 import no.nav.helse.sykepenger.forsikring.shared.testsupport.TestcontainersReplikadatabase
 import no.nav.helse.sykepenger.forsikring.shared.testsupport.TestcontainersSpForsikringDatabase
 import no.nav.helse.sykepenger.forsikring.shared.testsupport.lagForsikringsvurdering
 import no.nav.helse.sykepenger.forsikring.shared.testsupport.lagIdentitetsnummer
-import no.nav.helse.sykepenger.forsikring.shared.testsupport.lagVurdertNavKjøptForsikring
+import no.nav.helse.sykepenger.forsikring.shared.testsupport.lagVurdertIndividuellForsikring
 import no.nav.helse.sykepenger.forsikring.shared.testsupport.lagreRåkopiOgForsikringsvurdering
 import no.nav.helse.sykepenger.forsikring.shared.testsupport.tilInfotrygdFødselsnummer
 import no.nav.security.mock.oauth2.MockOAuth2Server
@@ -200,16 +200,38 @@ class ForsikringsvurderingApiTest {
     }
 
     @Test
-    fun `GET forsikringsvurderinger returnerer samlet dekning for nav-kjøpt forsikring`() {
+    fun `GET forsikringsvurderinger returnerer fortsatt det utfasede feltet navKjøpteForsikringer`() {
+        val forsikringsvurdering =
+            lagForsikringsvurdering(
+                skjæringstidspunkt = LocalDate.parse("2026-01-01"),
+                individuelleForsikringer =
+                    listOf(
+                        lagVurdertIndividuellForsikring(
+                            type = IndividuellForsikringType.SELVSTENDIG_80_PROSENT_FRA_DAG_1,
+                            virkningsdato = LocalDate.parse("2025-06-01"),
+                        ),
+                    ),
+            )
+        lagreRåkopiOgForsikringsvurdering(forsikringsvurdering)
+
+        val (statusCode, body) = getForsikringsvurdering(forsikringsvurdering.id.value.toString(), bearerToken())
+
+        assertEquals(200, statusCode) { "Body was: $body" }
+        val json = body.somJson()
+        assertEquals(json["individuelleForsikringer"], json["navKjøpteForsikringer"]) { "Body was: $body" }
+    }
+
+    @Test
+    fun `GET forsikringsvurderinger returnerer samlet dekning for individuell forsikring`() {
         val identitetsnummer = lagIdentitetsnummer()
         val forsikringsvurdering =
             lagForsikringsvurdering(
                 skjæringstidspunkt = LocalDate.parse("2026-01-01"),
                 identitetsnummer = identitetsnummer,
-                navKjøpteForsikringer =
+                individuelleForsikringer =
                     listOf(
-                        lagVurdertNavKjøptForsikring(
-                            type = NavKjøptForsikringType.SELVSTENDIG_80_PROSENT_FRA_DAG_1,
+                        lagVurdertIndividuellForsikring(
+                            type = IndividuellForsikringType.SELVSTENDIG_80_PROSENT_FRA_DAG_1,
                             virkningsdato = LocalDate.parse("2025-06-01"),
                         ),
                     ),
@@ -228,8 +250,8 @@ class ForsikringsvurderingApiTest {
         assertEquals(1, json["samletDekning"]["fraDag"].asInt())
         assertTrue(json["kollektivForsikring"].isNull) { "Forventet ingen kollektiv forsikring, fikk: $body" }
 
-        val forsikring = json["navKjøpteForsikringer"].single()
-        assertEquals(NavKjøptForsikringType.SELVSTENDIG_80_PROSENT_FRA_DAG_1.navn, forsikring["navn"].asText())
+        val forsikring = json["individuelleForsikringer"].single()
+        assertEquals(IndividuellForsikringType.SELVSTENDIG_80_PROSENT_FRA_DAG_1.navn, forsikring["navn"].asText())
         assertEquals("2025-06-01", forsikring.asTextOrNull("virkningsdato"))
         assertNull(forsikring.asTextOrNull("opphørsdato"))
         assertTrue(forsikring["lagtTilGrunn"].asBoolean()) { "Forventet lagtTilGrunn=true, fikk: $body" }
@@ -248,10 +270,10 @@ class ForsikringsvurderingApiTest {
         val forsikringsvurdering =
             lagForsikringsvurdering(
                 skjæringstidspunkt = LocalDate.parse("2026-01-01"),
-                navKjøpteForsikringer =
+                individuelleForsikringer =
                     listOf(
-                        lagVurdertNavKjøptForsikring(
-                            type = NavKjøptForsikringType.SELVSTENDIG_100_PROSENT_FRA_DAG_17,
+                        lagVurdertIndividuellForsikring(
+                            type = IndividuellForsikringType.SELVSTENDIG_100_PROSENT_FRA_DAG_17,
                             virkningsdato = LocalDate.parse("2025-06-01"),
                         ),
                     ),
@@ -266,13 +288,13 @@ class ForsikringsvurderingApiTest {
         val json = body.somJson()
         assertEquals(100, json["samletDekning"]["grad"].asInt())
         assertEquals(17, json["samletDekning"]["fraDag"].asInt())
-        assertEquals(NavKjøptForsikringType.SELVSTENDIG_100_PROSENT_FRA_DAG_17.navn, json["navKjøpteForsikringer"].single()["navn"].asText())
+        assertEquals(IndividuellForsikringType.SELVSTENDIG_100_PROSENT_FRA_DAG_17.navn, json["individuelleForsikringer"].single()["navn"].asText())
         assertFolketrygdlovenreferanse(
             forventetKapittel = 8,
             forventetParagrafIKapittel = 36,
             forventetLedd = 1,
             forventetBokstav = "b",
-            faktisk = json["navKjøpteForsikringer"].single()["dekningFolketrygdlovenreferanse"],
+            faktisk = json["individuelleForsikringer"].single()["dekningFolketrygdlovenreferanse"],
         )
     }
 
@@ -289,7 +311,7 @@ class ForsikringsvurderingApiTest {
         val json = body.somJson()
         assertTrue(json["samletDekning"].isNull) { "Forventet samletDekning=null, fikk: $body" }
         assertTrue(json["kollektivForsikring"].isNull) { "Forventet kollektivForsikring=null, fikk: $body" }
-        assertTrue(json["navKjøpteForsikringer"].isEmpty) { "Forventet ingen nav-kjøpte forsikringer, fikk: $body" }
+        assertTrue(json["individuelleForsikringer"].isEmpty) { "Forventet ingen individuelle forsikringer, fikk: $body" }
     }
 
     @Test
@@ -334,12 +356,12 @@ class ForsikringsvurderingApiTest {
         val forsikringsvurdering =
             lagForsikringsvurdering(
                 skjæringstidspunkt = LocalDate.parse("2026-01-01"),
-                navKjøpteForsikringer =
+                individuelleForsikringer =
                     listOf(
-                        lagVurdertNavKjøptForsikring(
+                        lagVurdertIndividuellForsikring(
                             virkningsdato = LocalDate.parse("2025-06-01"),
                             erBetaltNoenGang = false,
-                            konklusjon = VurdertNavKjøptForsikring.Konklusjon.ALDRI_BETALT,
+                            konklusjon = VurdertIndividuellForsikring.Konklusjon.ALDRI_BETALT,
                         ),
                     ),
             )
@@ -353,7 +375,7 @@ class ForsikringsvurderingApiTest {
         val json = body.somJson()
         assertTrue(json["samletDekning"].isNull) { "Forventet samletDekning=null, fikk: $body" }
 
-        val forsikring = json["navKjøpteForsikringer"].single()
+        val forsikring = json["individuelleForsikringer"].single()
         assertFalse(forsikring["lagtTilGrunn"].asBoolean()) { "Forventet lagtTilGrunn=false, fikk: $body" }
         val konklusjon = forsikring["konklusjon"]
         assertEquals("Forsikringen er innvilget, men ikke betalt ennå", konklusjon["forklaring"].asText())
@@ -365,13 +387,13 @@ class ForsikringsvurderingApiTest {
         val forsikringsvurdering =
             lagForsikringsvurdering(
                 skjæringstidspunkt = LocalDate.parse("2026-01-01"),
-                navKjøpteForsikringer =
+                individuelleForsikringer =
                     listOf(
-                        lagVurdertNavKjøptForsikring(
+                        lagVurdertIndividuellForsikring(
                             virkningsdato = LocalDate.parse("2025-06-01"),
                             opphører = true,
                             opphørsdato = LocalDate.parse("2025-12-31"),
-                            konklusjon = VurdertNavKjøptForsikring.Konklusjon.OPPHØRT_PÅ_SKJÆRINGSTIDSPUNKT,
+                            konklusjon = VurdertIndividuellForsikring.Konklusjon.OPPHØRT_PÅ_SKJÆRINGSTIDSPUNKT,
                         ),
                     ),
             )
@@ -385,7 +407,7 @@ class ForsikringsvurderingApiTest {
         val json = body.somJson()
         assertTrue(json["samletDekning"].isNull) { "Forventet samletDekning=null, fikk: $body" }
 
-        val forsikring = json["navKjøpteForsikringer"].single()
+        val forsikring = json["individuelleForsikringer"].single()
         assertEquals("2025-06-01", forsikring.asTextOrNull("virkningsdato"))
         assertEquals("2025-12-31", forsikring.asTextOrNull("opphørsdato"))
         assertFalse(forsikring["lagtTilGrunn"].asBoolean()) { "Forventet lagtTilGrunn=false, fikk: $body" }
@@ -405,12 +427,12 @@ class ForsikringsvurderingApiTest {
         val forsikringsvurdering =
             lagForsikringsvurdering(
                 skjæringstidspunkt = LocalDate.parse("2026-01-01"),
-                navKjøpteForsikringer =
+                individuelleForsikringer =
                     listOf(
-                        lagVurdertNavKjøptForsikring(
+                        lagVurdertIndividuellForsikring(
                             virkningsdato = LocalDate.parse("2026-01-15"),
                             konklusjon =
-                                VurdertNavKjøptForsikring.Konklusjon.SKJÆRINGSTIDSPUNKT_INNEN_28_DAGER_FØR_VIRKNINGSDATO,
+                                VurdertIndividuellForsikring.Konklusjon.SKJÆRINGSTIDSPUNKT_INNEN_28_DAGER_FØR_VIRKNINGSDATO,
                         ),
                     ),
             )
@@ -421,7 +443,7 @@ class ForsikringsvurderingApiTest {
         val (statusCode, body) = getForsikringsvurdering(forsikringsvurderingId.value.toString(), bearerToken())
 
         assertEquals(200, statusCode) { "Body was: $body" }
-        val forsikring = body.somJson()["navKjøpteForsikringer"].single()
+        val forsikring = body.somJson()["individuelleForsikringer"].single()
         assertFalse(forsikring["lagtTilGrunn"].asBoolean()) { "Forventet lagtTilGrunn=false, fikk: $body" }
         assertEquals(
             "Forsikringen var ikke ennå gyldig på skjæringstidspunktet",
@@ -434,17 +456,17 @@ class ForsikringsvurderingApiTest {
         val forsikringsvurdering =
             lagForsikringsvurdering(
                 skjæringstidspunkt = LocalDate.parse("2026-01-01"),
-                navKjøpteForsikringer =
+                individuelleForsikringer =
                     listOf(
-                        lagVurdertNavKjøptForsikring(
-                            type = NavKjøptForsikringType.SELVSTENDIG_100_PROSENT_FRA_DAG_17,
+                        lagVurdertIndividuellForsikring(
+                            type = IndividuellForsikringType.SELVSTENDIG_100_PROSENT_FRA_DAG_17,
                             virkningsdato = LocalDate.parse("2023-01-01"),
                             opphører = true,
                             opphørsdato = LocalDate.parse("2024-12-31"),
-                            konklusjon = VurdertNavKjøptForsikring.Konklusjon.OPPHØRT_PÅ_SKJÆRINGSTIDSPUNKT,
+                            konklusjon = VurdertIndividuellForsikring.Konklusjon.OPPHØRT_PÅ_SKJÆRINGSTIDSPUNKT,
                         ),
-                        lagVurdertNavKjøptForsikring(
-                            type = NavKjøptForsikringType.SELVSTENDIG_80_PROSENT_FRA_DAG_1,
+                        lagVurdertIndividuellForsikring(
+                            type = IndividuellForsikringType.SELVSTENDIG_80_PROSENT_FRA_DAG_1,
                             virkningsdato = LocalDate.parse("2025-06-01"),
                         ),
                     ),
@@ -459,13 +481,13 @@ class ForsikringsvurderingApiTest {
         val json = body.somJson()
         assertEquals(80, json["samletDekning"]["grad"].asInt())
 
-        val forsikringer = json["navKjøpteForsikringer"].associateBy { it["navn"].asText() }
-        assertEquals(2, forsikringer.size) { "Forventet to nav-kjøpte forsikringer, fikk: $body" }
+        val forsikringer = json["individuelleForsikringer"].associateBy { it["navn"].asText() }
+        assertEquals(2, forsikringer.size) { "Forventet to individuelle forsikringer, fikk: $body" }
 
-        val gjeldende = forsikringer.getValue(NavKjøptForsikringType.SELVSTENDIG_80_PROSENT_FRA_DAG_1.navn)
+        val gjeldende = forsikringer.getValue(IndividuellForsikringType.SELVSTENDIG_80_PROSENT_FRA_DAG_1.navn)
         assertTrue(gjeldende["lagtTilGrunn"].asBoolean()) { "Forventet lagtTilGrunn=true, fikk: $body" }
 
-        val ekskludert = forsikringer.getValue(NavKjøptForsikringType.SELVSTENDIG_100_PROSENT_FRA_DAG_17.navn)
+        val ekskludert = forsikringer.getValue(IndividuellForsikringType.SELVSTENDIG_100_PROSENT_FRA_DAG_17.navn)
         assertFalse(ekskludert["lagtTilGrunn"].asBoolean()) { "Forventet lagtTilGrunn=false, fikk: $body" }
         assertEquals("Forsikringen opphørte før skjæringstidspunktet", ekskludert["konklusjon"]["forklaring"].asText())
     }
@@ -494,15 +516,15 @@ class ForsikringsvurderingApiTest {
     }
 
     @Test
-    fun `GET forsikringsvurderinger returnerer både kollektiv og nav-kjøpt tilleggsforsikring`() {
+    fun `GET forsikringsvurderinger returnerer både kollektiv og individuell tilleggsforsikring`() {
         val forsikringsvurdering =
             lagForsikringsvurdering(
                 skjæringstidspunkt = LocalDate.parse("2026-01-01"),
                 spesielleYrkesgrupper = setOf(SpesiellYrkesgruppe.JORDBRUKER),
-                navKjøpteForsikringer =
+                individuelleForsikringer =
                     listOf(
-                        lagVurdertNavKjøptForsikring(
-                            type = NavKjøptForsikringType.SELVSTENDIG_JORDBRUKER_100_PROSENT_FRA_DAG_1,
+                        lagVurdertIndividuellForsikring(
+                            type = IndividuellForsikringType.SELVSTENDIG_JORDBRUKER_100_PROSENT_FRA_DAG_1,
                             virkningsdato = LocalDate.parse("2025-06-01"),
                         ),
                     ),
@@ -519,8 +541,8 @@ class ForsikringsvurderingApiTest {
         assertEquals(100, json["samletDekning"]["grad"].asInt())
         assertEquals(1, json["samletDekning"]["fraDag"].asInt())
         assertEquals(
-            NavKjøptForsikringType.SELVSTENDIG_JORDBRUKER_100_PROSENT_FRA_DAG_1.navn,
-            json["navKjøpteForsikringer"].single()["navn"].asText(),
+            IndividuellForsikringType.SELVSTENDIG_JORDBRUKER_100_PROSENT_FRA_DAG_1.navn,
+            json["individuelleForsikringer"].single()["navn"].asText(),
         )
         assertFalse(json["kollektivForsikring"].isNull) { "Forventet kollektiv forsikring, fikk: $body" }
     }
@@ -530,12 +552,12 @@ class ForsikringsvurderingApiTest {
         val forsikringsvurdering =
             lagForsikringsvurdering(
                 skjæringstidspunkt = LocalDate.parse("2026-01-01"),
-                navKjøpteForsikringer =
+                individuelleForsikringer =
                     listOf(
-                        lagVurdertNavKjøptForsikring(
+                        lagVurdertIndividuellForsikring(
                             virkningsdato = LocalDate.parse("2026-01-30"),
                             konklusjon =
-                                VurdertNavKjøptForsikring.Konklusjon.SKJÆRINGSTIDSPUNKT_MER_ENN_28_DAGER_FØR_VIRKNINGSDATO,
+                                VurdertIndividuellForsikring.Konklusjon.SKJÆRINGSTIDSPUNKT_MER_ENN_28_DAGER_FØR_VIRKNINGSDATO,
                         ),
                     ),
             )
@@ -546,7 +568,7 @@ class ForsikringsvurderingApiTest {
         val (statusCode, body) = getForsikringsvurdering(forsikringsvurderingId.value.toString(), bearerToken())
 
         assertEquals(200, statusCode) { "Body was: $body" }
-        val forsikring = body.somJson()["navKjøpteForsikringer"].single()
+        val forsikring = body.somJson()["individuelleForsikringer"].single()
         assertFalse(forsikring["lagtTilGrunn"].asBoolean()) { "Forventet lagtTilGrunn=false, fikk: $body" }
         assertEquals(
             "Forsikringen var ikke ennå gyldig på skjæringstidspunktet",

@@ -3,9 +3,9 @@ package no.nav.helse.sykepenger.forsikring.domain
 import no.nav.helse.sykepenger.forsikring.råkopi.RåkopiIfVedfrivt10
 import java.time.LocalDate
 
-class VurdertNavKjøptForsikring private constructor(
+class VurdertIndividuellForsikring private constructor(
     val råkopiIfVedfrivt10Id: RåkopiIfVedfrivt10.Id,
-    val type: NavKjøptForsikringType,
+    val type: IndividuellForsikringType,
     val virkningsdato: LocalDate,
     val opphører: Boolean,
     val opphørsdato: LocalDate?,
@@ -36,41 +36,41 @@ class VurdertNavKjøptForsikring private constructor(
     }
 
     companion object {
-        fun fraNavKjøptForsikringMedKonklusjon(
-            navKjøptForsikring: NavKjøptForsikring,
+        fun fraIndividuellForsikringMedKonklusjon(
+            individuellForsikring: IndividuellForsikring,
             yrkesaktivitetstype: Yrkesaktivitetstype,
             spesielleYrkesgrupper: Set<SpesiellYrkesgruppe>,
             konklusjon: Konklusjon,
-        ): VurdertNavKjøptForsikring {
+        ): VurdertIndividuellForsikring {
             if (konklusjon == Konklusjon.GYLDIG) {
-                navKjøptForsikring.type.validerMot(
+                individuellForsikring.type.validerMot(
                     yrkesaktivitetstype = yrkesaktivitetstype,
                     spesielleYrkesgrupper = spesielleYrkesgrupper,
                 )
             }
-            return VurdertNavKjøptForsikring(
-                råkopiIfVedfrivt10Id = navKjøptForsikring.råkopiIfVedfrivt10Id,
-                type = navKjøptForsikring.type,
-                virkningsdato = navKjøptForsikring.virkningsdato,
-                opphører = navKjøptForsikring.opphører,
-                opphørsdato = navKjøptForsikring.opphørsdato,
-                premiegrunnlag = navKjøptForsikring.premiegrunnlag,
-                erBetaltNoenGang = navKjøptForsikring.erBetaltNoenGang,
+            return VurdertIndividuellForsikring(
+                råkopiIfVedfrivt10Id = individuellForsikring.råkopiIfVedfrivt10Id,
+                type = individuellForsikring.type,
+                virkningsdato = individuellForsikring.virkningsdato,
+                opphører = individuellForsikring.opphører,
+                opphørsdato = individuellForsikring.opphørsdato,
+                premiegrunnlag = individuellForsikring.premiegrunnlag,
+                erBetaltNoenGang = individuellForsikring.erBetaltNoenGang,
                 konklusjon = konklusjon,
             )
         }
 
         fun fraLagring(
             råkopiIfVedfrivt10Id: RåkopiIfVedfrivt10.Id,
-            type: NavKjøptForsikringType,
+            type: IndividuellForsikringType,
             virkningsdato: LocalDate,
             opphører: Boolean,
             opphørsdato: LocalDate?,
             premiegrunnlag: Int,
             erBetaltNoenGang: Boolean,
             konklusjon: Konklusjon,
-        ): VurdertNavKjøptForsikring =
-            VurdertNavKjøptForsikring(
+        ): VurdertIndividuellForsikring =
+            VurdertIndividuellForsikring(
                 råkopiIfVedfrivt10Id = råkopiIfVedfrivt10Id,
                 type = type,
                 virkningsdato = virkningsdato,

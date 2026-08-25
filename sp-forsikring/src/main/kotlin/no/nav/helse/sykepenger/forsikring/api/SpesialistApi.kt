@@ -4,11 +4,11 @@ import io.ktor.http.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
-import no.nav.helse.sykepenger.forsikring.api.SpesialistForsikringsvurderingResponse.NavKjøptForsikring
-import no.nav.helse.sykepenger.forsikring.api.SpesialistForsikringsvurderingResponse.NavKjøptForsikring.Konklusjon
+import no.nav.helse.sykepenger.forsikring.api.SpesialistForsikringsvurderingResponse.IndividuellForsikring
+import no.nav.helse.sykepenger.forsikring.api.SpesialistForsikringsvurderingResponse.IndividuellForsikring.Konklusjon
 import no.nav.helse.sykepenger.forsikring.domain.Forsikringsvurdering
 import no.nav.helse.sykepenger.forsikring.domain.KollektivForsikring
-import no.nav.helse.sykepenger.forsikring.domain.VurdertNavKjøptForsikring
+import no.nav.helse.sykepenger.forsikring.domain.VurdertIndividuellForsikring
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.ForsikringsvurderingRepository
 import no.nav.helse.sykepenger.forsikring.shared.logging.loggInfo
 import no.nav.helse.sykepenger.forsikring.shared.util.inTransaction
@@ -63,9 +63,9 @@ fun Route.spesialistApi(spForsikringDataSource: DataSource) {
                             kollektivFolketrygdlovenreferanse = KollektivForsikring.KOLLEKTIV_FORSIKRING_GENERELL_FOLKETRYGDLOVENREFERANSE.tilApiFolketrygdlovenReferanse(),
                         )
                     },
-                navKjøpteForsikringer =
-                    forsikringsvurdering.navKjøpteForsikringer.map { forsikring ->
-                        NavKjøptForsikring(
+                individuelleForsikringer =
+                    forsikringsvurdering.individuelleForsikringer.map { forsikring ->
+                        IndividuellForsikring(
                             navn = forsikring.type.navn,
                             dekningFolketrygdlovenreferanse =
                                 forsikring.type.dekning.folketrygdlovenreferanse
@@ -89,21 +89,21 @@ fun Route.spesialistApi(spForsikringDataSource: DataSource) {
     }
 }
 
-private fun VurdertNavKjøptForsikring.Konklusjon.forklaring(): String =
+private fun VurdertIndividuellForsikring.Konklusjon.forklaring(): String =
     when (this) {
-        VurdertNavKjøptForsikring.Konklusjon.SKJÆRINGSTIDSPUNKT_INNEN_28_DAGER_FØR_VIRKNINGSDATO ->
+        VurdertIndividuellForsikring.Konklusjon.SKJÆRINGSTIDSPUNKT_INNEN_28_DAGER_FØR_VIRKNINGSDATO ->
             "Forsikringen var ikke ennå gyldig på skjæringstidspunktet"
 
-        VurdertNavKjøptForsikring.Konklusjon.SKJÆRINGSTIDSPUNKT_MER_ENN_28_DAGER_FØR_VIRKNINGSDATO ->
+        VurdertIndividuellForsikring.Konklusjon.SKJÆRINGSTIDSPUNKT_MER_ENN_28_DAGER_FØR_VIRKNINGSDATO ->
             "Forsikringen var ikke ennå gyldig på skjæringstidspunktet"
 
-        VurdertNavKjøptForsikring.Konklusjon.OPPHØRT_PÅ_SKJÆRINGSTIDSPUNKT ->
+        VurdertIndividuellForsikring.Konklusjon.OPPHØRT_PÅ_SKJÆRINGSTIDSPUNKT ->
             "Forsikringen opphørte før skjæringstidspunktet"
 
-        VurdertNavKjøptForsikring.Konklusjon.ALDRI_BETALT ->
+        VurdertIndividuellForsikring.Konklusjon.ALDRI_BETALT ->
             "Forsikringen er innvilget, men ikke betalt ennå"
 
-        VurdertNavKjøptForsikring.Konklusjon.GYLDIG ->
+        VurdertIndividuellForsikring.Konklusjon.GYLDIG ->
             "Lagt til grunn"
     }
 
@@ -126,9 +126,13 @@ data class SpesialistForsikringsvurderingResponse(
     val identitetsnummer: String,
     val samletDekning: Dekning?,
     val kollektivForsikring: KollektivForsikring?,
-    val navKjøpteForsikringer: List<NavKjøptForsikring>,
+    val individuelleForsikringer: List<IndividuellForsikring>,
     val vurdertTidspunkt: Instant,
 ) {
+    @Deprecated("Nav-kjøpt forsikring heter nå individuell forsikring. Bruk individuelleForsikringer i stedet.")
+    val navKjøpteForsikringer: List<IndividuellForsikring>
+        get() = individuelleForsikringer
+
     data class Dekning(
         val grad: Int,
         val fraDag: Int,
@@ -140,7 +144,7 @@ data class SpesialistForsikringsvurderingResponse(
         val kollektivFolketrygdlovenreferanse: Folketrygdlovenreferanse,
     )
 
-    data class NavKjøptForsikring(
+    data class IndividuellForsikring(
         val navn: String,
         val dekningFolketrygdlovenreferanse: Folketrygdlovenreferanse,
         val virkningsdato: LocalDate,

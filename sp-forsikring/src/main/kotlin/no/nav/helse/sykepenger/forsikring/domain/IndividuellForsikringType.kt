@@ -1,6 +1,6 @@
 package no.nav.helse.sykepenger.forsikring.domain
 
-enum class NavKjøptForsikringType(
+enum class IndividuellForsikringType(
     val yrkesaktivitetstype: Yrkesaktivitetstype,
     val tilleggsforsikringFor: KollektivForsikring? = null,
     override val dekning: Forsikringsdekning,
@@ -57,7 +57,7 @@ enum class NavKjøptForsikringType(
     ) {
         if (faktisk != forventet) {
             throw Valideringsfeil(
-                "Nav-kjøpt forsikring er av type $this, " +
+                "Individuell forsikring er av type $this, " +
                     "der forventet yrkesaktivitetstype er $forventet, " +
                     "men yrkesaktivitetstypen var $faktisk",
             )
@@ -70,7 +70,7 @@ enum class NavKjøptForsikringType(
     ) {
         if (faktiske.none { it in forventetEnAv }) {
             throw Valideringsfeil(
-                "Nav-kjøpt forsikring er av type $this, " +
+                "Individuell forsikring er av type $this, " +
                     "der det var forventet at spesielle yrkesgrupper inneholdt en av ${forventetEnAv.toSet()}, " +
                     "men spesielle yrkesgrupper var $faktiske",
             )

@@ -5,13 +5,13 @@ import com.github.navikt.tbd_libs.test.assertJsonEquals
 import kotliquery.queryOf
 import kotliquery.sessionOf
 import no.nav.helse.sykepenger.forsikring.domain.Forsikringsvurdering
+import no.nav.helse.sykepenger.forsikring.domain.IndividuellForsikringType
 import no.nav.helse.sykepenger.forsikring.domain.KollektivForsikring
-import no.nav.helse.sykepenger.forsikring.domain.NavKjøptForsikringType
 import no.nav.helse.sykepenger.forsikring.domain.SpesiellYrkesgruppe
 import no.nav.helse.sykepenger.forsikring.shared.testsupport.TestcontainersSpForsikringDatabase
 import no.nav.helse.sykepenger.forsikring.shared.testsupport.lagForsikringsvurdering
 import no.nav.helse.sykepenger.forsikring.shared.testsupport.lagIdentitetsnummer
-import no.nav.helse.sykepenger.forsikring.shared.testsupport.lagVurdertNavKjøptForsikring
+import no.nav.helse.sykepenger.forsikring.shared.testsupport.lagVurdertIndividuellForsikring
 import no.nav.helse.sykepenger.forsikring.shared.testsupport.lagreRåkopiOgForsikringsvurdering
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.assertThrows
@@ -45,7 +45,7 @@ class VedtakFattetTellerRiverTest {
     }
 
     @Test
-    fun `lagrer melding og utbetaling for navkjøpt forsikring med 80 prosent fra dag 1`() {
+    fun `lagrer melding og utbetaling for individuell forsikring med 80 prosent fra dag 1`() {
         val meldingId = UUID.randomUUID()
         val behandlingId = UUID.randomUUID()
         val identitetsnummer = lagIdentitetsnummer()
@@ -54,10 +54,10 @@ class VedtakFattetTellerRiverTest {
             lagForsikringsvurdering(
                 skjæringstidspunkt = skjæringstidspunkt,
                 identitetsnummer = identitetsnummer,
-                navKjøpteForsikringer =
+                individuelleForsikringer =
                     listOf(
-                        lagVurdertNavKjøptForsikring(
-                            type = NavKjøptForsikringType.SELVSTENDIG_80_PROSENT_FRA_DAG_1,
+                        lagVurdertIndividuellForsikring(
+                            type = IndividuellForsikringType.SELVSTENDIG_80_PROSENT_FRA_DAG_1,
                             virkningsdato = LocalDate.parse("2026-01-01"),
                         ),
                     ),
@@ -96,7 +96,7 @@ class VedtakFattetTellerRiverTest {
         val utbetalinger = hentUtbetalingerPerForsikringstype(meldingId)
         assertEquals(1, utbetalinger.size)
         val utbetaling = utbetalinger.single()
-        assertEquals(NavKjøptForsikringType.SELVSTENDIG_80_PROSENT_FRA_DAG_1.name, utbetaling.navkjøptForsikringType)
+        assertEquals(IndividuellForsikringType.SELVSTENDIG_80_PROSENT_FRA_DAG_1.name, utbetaling.individuellForsikringType)
         assertNull(utbetaling.kollektivForsikringType)
         assertBeløp("1200", utbetaling.utbetaltIVentetid)
         assertBeløp("0", utbetaling.utbetaltUtenomVentetid)
@@ -134,15 +134,15 @@ class VedtakFattetTellerRiverTest {
     }
 
     @Test
-    fun `regner ut merutbetaling utenom ventetid for navkjøpt forsikring med 100 prosent fra dag 1`() {
+    fun `regner ut merutbetaling utenom ventetid for individuell forsikring med 100 prosent fra dag 1`() {
         val meldingId = UUID.randomUUID()
         val forsikringsvurdering =
             lagForsikringsvurdering(
                 skjæringstidspunkt = LocalDate.parse("2026-04-06"),
-                navKjøpteForsikringer =
+                individuelleForsikringer =
                     listOf(
-                        lagVurdertNavKjøptForsikring(
-                            type = NavKjøptForsikringType.SELVSTENDIG_100_PROSENT_FRA_DAG_1,
+                        lagVurdertIndividuellForsikring(
+                            type = IndividuellForsikringType.SELVSTENDIG_100_PROSENT_FRA_DAG_1,
                             virkningsdato = LocalDate.parse("2026-01-01"),
                         ),
                     ),
@@ -158,7 +158,7 @@ class VedtakFattetTellerRiverTest {
         )
 
         val utbetaling = hentUtbetalingerPerForsikringstype(meldingId).single()
-        assertEquals(NavKjøptForsikringType.SELVSTENDIG_100_PROSENT_FRA_DAG_1.name, utbetaling.navkjøptForsikringType)
+        assertEquals(IndividuellForsikringType.SELVSTENDIG_100_PROSENT_FRA_DAG_1.name, utbetaling.individuellForsikringType)
         assertBeløp("100", utbetaling.utbetaltIVentetid)
         // (100 - 80) % av 2000
         assertBeløp("400", utbetaling.utbetaltUtenomVentetid)
@@ -170,10 +170,10 @@ class VedtakFattetTellerRiverTest {
         val forsikringsvurdering =
             lagForsikringsvurdering(
                 skjæringstidspunkt = LocalDate.parse("2026-04-06"),
-                navKjøpteForsikringer =
+                individuelleForsikringer =
                     listOf(
-                        lagVurdertNavKjøptForsikring(
-                            type = NavKjøptForsikringType.SELVSTENDIG_100_PROSENT_FRA_DAG_1,
+                        lagVurdertIndividuellForsikring(
+                            type = IndividuellForsikringType.SELVSTENDIG_100_PROSENT_FRA_DAG_1,
                             virkningsdato = LocalDate.parse("2026-01-01"),
                         ),
                     ),
@@ -195,15 +195,15 @@ class VedtakFattetTellerRiverTest {
     }
 
     @Test
-    fun `teller ikke dager etter opphørsdato for navkjøpt forsikring`() {
+    fun `teller ikke dager etter opphørsdato for individuell forsikring`() {
         val meldingId = UUID.randomUUID()
         val forsikringsvurdering =
             lagForsikringsvurdering(
                 skjæringstidspunkt = LocalDate.parse("2026-04-06"),
-                navKjøpteForsikringer =
+                individuelleForsikringer =
                     listOf(
-                        lagVurdertNavKjøptForsikring(
-                            type = NavKjøptForsikringType.SELVSTENDIG_100_PROSENT_FRA_DAG_1,
+                        lagVurdertIndividuellForsikring(
+                            type = IndividuellForsikringType.SELVSTENDIG_100_PROSENT_FRA_DAG_1,
                             virkningsdato = LocalDate.parse("2026-01-01"),
                             opphører = true,
                             opphørsdato = LocalDate.parse("2026-04-22"),
@@ -272,22 +272,22 @@ class VedtakFattetTellerRiverTest {
 
         val utbetaling = hentUtbetalingerPerForsikringstype(meldingId).single()
         assertEquals(KollektivForsikring.FISKER_BLAD_B.name, utbetaling.kollektivForsikringType)
-        assertNull(utbetaling.navkjøptForsikringType)
+        assertNull(utbetaling.individuellForsikringType)
         assertBeløp("100", utbetaling.utbetaltIVentetid)
         assertBeløp("400", utbetaling.utbetaltUtenomVentetid)
     }
 
     @Test
-    fun `lagrer én rad per forsikringstype når bruker har både kollektiv og navkjøpt tilleggsforsikring`() {
+    fun `lagrer én rad per forsikringstype når bruker har både kollektiv og individuell tilleggsforsikring`() {
         val meldingId = UUID.randomUUID()
         val forsikringsvurdering =
             lagForsikringsvurdering(
                 skjæringstidspunkt = LocalDate.parse("2026-04-06"),
                 spesielleYrkesgrupper = setOf(SpesiellYrkesgruppe.JORDBRUKER),
-                navKjøpteForsikringer =
+                individuelleForsikringer =
                     listOf(
-                        lagVurdertNavKjøptForsikring(
-                            type = NavKjøptForsikringType.SELVSTENDIG_JORDBRUKER_100_PROSENT_FRA_DAG_1,
+                        lagVurdertIndividuellForsikring(
+                            type = IndividuellForsikringType.SELVSTENDIG_JORDBRUKER_100_PROSENT_FRA_DAG_1,
                             virkningsdato = LocalDate.parse("2026-01-01"),
                         ),
                     ),
@@ -307,14 +307,14 @@ class VedtakFattetTellerRiverTest {
 
         val utbetalinger = hentUtbetalingerPerForsikringstype(meldingId)
         assertEquals(2, utbetalinger.size)
-        val navkjøpt =
+        val individuell =
             assertNotNull(
                 utbetalinger.singleOrNull {
-                    it.navkjøptForsikringType == NavKjøptForsikringType.SELVSTENDIG_JORDBRUKER_100_PROSENT_FRA_DAG_1.name
+                    it.individuellForsikringType == IndividuellForsikringType.SELVSTENDIG_JORDBRUKER_100_PROSENT_FRA_DAG_1.name
                 },
             )
-        assertBeløp("100", navkjøpt.utbetaltIVentetid)
-        assertBeløp("0", navkjøpt.utbetaltUtenomVentetid)
+        assertBeløp("100", individuell.utbetaltIVentetid)
+        assertBeløp("0", individuell.utbetaltUtenomVentetid)
 
         val kollektiv =
             assertNotNull(utbetalinger.singleOrNull { it.kollektivForsikringType == KollektivForsikring.JORDBRUKER.name })
@@ -370,10 +370,10 @@ class VedtakFattetTellerRiverTest {
         val forsikringsvurdering =
             lagForsikringsvurdering(
                 skjæringstidspunkt = LocalDate.parse("2026-04-06"),
-                navKjøpteForsikringer =
+                individuelleForsikringer =
                     listOf(
-                        lagVurdertNavKjøptForsikring(
-                            type = NavKjøptForsikringType.SELVSTENDIG_80_PROSENT_FRA_DAG_1,
+                        lagVurdertIndividuellForsikring(
+                            type = IndividuellForsikringType.SELVSTENDIG_80_PROSENT_FRA_DAG_1,
                             virkningsdato = LocalDate.parse("2026-01-01"),
                         ),
                     ),
@@ -402,10 +402,10 @@ class VedtakFattetTellerRiverTest {
         val forsikringsvurdering =
             lagForsikringsvurdering(
                 skjæringstidspunkt = LocalDate.parse("2026-04-06"),
-                navKjøpteForsikringer =
+                individuelleForsikringer =
                     listOf(
-                        lagVurdertNavKjøptForsikring(
-                            type = NavKjøptForsikringType.SELVSTENDIG_100_PROSENT_FRA_DAG_17,
+                        lagVurdertIndividuellForsikring(
+                            type = IndividuellForsikringType.SELVSTENDIG_100_PROSENT_FRA_DAG_17,
                             virkningsdato = LocalDate.parse("2026-01-01"),
                         ),
                     ),
@@ -434,10 +434,10 @@ class VedtakFattetTellerRiverTest {
         val forsikringsvurdering =
             lagForsikringsvurdering(
                 skjæringstidspunkt = LocalDate.parse("2026-04-06"),
-                navKjøpteForsikringer =
+                individuelleForsikringer =
                     listOf(
-                        lagVurdertNavKjøptForsikring(
-                            type = NavKjøptForsikringType.SELVSTENDIG_100_PROSENT_FRA_DAG_17,
+                        lagVurdertIndividuellForsikring(
+                            type = IndividuellForsikringType.SELVSTENDIG_100_PROSENT_FRA_DAG_17,
                             virkningsdato = LocalDate.parse("2026-01-01"),
                         ),
                     ),
@@ -455,7 +455,7 @@ class VedtakFattetTellerRiverTest {
         )
 
         val utbetaling = hentUtbetalingerPerForsikringstype(meldingId).single()
-        assertEquals(NavKjøptForsikringType.SELVSTENDIG_100_PROSENT_FRA_DAG_17.name, utbetaling.navkjøptForsikringType)
+        assertEquals(IndividuellForsikringType.SELVSTENDIG_100_PROSENT_FRA_DAG_17.name, utbetaling.individuellForsikringType)
         assertBeløp("0", utbetaling.utbetaltIVentetid)
         assertBeløp("400", utbetaling.utbetaltUtenomVentetid)
     }
@@ -480,10 +480,10 @@ class VedtakFattetTellerRiverTest {
         val forsikringsvurdering =
             lagForsikringsvurdering(
                 skjæringstidspunkt = LocalDate.parse("2026-04-06"),
-                navKjøpteForsikringer =
+                individuelleForsikringer =
                     listOf(
-                        lagVurdertNavKjøptForsikring(
-                            type = NavKjøptForsikringType.SELVSTENDIG_80_PROSENT_FRA_DAG_1,
+                        lagVurdertIndividuellForsikring(
+                            type = IndividuellForsikringType.SELVSTENDIG_80_PROSENT_FRA_DAG_1,
                             virkningsdato = LocalDate.parse("2026-01-01"),
                         ),
                     ),
@@ -535,10 +535,10 @@ class VedtakFattetTellerRiverTest {
         val forsikringsvurdering =
             lagForsikringsvurdering(
                 skjæringstidspunkt = LocalDate.parse("2026-04-06"),
-                navKjøpteForsikringer =
+                individuelleForsikringer =
                     listOf(
-                        lagVurdertNavKjøptForsikring(
-                            type = NavKjøptForsikringType.SELVSTENDIG_80_PROSENT_FRA_DAG_1,
+                        lagVurdertIndividuellForsikring(
+                            type = IndividuellForsikringType.SELVSTENDIG_80_PROSENT_FRA_DAG_1,
                             virkningsdato = LocalDate.parse("2026-01-01"),
                         ),
                     ),
@@ -699,7 +699,7 @@ class VedtakFattetTellerRiverTest {
         val utbetaltIVentetid: BigDecimal,
         val utbetaltUtenomVentetid: BigDecimal,
         val kollektivForsikringType: String?,
-        val navkjøptForsikringType: String?,
+        val individuellForsikringType: String?,
     )
 
     private fun assertBeløp(
@@ -723,7 +723,7 @@ class VedtakFattetTellerRiverTest {
                         utbetaltIVentetid = row.bigDecimal("utbetalt_i_ventetid"),
                         utbetaltUtenomVentetid = row.bigDecimal("utbetalt_utenom_ventetid"),
                         kollektivForsikringType = row.stringOrNull("kollektiv_forsikring_type"),
-                        navkjøptForsikringType = row.stringOrNull("navkjøpt_forsikring_type"),
+                        individuellForsikringType = row.stringOrNull("individuell_forsikring_type"),
                     )
                 }.asList,
             )

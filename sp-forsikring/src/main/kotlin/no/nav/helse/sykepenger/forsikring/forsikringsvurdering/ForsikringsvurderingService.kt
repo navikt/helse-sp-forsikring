@@ -2,8 +2,8 @@ package no.nav.helse.sykepenger.forsikring.forsikringsvurdering
 
 import no.nav.helse.sykepenger.forsikring.domain.Forsikringsvurdering
 import no.nav.helse.sykepenger.forsikring.domain.Identitetsnummer
+import no.nav.helse.sykepenger.forsikring.domain.IndividuellForsikringService
 import no.nav.helse.sykepenger.forsikring.domain.KollektivForsikringService
-import no.nav.helse.sykepenger.forsikring.domain.NavKjøptForsikringService
 import no.nav.helse.sykepenger.forsikring.domain.SpesiellYrkesgruppe
 import no.nav.helse.sykepenger.forsikring.domain.Yrkesaktivitetstype
 import no.nav.helse.sykepenger.forsikring.råkopi.Råkopi
@@ -15,7 +15,7 @@ class ForsikringsvurderingService(
     replikabaseDataSource: DataSource,
 ) {
     private val råkopiService: RåkopiService = RåkopiService(replikabaseDataSource)
-    private val navKjøptForsikringService: NavKjøptForsikringService = NavKjøptForsikringService()
+    private val individuellForsikringService: IndividuellForsikringService = IndividuellForsikringService()
     private val kollektivForsikringService: KollektivForsikringService = KollektivForsikringService()
 
     fun gjørForsikringsvurdering(
@@ -27,8 +27,8 @@ class ForsikringsvurderingService(
         // Ta en ny råkopi av data fra replikabasen
         val råkopi = råkopiService.hentNyRåkopi(identitetsnummer)
 
-        // Tolk råkopi til nav-kjøpte forsikringer
-        val navKjøpteForsikringer = navKjøptForsikringService.tolkTilNavKjøpteForsikringer(råkopi)
+        // Tolk råkopi til individuelle forsikringer
+        val individuelleForsikringer = individuellForsikringService.tolkTilIndividuelleForsikringer(råkopi)
         val kollektiveForsikringer = kollektivForsikringService.utledKollektiveForsikringer(spesielleYrkesgrupper)
 
         val forsikringsvurdering =
@@ -39,7 +39,7 @@ class ForsikringsvurderingService(
                 skjæringstidspunkt = skjæringstidspunkt,
                 råkopiId = råkopi.id,
                 kollektiveForsikringer = kollektiveForsikringer,
-                navKjøpteForsikringer = navKjøpteForsikringer,
+                individuelleForsikringer = individuelleForsikringer,
             )
         return Pair(råkopi, forsikringsvurdering)
     }

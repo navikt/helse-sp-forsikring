@@ -9,7 +9,7 @@ import com.github.navikt.tbd_libs.rapids_and_rivers_api.RapidsConnection
 import io.micrometer.core.instrument.MeterRegistry
 import kotlinx.coroutines.runBlocking
 import no.nav.helse.sykepenger.forsikring.domain.Forsikringsvurdering
-import no.nav.helse.sykepenger.forsikring.domain.NavKjøptForsikringType
+import no.nav.helse.sykepenger.forsikring.domain.IndividuellForsikringType
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.ForsikringsvurderingRepository
 import no.nav.helse.sykepenger.forsikring.gosys.GosysOppgaveClient
 import no.nav.helse.sykepenger.forsikring.gosys.Årsak
@@ -57,13 +57,13 @@ class SelvstendigUtbetaltEtterVentetidRiver(
                     ForsikringsvurderingRepository(transaction).hent(forsikringsvurderingId)
                 } ?: error("Fant ikke vurdering for forsikringsvurderingId=$forsikringsvurderingId")
 
-            if (!forsikringsvurdering.harNavKjøptForsikring()) return@medMdc
+            if (!forsikringsvurdering.harIndividuellForsikring()) return@medMdc
 
-            val navKjøptForsikring = forsikringsvurdering.gjeldendeNavKjøptForsikring()!!
+            val individuellForsikring = forsikringsvurdering.gjeldendeIndividuellForsikring()!!
             val årsak =
-                when (navKjøptForsikring.type) {
-                    NavKjøptForsikringType.SELVSTENDIG_80_PROSENT_FRA_DAG_1 -> Årsak.UtbetaltFraDagÉnOgDekningsgrad80Prosent
-                    NavKjøptForsikringType.SELVSTENDIG_JORDBRUKER_100_PROSENT_FRA_DAG_1 -> Årsak.UtbetaltFraDagÉnOgDekningsgrad100ProsentJordbruker
+                when (individuellForsikring.type) {
+                    IndividuellForsikringType.SELVSTENDIG_80_PROSENT_FRA_DAG_1 -> Årsak.UtbetaltFraDagÉnOgDekningsgrad80Prosent
+                    IndividuellForsikringType.SELVSTENDIG_JORDBRUKER_100_PROSENT_FRA_DAG_1 -> Årsak.UtbetaltFraDagÉnOgDekningsgrad100ProsentJordbruker
                     else -> return@medMdc
                 }
 

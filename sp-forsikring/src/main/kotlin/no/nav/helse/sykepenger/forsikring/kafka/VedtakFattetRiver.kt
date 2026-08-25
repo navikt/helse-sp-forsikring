@@ -64,10 +64,10 @@ class VedtakFattetRiver(
                     ForsikringsvurderingRepository(transaction).hent(forsikringsvurderingId)
                 } ?: error("Fant ikke vurdering for forsikringsvurderingId=$forsikringsvurderingId")
 
-            if (!forsikringsvurdering.harNavKjøptForsikring()) return@medMdc
+            if (!forsikringsvurdering.harIndividuellForsikring()) return@medMdc
 
-            val navKjøptForsikring = forsikringsvurdering.gjeldendeNavKjøptForsikring()!!
-            val premiegrunnlag = BigDecimal(navKjøptForsikring.premiegrunnlag)
+            val individuellForsikring = forsikringsvurdering.gjeldendeIndividuellForsikring()!!
+            val premiegrunnlag = BigDecimal(individuellForsikring.premiegrunnlag)
 
             if (sykepengegrunnlag.compareTo(premiegrunnlag) != 0) {
                 val avviksprosent = beregnAvvik(sykepengegrunnlag, premiegrunnlag)

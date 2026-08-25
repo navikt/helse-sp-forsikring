@@ -80,7 +80,7 @@ class VedtakFattetTellerRiver(
             }
 
             val kollektivForsikring = forsikringsvurdering.kollektivForsikring
-            val navKjøptForsikring = forsikringsvurdering.gjeldendeNavKjøptForsikring()
+            val individuellForsikring = forsikringsvurdering.gjeldendeIndividuellForsikring()
 
             val utbetalingsdager =
                 vedtakFattetMelding.utbetalingsdager.map {
@@ -98,7 +98,7 @@ class VedtakFattetTellerRiver(
                         dag = dag,
                         yrkesaktivitetstype = forsikringsvurdering.yrkesaktivitetstype,
                         kollektivForsikring = kollektivForsikring,
-                        navKjøptForsikring = navKjøptForsikring,
+                        individuellForsikring = individuellForsikring,
                     )
                 }
 
@@ -114,12 +114,12 @@ class VedtakFattetTellerRiver(
                     utbetaltUtenomVentetid = fordelingerUtenomVentetid.summer { it.påGrunnAvKollektivForsikring },
                 )
             }
-            if (navKjøptForsikring != null) {
+            if (individuellForsikring != null) {
                 utbetalingPerForsikringstypeDao.insert(
                     vedtakFattetMeldingId = vedtakFattetMelding.id,
-                    forsikringstype = navKjøptForsikring.type,
-                    utbetaltIVentetid = fordelingerIVentetid.summer { it.påGrunnAvNavKjøptForsikring },
-                    utbetaltUtenomVentetid = fordelingerUtenomVentetid.summer { it.påGrunnAvNavKjøptForsikring },
+                    forsikringstype = individuellForsikring.type,
+                    utbetaltIVentetid = fordelingerIVentetid.summer { it.påGrunnAvIndividuellForsikring },
+                    utbetaltUtenomVentetid = fordelingerUtenomVentetid.summer { it.påGrunnAvIndividuellForsikring },
                 )
             }
         }

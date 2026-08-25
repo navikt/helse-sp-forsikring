@@ -7,8 +7,8 @@ import io.ktor.server.cio.*
 import io.ktor.server.engine.*
 import kotliquery.TransactionalSession
 import no.nav.helse.sykepenger.forsikring.domain.Forsikringstype
+import no.nav.helse.sykepenger.forsikring.domain.IndividuellForsikringType
 import no.nav.helse.sykepenger.forsikring.domain.KollektivForsikring
-import no.nav.helse.sykepenger.forsikring.domain.NavKjøptForsikringType
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.ForsikringsvurderingService
 import no.nav.helse.sykepenger.forsikring.shared.testsupport.TestcontainersReplikadatabase
 import no.nav.helse.sykepenger.forsikring.shared.testsupport.TestcontainersSpForsikringDatabase
@@ -68,7 +68,7 @@ class UtbetalingsstatistikkApiTest {
         lagreUtbetaling(
             vedtakFattetTidspunkt = Instant.parse("2026-07-02T09:00:00Z"),
             KollektivForsikring.JORDBRUKER to ("100" to "200"),
-            NavKjøptForsikringType.SELVSTENDIG_80_PROSENT_FRA_DAG_1 to ("10" to "20"),
+            IndividuellForsikringType.SELVSTENDIG_80_PROSENT_FRA_DAG_1 to ("10" to "20"),
         )
         lagreUtbetaling(
             vedtakFattetTidspunkt = Instant.parse("2026-07-03T09:00:00Z"),
@@ -90,12 +90,12 @@ class UtbetalingsstatistikkApiTest {
         assertBeløp("202", kollektiv["utbetaltUtenomVentetid"])
         assertBeløp("303", kollektiv["totalt"])
 
-        val navKjøpt = assertNotNull(perForsikringstype.finn(NavKjøptForsikringType.SELVSTENDIG_80_PROSENT_FRA_DAG_1))
-        assertBeløp("10", navKjøpt["utbetaltIVentetid"])
-        assertBeløp("20", navKjøpt["utbetaltUtenomVentetid"])
-        assertBeløp("30", navKjøpt["totalt"])
+        val individuell = assertNotNull(perForsikringstype.finn(IndividuellForsikringType.SELVSTENDIG_80_PROSENT_FRA_DAG_1))
+        assertBeløp("10", individuell["utbetaltIVentetid"])
+        assertBeløp("20", individuell["utbetaltUtenomVentetid"])
+        assertBeløp("30", individuell["totalt"])
 
-        assertNullsummer(perForsikringstype, unntatt = setOf(KollektivForsikring.JORDBRUKER, NavKjøptForsikringType.SELVSTENDIG_80_PROSENT_FRA_DAG_1))
+        assertNullsummer(perForsikringstype, unntatt = setOf(KollektivForsikring.JORDBRUKER, IndividuellForsikringType.SELVSTENDIG_80_PROSENT_FRA_DAG_1))
     }
 
     @Test
@@ -127,7 +127,7 @@ class UtbetalingsstatistikkApiTest {
         assertEquals(200, statusCode) { "Body was: $body" }
         val perForsikringstype = objectMapper.readTree(body)["perForsikringstype"]
 
-        val forventedeNavn = (KollektivForsikring.entries + NavKjøptForsikringType.entries).map { it.navn }.sorted()
+        val forventedeNavn = (KollektivForsikring.entries + IndividuellForsikringType.entries).map { it.navn }.sorted()
         assertEquals(forventedeNavn, perForsikringstype.map { it["navn"].asText() })
     }
 

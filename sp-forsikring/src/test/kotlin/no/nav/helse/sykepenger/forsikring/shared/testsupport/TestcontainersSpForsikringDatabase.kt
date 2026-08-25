@@ -127,11 +127,11 @@ object TestcontainersSpForsikringDatabase {
         @Language("PostgreSQL")
         val statement =
             """
-            SELECT råkopi_IF_VEDFRIVT_10.IF10_FORSFOM_SEQ, forsikringsvurdering_navkjøpt_forsikring.konklusjon
-            FROM råkopi_IF_VEDFRIVT_10, forsikringsvurdering_navkjøpt_forsikring
-            WHERE råkopi_IF_VEDFRIVT_10.id = forsikringsvurdering_navkjøpt_forsikring.råkopi_IF_VEDFRIVT_10_id
-            AND forsikringsvurdering_navkjøpt_forsikring.forsikringsvurdering_id = :forsikringsvurdering_id::uuid
-            AND forsikringsvurdering_navkjøpt_forsikring.konklusjon <> 'GYLDIG'
+            SELECT råkopi_IF_VEDFRIVT_10.IF10_FORSFOM_SEQ, forsikringsvurdering_individuell_forsikring.konklusjon
+            FROM råkopi_IF_VEDFRIVT_10, forsikringsvurdering_individuell_forsikring
+            WHERE råkopi_IF_VEDFRIVT_10.id = forsikringsvurdering_individuell_forsikring.råkopi_IF_VEDFRIVT_10_id
+            AND forsikringsvurdering_individuell_forsikring.forsikringsvurdering_id = :forsikringsvurdering_id::uuid
+            AND forsikringsvurdering_individuell_forsikring.konklusjon <> 'GYLDIG'
             """.trimIndent()
         return sessionOf(dataSource).use { session ->
             session

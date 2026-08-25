@@ -7,20 +7,20 @@ import no.nav.helse.sykepenger.forsikring.shared.logging.loggInfo
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter.ofPattern
 
-class NavKjøptForsikringService {
-    fun tolkTilNavKjøpteForsikringer(råkopi: Råkopi): List<NavKjøptForsikring> =
+class IndividuellForsikringService {
+    fun tolkTilIndividuelleForsikringer(råkopi: Råkopi): List<IndividuellForsikring> =
         råkopi.ifVedfrivt10er
             .map { ifVedfrivt10 ->
                 val opphørsdato = ifVedfrivt10.IF10_FORSTOM.infotrygdIntDatoTilLocalDate()
-                NavKjøptForsikring.ny(
+                IndividuellForsikring.ny(
                     råkopiIfVedfrivt10Id = ifVedfrivt10.id,
                     type =
                         when (ifVedfrivt10.IF10_TYPE) {
-                            '1' -> NavKjøptForsikringType.SELVSTENDIG_80_PROSENT_FRA_DAG_1
-                            '2' -> NavKjøptForsikringType.SELVSTENDIG_100_PROSENT_FRA_DAG_17
-                            '3' -> NavKjøptForsikringType.SELVSTENDIG_100_PROSENT_FRA_DAG_1
-                            '4' -> NavKjøptForsikringType.SELVSTENDIG_JORDBRUKER_100_PROSENT_FRA_DAG_1
-                            '5' -> NavKjøptForsikringType.FRILANSER_100_PROSENT_FRA_DAG_1
+                            '1' -> IndividuellForsikringType.SELVSTENDIG_80_PROSENT_FRA_DAG_1
+                            '2' -> IndividuellForsikringType.SELVSTENDIG_100_PROSENT_FRA_DAG_17
+                            '3' -> IndividuellForsikringType.SELVSTENDIG_100_PROSENT_FRA_DAG_1
+                            '4' -> IndividuellForsikringType.SELVSTENDIG_JORDBRUKER_100_PROSENT_FRA_DAG_1
+                            '5' -> IndividuellForsikringType.FRILANSER_100_PROSENT_FRA_DAG_1
                             else -> error("Ukjent forsikringstype: ${ifVedfrivt10.IF10_TYPE}")
                         },
                     virkningsdato = ifVedfrivt10.IF10_VIRKDATO.infotrygdIntDatoTilLocalDate()!!,
@@ -32,11 +32,11 @@ class NavKjøptForsikringService {
                             .ifFkonto12ErFor(ifVedfrivt10)
                             .any { ifFKonto12 -> ifFKonto12.IF12_BETDATO?.infotrygdIntDatoTilLocalDate() != null },
                 )
-            }.also { navKjøpteForsikringer ->
+            }.also { individuelleForsikringer ->
                 loggInfo(
-                    "Tolket råkopi til ${navKjøpteForsikringer.size} NAV-kjøpte forsikringer",
-                    "navKjøpteForsikringer" to
-                        navKjøpteForsikringer
+                    "Tolket råkopi til ${individuelleForsikringer.size} individuelle forsikringer",
+                    "individuelleForsikringer" to
+                        individuelleForsikringer
                             .map {
                                 mapOf(
                                     "type" to it.type,

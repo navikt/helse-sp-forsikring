@@ -7,7 +7,7 @@ import no.nav.helse.sykepenger.forsikring.shared.testsupport.OppgaveOppsamler
 import no.nav.helse.sykepenger.forsikring.shared.testsupport.TestcontainersSpForsikringDatabase
 import no.nav.helse.sykepenger.forsikring.shared.testsupport.lagForsikringsvurdering
 import no.nav.helse.sykepenger.forsikring.shared.testsupport.lagIdentitetsnummer
-import no.nav.helse.sykepenger.forsikring.shared.testsupport.lagVurdertNavKjøptForsikring
+import no.nav.helse.sykepenger.forsikring.shared.testsupport.lagVurdertIndividuellForsikring
 import no.nav.helse.sykepenger.forsikring.shared.testsupport.lagreRåkopiOgForsikringsvurdering
 import org.intellij.lang.annotations.Language
 import org.junit.jupiter.api.BeforeEach
@@ -44,7 +44,7 @@ class SelvstendigIngenDagerIgjenRiverTest {
             lagForsikringsvurdering(
                 skjæringstidspunkt = LocalDate.parse("2026-01-01"),
                 identitetsnummer = identitetsnummer,
-                navKjøpteForsikringer = listOf(lagVurdertNavKjøptForsikring(virkningsdato = LocalDate.parse("2025-06-01"))),
+                individuelleForsikringer = listOf(lagVurdertIndividuellForsikring(virkningsdato = LocalDate.parse("2025-06-01"))),
             )
         lagreRåkopiOgForsikringsvurdering(forsikringsvurdering)
 

@@ -16,34 +16,34 @@ class FordelingAvBeløpPåUtbetalingsdagTest {
     }
 
     @Test
-    fun `nav-kjøpt forsikring med samme grad som den ordinære dekningen bidrar bare i ventetiden`() {
-        val navKjøptForsikring = gyldigNavKjøptForsikring(type = NavKjøptForsikringType.SELVSTENDIG_80_PROSENT_FRA_DAG_1)
+    fun `individuell forsikring med samme grad som den ordinære dekningen bidrar bare i ventetiden`() {
+        val individuellForsikring = gyldigIndividuellForsikring(type = IndividuellForsikringType.SELVSTENDIG_80_PROSENT_FRA_DAG_1)
 
         val iVentetiden =
             fordeling(
                 dag = ventetidsdag(beløpTilBruker = 100, dekningsgrad = 80),
-                navKjøptForsikring = navKjøptForsikring,
+                individuellForsikring = individuellForsikring,
             )
-        assertFordeling(fordeling = iVentetiden, uavhengigAvForsikring = "0", påGrunnAvNavKjøptForsikring = "100")
+        assertFordeling(fordeling = iVentetiden, uavhengigAvForsikring = "0", påGrunnAvIndividuellForsikring = "100")
 
         val utenomVentetiden =
             fordeling(
                 dag = navdag(beløpTilBruker = 1000, dekningsgrad = 80),
-                navKjøptForsikring = navKjøptForsikring,
+                individuellForsikring = individuellForsikring,
             )
-        assertFordeling(fordeling = utenomVentetiden, uavhengigAvForsikring = "1000", påGrunnAvNavKjøptForsikring = "0")
+        assertFordeling(fordeling = utenomVentetiden, uavhengigAvForsikring = "1000", påGrunnAvIndividuellForsikring = "0")
     }
 
     @Test
-    fun `nav-kjøpt forsikring med høyere grad bidrar med differansen mot den ordinære dekningen`() {
+    fun `individuell forsikring med høyere grad bidrar med differansen mot den ordinære dekningen`() {
         val fordeling =
             fordeling(
                 dag = navdag(beløpTilBruker = 1000, dekningsgrad = 100),
-                navKjøptForsikring = gyldigNavKjøptForsikring(type = NavKjøptForsikringType.SELVSTENDIG_100_PROSENT_FRA_DAG_1),
+                individuellForsikring = gyldigIndividuellForsikring(type = IndividuellForsikringType.SELVSTENDIG_100_PROSENT_FRA_DAG_1),
             )
 
         // (100 - 80) % av 1000
-        assertFordeling(fordeling = fordeling, uavhengigAvForsikring = "800", påGrunnAvNavKjøptForsikring = "200")
+        assertFordeling(fordeling = fordeling, uavhengigAvForsikring = "800", påGrunnAvIndividuellForsikring = "200")
     }
 
     @Test
@@ -58,23 +58,23 @@ class FordelingAvBeløpPåUtbetalingsdagTest {
     }
 
     @Test
-    fun `nav-kjøpt tilleggsforsikring bidrar bare med det den gir utover den kollektive forsikringen`() {
+    fun `individuell tilleggsforsikring bidrar bare med det den gir utover den kollektive forsikringen`() {
         val kollektivForsikring = KollektivForsikring.JORDBRUKER
-        val navKjøptForsikring =
-            gyldigNavKjøptForsikring(type = NavKjøptForsikringType.SELVSTENDIG_JORDBRUKER_100_PROSENT_FRA_DAG_1)
+        val individuellForsikring =
+            gyldigIndividuellForsikring(type = IndividuellForsikringType.SELVSTENDIG_JORDBRUKER_100_PROSENT_FRA_DAG_1)
 
         // I ventetiden gir den kollektive forsikringen ingenting, siden den først gjelder fra dag 17
         val iVentetiden =
             fordeling(
                 dag = ventetidsdag(beløpTilBruker = 100, dekningsgrad = 100),
                 kollektivForsikring = kollektivForsikring,
-                navKjøptForsikring = navKjøptForsikring,
+                individuellForsikring = individuellForsikring,
             )
         assertFordeling(
             fordeling = iVentetiden,
             uavhengigAvForsikring = "0",
             påGrunnAvKollektivForsikring = "0",
-            påGrunnAvNavKjøptForsikring = "100",
+            påGrunnAvIndividuellForsikring = "100",
         )
 
         // Fra dag 17 har den kollektive forsikringen tatt over, og tilleggsforsikringen gir ikke noe ekstra
@@ -82,38 +82,38 @@ class FordelingAvBeløpPåUtbetalingsdagTest {
             fordeling(
                 dag = navdag(beløpTilBruker = 1000, dekningsgrad = 100),
                 kollektivForsikring = kollektivForsikring,
-                navKjøptForsikring = navKjøptForsikring,
+                individuellForsikring = individuellForsikring,
             )
         assertFordeling(
             fordeling = utenomVentetiden,
             uavhengigAvForsikring = "800",
             påGrunnAvKollektivForsikring = "200",
-            påGrunnAvNavKjøptForsikring = "0",
+            påGrunnAvIndividuellForsikring = "0",
         )
     }
 
     @Test
-    fun `nav-kjøpt forsikring bidrar ikke etter opphørsdato`() {
-        val navKjøptForsikring =
-            gyldigNavKjøptForsikring(
-                type = NavKjøptForsikringType.SELVSTENDIG_100_PROSENT_FRA_DAG_1,
+    fun `individuell forsikring bidrar ikke etter opphørsdato`() {
+        val individuellForsikring =
+            gyldigIndividuellForsikring(
+                type = IndividuellForsikringType.SELVSTENDIG_100_PROSENT_FRA_DAG_1,
                 opphørsdato = LocalDate.parse("2026-04-22"),
             )
 
         val påOpphørsdatoen =
             fordeling(
                 dag = navdag(dato = LocalDate.parse("2026-04-22"), beløpTilBruker = 1000, dekningsgrad = 100),
-                navKjøptForsikring = navKjøptForsikring,
+                individuellForsikring = individuellForsikring,
             )
-        assertFordeling(fordeling = påOpphørsdatoen, uavhengigAvForsikring = "800", påGrunnAvNavKjøptForsikring = "200")
+        assertFordeling(fordeling = påOpphørsdatoen, uavhengigAvForsikring = "800", påGrunnAvIndividuellForsikring = "200")
 
         // Etter opphør faller dagen tilbake til ordinær dekning, og dekningsgraden er da 80
         val etterOpphørsdatoen =
             fordeling(
                 dag = navdag(dato = LocalDate.parse("2026-04-23"), beløpTilBruker = 1000, dekningsgrad = 80),
-                navKjøptForsikring = navKjøptForsikring,
+                individuellForsikring = individuellForsikring,
             )
-        assertFordeling(fordeling = etterOpphørsdatoen, uavhengigAvForsikring = "1000", påGrunnAvNavKjøptForsikring = "0")
+        assertFordeling(fordeling = etterOpphørsdatoen, uavhengigAvForsikring = "1000", påGrunnAvIndividuellForsikring = "0")
     }
 
     @Test
@@ -121,11 +121,11 @@ class FordelingAvBeløpPåUtbetalingsdagTest {
         val fordeling =
             fordeling(
                 dag = navdag(beløpTilBruker = 1003, dekningsgrad = 100),
-                navKjøptForsikring = gyldigNavKjøptForsikring(type = NavKjøptForsikringType.SELVSTENDIG_100_PROSENT_FRA_DAG_1),
+                individuellForsikring = gyldigIndividuellForsikring(type = IndividuellForsikringType.SELVSTENDIG_100_PROSENT_FRA_DAG_1),
             )
 
         // (100 - 80) % av 1003 er 200,6
-        assertFordeling(fordeling = fordeling, uavhengigAvForsikring = "802.4", påGrunnAvNavKjøptForsikring = "200.6")
+        assertFordeling(fordeling = fordeling, uavhengigAvForsikring = "802.4", påGrunnAvIndividuellForsikring = "200.6")
     }
 
     @Test
@@ -134,14 +134,14 @@ class FordelingAvBeløpPåUtbetalingsdagTest {
             fordeling(
                 dag = navdag(beløpTilBruker = 1003, dekningsgrad = 100),
                 kollektivForsikring = KollektivForsikring.JORDBRUKER,
-                navKjøptForsikring =
-                    gyldigNavKjøptForsikring(type = NavKjøptForsikringType.SELVSTENDIG_JORDBRUKER_100_PROSENT_FRA_DAG_1),
+                individuellForsikring =
+                    gyldigIndividuellForsikring(type = IndividuellForsikringType.SELVSTENDIG_JORDBRUKER_100_PROSENT_FRA_DAG_1),
             )
 
         val sum =
             fordeling.uavhengigAvForsikring +
                 fordeling.påGrunnAvKollektivForsikring +
-                fordeling.påGrunnAvNavKjøptForsikring
+                fordeling.påGrunnAvIndividuellForsikring
         assertEquals(0, BigDecimal(1003).compareTo(sum), "Summen av fordelingen var $sum")
     }
 
@@ -157,7 +157,7 @@ class FordelingAvBeløpPåUtbetalingsdagTest {
         assertThrows<IllegalStateException> {
             fordeling(
                 dag = navdag(beløpTilBruker = 1000, dekningsgrad = 100),
-                navKjøptForsikring = gyldigNavKjøptForsikring(type = NavKjøptForsikringType.SELVSTENDIG_80_PROSENT_FRA_DAG_1),
+                individuellForsikring = gyldigIndividuellForsikring(type = IndividuellForsikringType.SELVSTENDIG_80_PROSENT_FRA_DAG_1),
             )
         }
     }
@@ -167,7 +167,7 @@ class FordelingAvBeløpPåUtbetalingsdagTest {
         assertThrows<IllegalStateException> {
             fordeling(
                 dag = navdag(beløpTilBruker = 1000, dekningsgrad = 80),
-                navKjøptForsikring = gyldigNavKjøptForsikring(type = NavKjøptForsikringType.SELVSTENDIG_100_PROSENT_FRA_DAG_1),
+                individuellForsikring = gyldigIndividuellForsikring(type = IndividuellForsikringType.SELVSTENDIG_100_PROSENT_FRA_DAG_1),
             )
         }
     }
@@ -177,7 +177,7 @@ class FordelingAvBeløpPåUtbetalingsdagTest {
         assertThrows<IllegalStateException> {
             fordeling(
                 dag = ventetidsdag(beløpTilBruker = 100, dekningsgrad = 100),
-                navKjøptForsikring = gyldigNavKjøptForsikring(type = NavKjøptForsikringType.SELVSTENDIG_100_PROSENT_FRA_DAG_17),
+                individuellForsikring = gyldigIndividuellForsikring(type = IndividuellForsikringType.SELVSTENDIG_100_PROSENT_FRA_DAG_17),
             )
         }
     }
@@ -193,19 +193,19 @@ class FordelingAvBeløpPåUtbetalingsdagTest {
         dag: Utbetalingsdag,
         yrkesaktivitetstype: Yrkesaktivitetstype = Yrkesaktivitetstype.SELVSTENDIG,
         kollektivForsikring: KollektivForsikring? = null,
-        navKjøptForsikring: VurdertNavKjøptForsikring? = null,
+        individuellForsikring: VurdertIndividuellForsikring? = null,
     ) = FordelingAvBeløpPåUtbetalingsdag.finnFordeling(
         dag = dag,
         yrkesaktivitetstype = yrkesaktivitetstype,
         kollektivForsikring = kollektivForsikring,
-        navKjøptForsikring = navKjøptForsikring,
+        individuellForsikring = individuellForsikring,
     )
 
     private fun assertFordeling(
         fordeling: FordelingAvBeløpPåUtbetalingsdag,
         uavhengigAvForsikring: String,
         påGrunnAvKollektivForsikring: String = "0",
-        påGrunnAvNavKjøptForsikring: String = "0",
+        påGrunnAvIndividuellForsikring: String = "0",
     ) {
         assertBeløp(uavhengigAvForsikring, fordeling.uavhengigAvForsikring, "Beløp uavhengig av forsikring")
         assertBeløp(
@@ -214,9 +214,9 @@ class FordelingAvBeløpPåUtbetalingsdagTest {
             "Beløp på grunn av kollektiv forsikring",
         )
         assertBeløp(
-            påGrunnAvNavKjøptForsikring,
-            fordeling.påGrunnAvNavKjøptForsikring,
-            "Beløp på grunn av nav-kjøpt forsikring",
+            påGrunnAvIndividuellForsikring,
+            fordeling.påGrunnAvIndividuellForsikring,
+            "Beløp på grunn av individuell forsikring",
         )
     }
 
@@ -254,10 +254,10 @@ class FordelingAvBeløpPåUtbetalingsdagTest {
         erIVentetid = false,
     )
 
-    private fun gyldigNavKjøptForsikring(
-        type: NavKjøptForsikringType,
+    private fun gyldigIndividuellForsikring(
+        type: IndividuellForsikringType,
         opphørsdato: LocalDate? = null,
-    ) = VurdertNavKjøptForsikring.fraLagring(
+    ) = VurdertIndividuellForsikring.fraLagring(
         råkopiIfVedfrivt10Id = RåkopiIfVedfrivt10.Id.ny(),
         type = type,
         virkningsdato = LocalDate.parse("2026-01-01"),
@@ -265,6 +265,6 @@ class FordelingAvBeløpPåUtbetalingsdagTest {
         opphørsdato = opphørsdato,
         premiegrunnlag = 0,
         erBetaltNoenGang = true,
-        konklusjon = VurdertNavKjøptForsikring.Konklusjon.GYLDIG,
+        konklusjon = VurdertIndividuellForsikring.Konklusjon.GYLDIG,
     )
 }

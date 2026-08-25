@@ -43,7 +43,7 @@ internal class SlettPersonRiverTest {
         insertVedfrivt10(vedfrivt10Id, råkopiId, fnrLong)
         insertFkonto12(fkonto12Id, vedfrivt10Id)
         insertForsikringsvurdering(forsikringsvurderingId, råkopiId, fødselsnummer)
-        insertNavKjøptForsikring(forsikringsvurderingId, vedfrivt10Id)
+        insertIndividuellForsikring(forsikringsvurderingId, vedfrivt10Id)
         insertSpesiellYrkesgruppe(forsikringsvurderingId)
         val vedtakFattetMeldingId = UUID.randomUUID()
         insertVedtakFattetMelding(vedtakFattetMeldingId, forsikringsvurderingId, fødselsnummer)
@@ -53,7 +53,7 @@ internal class SlettPersonRiverTest {
         assertEquals(1, Database.countForsikringsvurdering())
         assertEquals(1, Database.countRåkopiIfVedfrivt10())
         assertEquals(1, Database.countRåkopiIfFkonto12())
-        assertEquals(1, Database.countNavKjøpteForsikringer())
+        assertEquals(1, Database.countIndividuelleForsikringer())
         assertEquals(1, Database.countSpesielleYrkesgrupper())
         assertEquals(1, Database.countVedtakFattetMeldinger())
         assertEquals(1, Database.countUtbetalingPerForsikringstype())
@@ -64,7 +64,7 @@ internal class SlettPersonRiverTest {
         assertEquals(0, Database.countForsikringsvurdering())
         assertEquals(0, Database.countRåkopiIfVedfrivt10())
         assertEquals(0, Database.countRåkopiIfFkonto12())
-        assertEquals(0, Database.countNavKjøpteForsikringer())
+        assertEquals(0, Database.countIndividuelleForsikringer())
         assertEquals(0, Database.countSpesielleYrkesgrupper())
         assertEquals(0, Database.countVedtakFattetMeldinger())
         assertEquals(0, Database.countUtbetalingPerForsikringstype())
@@ -187,7 +187,7 @@ internal class SlettPersonRiverTest {
                 .prepareStatement(
                     """
                 INSERT INTO utbetaling_per_forsikringstype
-                    (id, utbetalt_i_ventetid, utbetalt_utenom_ventetid, vedtak_fattet_melding_id, navkjøpt_forsikring_type)
+                    (id, utbetalt_i_ventetid, utbetalt_utenom_ventetid, vedtak_fattet_melding_id, individuell_forsikring_type)
                 VALUES (?, 0, 0, ?, 'SELVSTENDIG_80_PROSENT_FRA_DAG_1')
                 """,
                 ).use { stmt ->
@@ -288,7 +288,7 @@ internal class SlettPersonRiverTest {
         }
     }
 
-    private fun insertNavKjøptForsikring(
+    private fun insertIndividuellForsikring(
         forsikringsvurderingId: UUID,
         vedfrivt10Id: UUID,
     ) {
@@ -296,7 +296,7 @@ internal class SlettPersonRiverTest {
             conn
                 .prepareStatement(
                     """
-                INSERT INTO forsikringsvurdering_navkjøpt_forsikring
+                INSERT INTO forsikringsvurdering_individuell_forsikring
                     (forsikringsvurdering_id, råkopi_IF_VEDFRIVT_10_id, type, virkningsdato, opphører,
                      premiegrunnlag, er_betalt_noen_gang, konklusjon)
                 VALUES (?, ?, 'SELVSTENDIG_80_PROSENT_FRA_DAG_1', DATE '2026-01-01', false, 0, false, 'ALDRI_BETALT')
