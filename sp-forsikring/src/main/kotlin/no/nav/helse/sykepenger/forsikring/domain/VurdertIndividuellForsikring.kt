@@ -15,6 +15,8 @@ class VurdertIndividuellForsikring private constructor(
 ) {
     fun erGyldig() = konklusjon == Konklusjon.GYLDIG
 
+    fun passerIkkeMedSøknadstype() = konklusjon == Konklusjon.PASSER_IKKE_MED_SØKNADSTYPE
+
     fun erOpphørtPå(dato: LocalDate) = opphørsdato != null && dato > opphørsdato
 
     enum class Konklusjon(
@@ -32,23 +34,16 @@ class VurdertIndividuellForsikring private constructor(
                 ),
         ),
         ALDRI_BETALT(folketrygdlovenReferanse = null),
+        PASSER_IKKE_MED_SØKNADSTYPE(folketrygdlovenReferanse = null),
         GYLDIG(folketrygdlovenReferanse = null),
     }
 
     companion object {
         fun fraIndividuellForsikringMedKonklusjon(
             individuellForsikring: IndividuellForsikring,
-            yrkesaktivitetstype: Yrkesaktivitetstype,
-            spesielleYrkesgrupper: Set<SpesiellYrkesgruppe>,
             konklusjon: Konklusjon,
-        ): VurdertIndividuellForsikring {
-            if (konklusjon == Konklusjon.GYLDIG) {
-                individuellForsikring.type.validerMot(
-                    yrkesaktivitetstype = yrkesaktivitetstype,
-                    spesielleYrkesgrupper = spesielleYrkesgrupper,
-                )
-            }
-            return VurdertIndividuellForsikring(
+        ): VurdertIndividuellForsikring =
+            VurdertIndividuellForsikring(
                 råkopiIfVedfrivt10Id = individuellForsikring.råkopiIfVedfrivt10Id,
                 type = individuellForsikring.type,
                 virkningsdato = individuellForsikring.virkningsdato,
@@ -58,7 +53,6 @@ class VurdertIndividuellForsikring private constructor(
                 erBetaltNoenGang = individuellForsikring.erBetaltNoenGang,
                 konklusjon = konklusjon,
             )
-        }
 
         fun fraLagring(
             råkopiIfVedfrivt10Id: RåkopiIfVedfrivt10.Id,

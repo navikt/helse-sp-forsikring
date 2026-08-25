@@ -103,6 +103,9 @@ private fun VurdertIndividuellForsikring.Konklusjon.forklaring(): String =
         VurdertIndividuellForsikring.Konklusjon.ALDRI_BETALT ->
             "Forsikringen er innvilget, men ikke betalt ennå"
 
+        VurdertIndividuellForsikring.Konklusjon.PASSER_IKKE_MED_SØKNADSTYPE ->
+            "Forsikringen passer ikke med søknadstypen"
+
         VurdertIndividuellForsikring.Konklusjon.GYLDIG ->
             "Lagt til grunn"
     }

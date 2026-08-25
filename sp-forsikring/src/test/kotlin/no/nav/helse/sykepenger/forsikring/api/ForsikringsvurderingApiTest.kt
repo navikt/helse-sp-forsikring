@@ -97,7 +97,7 @@ class ForsikringsvurderingApiTest {
     @ValueSource(chars = ['1', '3', '4', '5'])
     fun `returnerer harForsikringMedDekningIVentetid true når bruker har dag-1-forsikring`(type: Char) {
         val identitetsnummer = lagIdentitetsnummer()
-        // Forsikringen er ikke betalt, og skal derfor telle med uten at typen valideres mot yrkesaktivitet
+        // Forsikringen er ikke betalt, og skal derfor telle med uten at typen må passe med søknadstypen
         TestcontainersReplikadatabase.insertVedfrivt(
             IF01_AGNR_FNR = identitetsnummer.tilInfotrygdFødselsnummer(),
             IF10_TYPE = type,
@@ -357,6 +357,34 @@ class ForsikringsvurderingApiTest {
         assertFalse(forsikring["lagtTilGrunn"].asBoolean()) { "Forventet lagtTilGrunn=false, fikk: $body" }
         val konklusjon = forsikring["konklusjon"]
         assertEquals("Forsikringen er innvilget, men ikke betalt ennå", konklusjon["forklaring"].asText())
+        assertTrue(konklusjon["folketrygdlovenreferanse"].isNull) { "Forventet ingen referanse i konklusjonen, fikk: $body" }
+    }
+
+    @Test
+    fun `GET forsikringsvurderinger forklarer forsikring som ikke passer med søknadstypen`() {
+        val forsikringsvurdering =
+            lagForsikringsvurdering(
+                skjæringstidspunkt = LocalDate.parse("2026-01-01"),
+                individuelleForsikringer =
+                    listOf(
+                        lagVurdertIndividuellForsikring(
+                            virkningsdato = LocalDate.parse("2025-06-01"),
+                            konklusjon = VurdertIndividuellForsikring.Konklusjon.PASSER_IKKE_MED_SØKNADSTYPE,
+                        ),
+                    ),
+            )
+        lagreRåkopiOgForsikringsvurdering(forsikringsvurdering)
+
+        val (statusCode, body) = getForsikringsvurdering(forsikringsvurdering.id.value.toString(), bearerToken())
+
+        assertEquals(200, statusCode) { "Body was: $body" }
+        val json = body.somJson()
+        assertTrue(json["samletDekning"].isNull) { "Forventet samletDekning=null, fikk: $body" }
+
+        val forsikring = json["individuelleForsikringer"].single()
+        assertFalse(forsikring["lagtTilGrunn"].asBoolean()) { "Forventet lagtTilGrunn=false, fikk: $body" }
+        val konklusjon = forsikring["konklusjon"]
+        assertEquals("Forsikringen passer ikke med søknadstypen", konklusjon["forklaring"].asText())
         assertTrue(konklusjon["folketrygdlovenreferanse"].isNull) { "Forventet ingen referanse i konklusjonen, fikk: $body" }
     }
 

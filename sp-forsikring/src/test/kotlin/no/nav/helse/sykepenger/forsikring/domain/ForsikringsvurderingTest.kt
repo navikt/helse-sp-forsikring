@@ -121,26 +121,39 @@ internal class ForsikringsvurderingTest {
         "FRILANS, SELVSTENDIG_100_PROSENT_FRA_DAG_1",
         "ARBEIDSLEDIG, SELVSTENDIG_100_PROSENT_FRA_DAG_1",
     )
-    fun `individuell forsikring som ikke passer yrkesaktivitetstypen feiler`(
+    fun `individuell forsikring som ikke passer yrkesaktivitetstypen ekskluderes`(
         yrkesaktivitetstype: Yrkesaktivitetstype,
         type: IndividuellForsikringType,
     ) {
-        assertThrows<IndividuellForsikringType.Valideringsfeil> {
+        val vurdering =
             vurdering(
                 yrkesaktivitetstype = yrkesaktivitetstype,
                 individuelleForsikringer = listOf(individuellForsikring(type = type)),
             )
-        }
+
+        assertFalse(vurdering.harForsikring())
+        assertFalse(vurdering.villeHattForsikringOmDenVarBetalt())
+        assertTrue(vurdering.harForsikringSomIkkePasserMedSøknadstype())
+        assertEquals(
+            VurdertIndividuellForsikring.Konklusjon.PASSER_IKKE_MED_SØKNADSTYPE,
+            vurdering.individuelleForsikringer.single().konklusjon,
+        )
     }
 
     @Test
-    fun `jordbrukerforsikring uten jordbruker som spesiell yrkesgruppe feiler`() {
-        assertThrows<IndividuellForsikringType.Valideringsfeil> {
+    fun `jordbrukerforsikring uten jordbruker som spesiell yrkesgruppe ekskluderes`() {
+        val vurdering =
             vurdering(
                 individuelleForsikringer =
                     listOf(individuellForsikring(type = IndividuellForsikringType.SELVSTENDIG_JORDBRUKER_100_PROSENT_FRA_DAG_1)),
             )
-        }
+
+        assertFalse(vurdering.harForsikring())
+        assertTrue(vurdering.harForsikringSomIkkePasserMedSøknadstype())
+        assertEquals(
+            VurdertIndividuellForsikring.Konklusjon.PASSER_IKKE_MED_SØKNADSTYPE,
+            vurdering.individuelleForsikringer.single().konklusjon,
+        )
     }
 
     @Test

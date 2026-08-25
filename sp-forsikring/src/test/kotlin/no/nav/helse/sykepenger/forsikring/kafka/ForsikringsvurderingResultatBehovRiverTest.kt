@@ -83,6 +83,7 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
                 "forsikringsvurderingId": "$forsikringsvurderingId",
                 "harForsikring": true,
                 "villeHattForsikringOmDenVarBetalt": false,
+                "harForsikringSomIkkePasserMedSøknadstype": false,
                 "dekning": {
                     "iVentetid": false,
                     "grad": 100
@@ -120,6 +121,7 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
                 "forsikringsvurderingId": "$forsikringsvurderingId",
                 "harForsikring": true,
                 "villeHattForsikringOmDenVarBetalt": false,
+                "harForsikringSomIkkePasserMedSøknadstype": false,
                 "dekning": {
                     "iVentetid": false,
                     "grad": 100
@@ -143,6 +145,7 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
                 "forsikringsvurderingId": "$forsikringsvurderingId",
                 "harForsikring": false,
                 "villeHattForsikringOmDenVarBetalt": false,
+                "harForsikringSomIkkePasserMedSøknadstype": false,
                 "dekning": null,
                 "opphørsdato": null,
                 "harIndividuellForsikring": false
@@ -218,6 +221,60 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
     }
 
     @Test
+    fun `harForsikringSomIkkePasserMedSøknadstype er true når forsikringen ikke passer med yrkesaktivitetstypen`() {
+        insertBetaltVedfrivt(IF01_AGNR_FNR = 3020112345L, IF10_TYPE = '2')
+
+        val forsikringsvurderingId = opprettVurdering(yrkesaktivitetstype = "FRILANS")
+
+        sendForsikringsvurderingResultatBehov(forsikringsvurderingId)
+
+        forventHarForsikringSomIkkePasserMedSøknadstype(true)
+        forventVilleHattForsikringOmDenVarBetalt(false)
+    }
+
+    @Test
+    fun `harForsikringSomIkkePasserMedSøknadstype er true når jordbrukerforsikring mangler spesiell yrkesgruppe`() {
+        insertBetaltVedfrivt(IF01_AGNR_FNR = 3020112345L, IF10_TYPE = '4')
+
+        val forsikringsvurderingId = opprettVurdering(yrkesaktivitetstype = "SELVSTENDIG")
+
+        sendForsikringsvurderingResultatBehov(forsikringsvurderingId)
+
+        forventHarForsikringSomIkkePasserMedSøknadstype(true)
+    }
+
+    @Test
+    fun `harForsikringSomIkkePasserMedSøknadstype er false når forsikringen passer med søknadstypen`() {
+        insertBetaltVedfrivt(IF01_AGNR_FNR = 3020112345L, IF10_TYPE = '2')
+
+        val forsikringsvurderingId = opprettVurdering(yrkesaktivitetstype = "SELVSTENDIG")
+
+        sendForsikringsvurderingResultatBehov(forsikringsvurderingId)
+
+        forventHarForsikringSomIkkePasserMedSøknadstype(false)
+    }
+
+    @Test
+    fun `harForsikringSomIkkePasserMedSøknadstype er false når forsikringen ble ekskludert av en annen årsak`() {
+        insertBetaltVedfrivt(IF01_AGNR_FNR = 3020112345L, IF10_TYPE = '2', IF10_FORSTOM = 20251231)
+
+        val forsikringsvurderingId = opprettVurdering(yrkesaktivitetstype = "FRILANS")
+
+        sendForsikringsvurderingResultatBehov(forsikringsvurderingId)
+
+        forventHarForsikringSomIkkePasserMedSøknadstype(false)
+    }
+
+    @Test
+    fun `harForsikringSomIkkePasserMedSøknadstype er false når bruker ikke har noen forsikringer`() {
+        val forsikringsvurderingId = opprettVurdering(yrkesaktivitetstype = "SELVSTENDIG")
+
+        sendForsikringsvurderingResultatBehov(forsikringsvurderingId)
+
+        forventHarForsikringSomIkkePasserMedSøknadstype(false)
+    }
+
+    @Test
     fun `returnerer løsning med harIndividuellForsikring false for JORDBRUKER`() {
         val forsikringsvurderingId =
             opprettVurdering(
@@ -233,6 +290,7 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
                 "forsikringsvurderingId": "$forsikringsvurderingId",
                 "harForsikring": true,
                 "villeHattForsikringOmDenVarBetalt": false,
+                "harForsikringSomIkkePasserMedSøknadstype": false,
                 "dekning": {
                     "iVentetid": false,
                     "grad": 100
@@ -333,6 +391,7 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
                 "forsikringsvurderingId": "$forsikringsvurderingId",
                 "harForsikring": true,
                 "villeHattForsikringOmDenVarBetalt": false,
+                "harForsikringSomIkkePasserMedSøknadstype": false,
                 "dekning": { "grad": $grad, "iVentetid": $iVentetid },
                 "opphørsdato": null,
                 "harIndividuellForsikring": $harIndividuellForsikring
@@ -373,6 +432,7 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
                 "forsikringsvurderingId": "$forsikringsvurderingId",
                 "harForsikring": false,
                 "villeHattForsikringOmDenVarBetalt": false,
+                "harForsikringSomIkkePasserMedSøknadstype": false,
                 "dekning": null,
                 "opphørsdato": null,
                 "harIndividuellForsikring": false
@@ -404,6 +464,7 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
                 "forsikringsvurderingId": "$forsikringsvurderingId",
                 "harForsikring": false,
                 "villeHattForsikringOmDenVarBetalt": false,
+                "harForsikringSomIkkePasserMedSøknadstype": false,
                 "dekning": null,
                 "opphørsdato": null,
                 "harIndividuellForsikring": false
@@ -462,6 +523,7 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
                 "forsikringsvurderingId": "$forsikringsvurderingId",
                 "harForsikring": false,
                 "villeHattForsikringOmDenVarBetalt": false,
+                "harForsikringSomIkkePasserMedSøknadstype": false,
                 "dekning": null,
                 "opphørsdato": null,
                 "harIndividuellForsikring": false
@@ -497,6 +559,7 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
                 "forsikringsvurderingId": "$forsikringsvurderingId",
                 "harForsikring": true,
                 "villeHattForsikringOmDenVarBetalt": false,
+                "harForsikringSomIkkePasserMedSøknadstype": false,
                 "dekning": { "grad": 100, "iVentetid": false },
                 "opphørsdato": "2026-01-01",
                 "harIndividuellForsikring": true
@@ -532,6 +595,7 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
                 "forsikringsvurderingId": "$forsikringsvurderingId",
                 "harForsikring": true,
                 "villeHattForsikringOmDenVarBetalt": false,
+                "harForsikringSomIkkePasserMedSøknadstype": false,
                 "dekning": { "grad": 100, "iVentetid": false },
                 "opphørsdato": "2026-01-02",
                 "harIndividuellForsikring": true
@@ -567,6 +631,7 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
                 "forsikringsvurderingId": "$forsikringsvurderingId",
                 "harForsikring": true,
                 "villeHattForsikringOmDenVarBetalt": false,
+                "harForsikringSomIkkePasserMedSøknadstype": false,
                 "dekning": { "grad": 100, "iVentetid": false },
                 "opphørsdato": null,
                 "harIndividuellForsikring": true
@@ -602,6 +667,7 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
                 "forsikringsvurderingId": "$forsikringsvurderingId",
                 "harForsikring": false,
                 "villeHattForsikringOmDenVarBetalt": false,
+                "harForsikringSomIkkePasserMedSøknadstype": false,
                 "dekning": null,
                 "opphørsdato": null,
                 "harIndividuellForsikring": false
@@ -637,6 +703,7 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
                 "forsikringsvurderingId": "$forsikringsvurderingId",
                 "harForsikring": true,
                 "villeHattForsikringOmDenVarBetalt": false,
+                "harForsikringSomIkkePasserMedSøknadstype": false,
                 "dekning": { "grad": 100, "iVentetid": false },
                 "opphørsdato": null,
                 "harIndividuellForsikring": true
@@ -672,6 +739,7 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
                 "forsikringsvurderingId": "$forsikringsvurderingId",
                 "harForsikring": true,
                 "villeHattForsikringOmDenVarBetalt": false,
+                "harForsikringSomIkkePasserMedSøknadstype": false,
                 "dekning": { "grad": 100, "iVentetid": false },
                 "opphørsdato": null,
                 "harIndividuellForsikring": true
@@ -703,6 +771,7 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
                 "forsikringsvurderingId": "$forsikringsvurderingId",
                 "harForsikring": false,
                 "villeHattForsikringOmDenVarBetalt": true,
+                "harForsikringSomIkkePasserMedSøknadstype": false,
                 "dekning": null,
                 "opphørsdato": null,
                 "harIndividuellForsikring": false
@@ -735,6 +804,7 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
                 "forsikringsvurderingId": "$forsikringsvurderingId",
                 "harForsikring": false,
                 "villeHattForsikringOmDenVarBetalt": true,
+                "harForsikringSomIkkePasserMedSøknadstype": false,
                 "dekning": null,
                 "opphørsdato": null,
                 "harIndividuellForsikring": false
@@ -767,6 +837,7 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
                 "forsikringsvurderingId": "$forsikringsvurderingId",
                 "harForsikring": false,
                 "villeHattForsikringOmDenVarBetalt": true,
+                "harForsikringSomIkkePasserMedSøknadstype": false,
                 "dekning": null,
                 "opphørsdato": null,
                 "harIndividuellForsikring": false
@@ -803,6 +874,7 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
                 "forsikringsvurderingId": "$forsikringsvurderingId",
                 "harForsikring": false,
                 "villeHattForsikringOmDenVarBetalt": false,
+                "harForsikringSomIkkePasserMedSøknadstype": false,
                 "dekning": null,
                 "opphørsdato": null,
                 "harIndividuellForsikring": false
@@ -839,6 +911,7 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
                 "forsikringsvurderingId": "$forsikringsvurderingId",
                 "harForsikring": false,
                 "villeHattForsikringOmDenVarBetalt": false,
+                "harForsikringSomIkkePasserMedSøknadstype": false,
                 "dekning": null,
                 "opphørsdato": null,
                 "harIndividuellForsikring": false
@@ -875,6 +948,7 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
                 "forsikringsvurderingId": "$forsikringsvurderingId",
                 "harForsikring": true,
                 "villeHattForsikringOmDenVarBetalt": false,
+                "harForsikringSomIkkePasserMedSøknadstype": false,
                 "dekning": { "grad": 100, "iVentetid": false },
                 "opphørsdato": null,
                 "harIndividuellForsikring": true
@@ -911,6 +985,7 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
                 "forsikringsvurderingId": "$forsikringsvurderingId",
                 "harForsikring": true,
                 "villeHattForsikringOmDenVarBetalt": false,
+                "harForsikringSomIkkePasserMedSøknadstype": false,
                 "dekning": { "grad": 100, "iVentetid": false },
                 "opphørsdato": null,
                 "harIndividuellForsikring": true
@@ -988,6 +1063,16 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
                 .message(0)["@løsning"]["ForsikringsvurderingResultat"]["villeHattForsikringOmDenVarBetalt"]
                 ?.asBoolean()
         assertNotNull(faktisk) { "Manglet villeHattForsikringOmDenVarBetalt i løsning" }
+        assertEquals(forventet, faktisk)
+    }
+
+    private fun forventHarForsikringSomIkkePasserMedSøknadstype(forventet: Boolean) {
+        assertEquals(1, rapid.inspektør.size)
+        val faktisk =
+            rapid.inspektør
+                .message(0)["@løsning"]["ForsikringsvurderingResultat"]["harForsikringSomIkkePasserMedSøknadstype"]
+                ?.asBoolean()
+        assertNotNull(faktisk) { "Manglet harForsikringSomIkkePasserMedSøknadstype i løsning" }
         assertEquals(forventet, faktisk)
     }
 

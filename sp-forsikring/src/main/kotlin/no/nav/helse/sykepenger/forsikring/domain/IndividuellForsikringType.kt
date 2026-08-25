@@ -34,46 +34,13 @@ enum class IndividuellForsikringType(
     ),
     ;
 
-    fun validerMot(
+    fun passerMed(
         yrkesaktivitetstype: Yrkesaktivitetstype,
         spesielleYrkesgrupper: Set<SpesiellYrkesgruppe>,
-    ) {
-        validerYrkesaktivitetstype(forventet = this.yrkesaktivitetstype, faktisk = yrkesaktivitetstype)
-        if (tilleggsforsikringFor != null) {
-            validerSpesielleYrkesgrupperInneholderEnAv(
-                forventetEnAv = tilleggsforsikringFor.spesielleYrkesgrupper,
-                faktiske = spesielleYrkesgrupper,
+    ): Boolean =
+        yrkesaktivitetstype == this.yrkesaktivitetstype &&
+            (
+                tilleggsforsikringFor == null ||
+                    spesielleYrkesgrupper.any { it in tilleggsforsikringFor.spesielleYrkesgrupper }
             )
-        }
-    }
-
-    class Valideringsfeil(
-        message: String,
-    ) : Exception(message)
-
-    private fun validerYrkesaktivitetstype(
-        forventet: Yrkesaktivitetstype,
-        faktisk: Yrkesaktivitetstype,
-    ) {
-        if (faktisk != forventet) {
-            throw Valideringsfeil(
-                "Individuell forsikring er av type $this, " +
-                    "der forventet yrkesaktivitetstype er $forventet, " +
-                    "men yrkesaktivitetstypen var $faktisk",
-            )
-        }
-    }
-
-    fun validerSpesielleYrkesgrupperInneholderEnAv(
-        forventetEnAv: Set<SpesiellYrkesgruppe>,
-        faktiske: Set<SpesiellYrkesgruppe>,
-    ) {
-        if (faktiske.none { it in forventetEnAv }) {
-            throw Valideringsfeil(
-                "Individuell forsikring er av type $this, " +
-                    "der det var forventet at spesielle yrkesgrupper inneholdt en av ${forventetEnAv.toSet()}, " +
-                    "men spesielle yrkesgrupper var $faktiske",
-            )
-        }
-    }
 }

@@ -99,7 +99,7 @@ internal class ForsikringsvurderingBehovRiverTest {
         "FRILANS, , 3",
         "FRILANS, , 4",
     )
-    fun `Når vurderingen feiler så sendes det ikke ut noe svar`(
+    fun `individuell forsikring som ikke passer med søknadstypen ekskluderes i stedet for å feile`(
         yrkesaktivitetstype: String,
         særskiltGruppe: String?,
         IF10_TYPE: Char?,
@@ -108,25 +108,30 @@ internal class ForsikringsvurderingBehovRiverTest {
         val antallRåkopierFør = TestcontainersSpForsikringDatabase.countAlleRåkopier()
         val antallForsikringsvurderingerFør = TestcontainersSpForsikringDatabase.countAlleForsikringsvurderinger()
 
-        assertDoesNotThrow {
-            rapid.sendTestMessage(
-                """
-                {
-                    "@behov": [ "Forsikringsvurdering" ],
-                    "fødselsnummer": "01020312345",
-                    "yrkesaktivitetstype": "$yrkesaktivitetstype",
-                    "Forsikringsvurdering" : {
-                        "spesielleYrkesgrupper": [ ${særskiltGruppe?.let { "\"$it\"" }.orEmpty()} ],
-                        "skjæringstidspunkt": "2026-01-01"
-                    }
+        rapid.sendTestMessage(
+            """
+            {
+                "@behov": [ "Forsikringsvurdering" ],
+                "fødselsnummer": "01020312345",
+                "yrkesaktivitetstype": "$yrkesaktivitetstype",
+                "Forsikringsvurdering" : {
+                    "spesielleYrkesgrupper": [ ${særskiltGruppe?.let { "\"$it\"" }.orEmpty()} ],
+                    "skjæringstidspunkt": "2026-01-01"
                 }
-                """.trimIndent(),
-            )
-        }
+            }
+            """.trimIndent(),
+        )
 
-        assertEquals(0, rapid.inspektør.size)
-        assertEquals(antallRåkopierFør, TestcontainersSpForsikringDatabase.countAlleRåkopier())
-        assertEquals(antallForsikringsvurderingerFør, TestcontainersSpForsikringDatabase.countAlleForsikringsvurderinger())
+        assertEquals(1, rapid.inspektør.size)
+        val forsikringsvurderingId = rapid.inspektør.message(0)["@løsning"]["Forsikringsvurdering"]["forsikringsvurderingId"]?.asString()
+        assertNotNull(forsikringsvurderingId) { "Manglet forsikringsvurderingId" }
+
+        assertEquals(antallRåkopierFør + 1, TestcontainersSpForsikringDatabase.countAlleRåkopier())
+        assertEquals(antallForsikringsvurderingerFør + 1, TestcontainersSpForsikringDatabase.countAlleForsikringsvurderinger())
+        assertEquals(
+            mapOf(0 to "PASSER_IKKE_MED_SØKNADSTYPE"),
+            TestcontainersSpForsikringDatabase.hentEkskluderinger(UUID.fromString(forsikringsvurderingId)),
+        )
     }
 
     @Test

@@ -19,8 +19,6 @@ class IndividuellForsikring(
     ): VurdertIndividuellForsikring =
         VurdertIndividuellForsikring.fraIndividuellForsikringMedKonklusjon(
             individuellForsikring = this,
-            yrkesaktivitetstype = yrkesaktivitetstype,
-            spesielleYrkesgrupper = spesielleYrkesgrupper,
             konklusjon =
                 when {
                     // Skjæringstidspunkt må ikke være i opptjeningstid [IF10_FORSFOM, IF10_VIRKDATO)
@@ -34,6 +32,13 @@ class IndividuellForsikring(
                     // Skjæringstidspunkt må være før eller lik opphørsdato (hvis det er en opphørsdato)
                     erOpphørtPå(skjæringstidspunkt) ->
                         VurdertIndividuellForsikring.Konklusjon.OPPHØRT_PÅ_SKJÆRINGSTIDSPUNKT
+
+                    // Forsikringstypen må passe med yrkesaktivitetstypen og eventuell spesiell yrkesgruppe
+                    !type.passerMed(
+                        yrkesaktivitetstype = yrkesaktivitetstype,
+                        spesielleYrkesgrupper = spesielleYrkesgrupper,
+                    ) ->
+                        VurdertIndividuellForsikring.Konklusjon.PASSER_IKKE_MED_SØKNADSTYPE
 
                     // Forsikringen må være betalt noen gang
                     !erBetaltNoenGang ->

@@ -61,6 +61,8 @@ class Forsikringsvurdering private constructor(
 
     fun villeHattForsikringOmDenVarBetalt(): Boolean = individuelleForsikringer.any { it.konklusjon == VurdertIndividuellForsikring.Konklusjon.ALDRI_BETALT }
 
+    fun harForsikringSomIkkePasserMedSøknadstype(): Boolean = individuelleForsikringer.any { it.passerIkkeMedSøknadstype() }
+
     fun gjeldendeIndividuellForsikring(): VurdertIndividuellForsikring? = individuelleForsikringer.singleOrNull { it.erGyldig() }
 
     fun dekning(): Forsikringsdekning? =
@@ -78,8 +80,11 @@ class Forsikringsvurdering private constructor(
     fun harDekningIVentetidUavhengigAvBetaling(): Boolean =
         kollektivForsikring?.dekning?.fraDag == 1 ||
             individuelleForsikringer
-                .filter { it.erGyldig() || it.konklusjon == VurdertIndividuellForsikring.Konklusjon.ALDRI_BETALT }
-                .any { it.type.dekning.fraDag == 1 }
+                .filter {
+                    it.erGyldig() ||
+                        it.konklusjon == VurdertIndividuellForsikring.Konklusjon.ALDRI_BETALT ||
+                        it.passerIkkeMedSøknadstype()
+                }.any { it.type.dekning.fraDag == 1 }
 
     companion object {
         fun utførVurdering(

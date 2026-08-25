@@ -60,6 +60,7 @@ class ForsikringsvurderingResultatBehovRiver(
                                 "forsikringsvurderingId" to forsikringsvurdering.id.value.toString(),
                                 "harForsikring" to forsikringsvurdering.harForsikring(),
                                 "villeHattForsikringOmDenVarBetalt" to forsikringsvurdering.villeHattForsikringOmDenVarBetalt(),
+                                "harForsikringSomIkkePasserMedSøknadstype" to forsikringsvurdering.harForsikringSomIkkePasserMedSøknadstype(),
                                 "dekning" to
                                     forsikringsvurdering.dekning()?.let { dekning ->
                                         mapOf(
