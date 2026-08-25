@@ -88,8 +88,7 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
                     "grad": 100
                 },
                 "opphørsdato": null,
-                "harIndividuellForsikring": true,
-                "forsikringskategori": "NAVKJØPT"
+                "harIndividuellForsikring": true
             }
             """.trimIndent(),
         )
@@ -126,8 +125,7 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
                     "grad": 100
                 },
                 "opphørsdato": "2026-05-31",
-                "harIndividuellForsikring": true,
-                "forsikringskategori": "NAVKJØPT"
+                "harIndividuellForsikring": true
             }
             """.trimIndent(),
         )
@@ -147,8 +145,7 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
                 "villeHattForsikringOmDenVarBetalt": false,
                 "dekning": null,
                 "opphørsdato": null,
-                "harIndividuellForsikring": false,
-                "forsikringskategori": null
+                "harIndividuellForsikring": false
             }
             """.trimIndent(),
         )
@@ -221,7 +218,7 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
     }
 
     @Test
-    fun `returnerer løsning med KOLLEKTIV forsikringskategori for JORDBRUKER`() {
+    fun `returnerer løsning med harIndividuellForsikring false for JORDBRUKER`() {
         val forsikringsvurderingId =
             opprettVurdering(
                 yrkesaktivitetstype = "SELVSTENDIG",
@@ -241,8 +238,7 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
                     "grad": 100
                 },
                 "opphørsdato": null,
-                "harIndividuellForsikring": false,
-                "forsikringskategori": "KOLLEKTIV"
+                "harIndividuellForsikring": false
             }
             """.trimIndent(),
         )
@@ -296,17 +292,17 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
 
     @ParameterizedTest(name = "{0} særskilt {1} infotrygd-type {2} -> {3} fra dag {4} kategori {5}", quoteTextArguments = false)
     @CsvSource(
-        "SELVSTENDIG, , 1, 80, true, NAVKJØPT",
-        "SELVSTENDIG, , 2, 100, false, NAVKJØPT",
-        "SELVSTENDIG, , 3, 100, true, NAVKJØPT",
-        "SELVSTENDIG, JORDBRUKER, 4, 100, true, NAVKJØPT",
-        "SELVSTENDIG, REINDRIFTER, 4, 100, true, NAVKJØPT",
-        "FRILANS, , 5, 100, true, NAVKJØPT",
+        "SELVSTENDIG, , 1, 80, true, true",
+        "SELVSTENDIG, , 2, 100, false, true",
+        "SELVSTENDIG, , 3, 100, true, true",
+        "SELVSTENDIG, JORDBRUKER, 4, 100, true, true",
+        "SELVSTENDIG, REINDRIFTER, 4, 100, true, true",
+        "FRILANS, , 5, 100, true, true",
         // Kollektive forsikringer
-        "SELVSTENDIG, JORDBRUKER, , 100, false, KOLLEKTIV",
-        "SELVSTENDIG, REINDRIFTER, , 100, false, KOLLEKTIV",
-        "ARBEIDSTAKER, FISKER_BLAD_B, , 100, true, KOLLEKTIV",
-        "SELVSTENDIG, FISKER_BLAD_B, , 100, true, KOLLEKTIV",
+        "SELVSTENDIG, JORDBRUKER, , 100, false, false",
+        "SELVSTENDIG, REINDRIFTER, , 100, false, false",
+        "ARBEIDSTAKER, FISKER_BLAD_B, , 100, true, false",
+        "SELVSTENDIG, FISKER_BLAD_B, , 100, true, false",
     )
     fun `gir løsning med forsikring`(
         yrkesaktivitetstype: String,
@@ -314,7 +310,7 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
         IF10_TYPE: Char?,
         grad: Int,
         iVentetid: Boolean,
-        forsikringskategori: String,
+        harIndividuellForsikring: Boolean,
     ) {
         IF10_TYPE?.let { insertBetaltVedfrivt(IF01_AGNR_FNR = 3020112345L, IF10_TYPE = it) }
 
@@ -339,8 +335,7 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
                 "villeHattForsikringOmDenVarBetalt": false,
                 "dekning": { "grad": $grad, "iVentetid": $iVentetid },
                 "opphørsdato": null,
-                "harIndividuellForsikring": ${forsikringskategori == "NAVKJØPT"},
-                "forsikringskategori": "$forsikringskategori"
+                "harIndividuellForsikring": $harIndividuellForsikring
             }
             """.trimIndent()
         }
@@ -380,8 +375,7 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
                 "villeHattForsikringOmDenVarBetalt": false,
                 "dekning": null,
                 "opphørsdato": null,
-                "harIndividuellForsikring": false,
-                "forsikringskategori": null
+                "harIndividuellForsikring": false
             }
             """.trimIndent()
         }
@@ -412,8 +406,7 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
                 "villeHattForsikringOmDenVarBetalt": false,
                 "dekning": null,
                 "opphørsdato": null,
-                "harIndividuellForsikring": false,
-                "forsikringskategori": null
+                "harIndividuellForsikring": false
             }
             """.trimIndent()
         }
@@ -471,8 +464,7 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
                 "villeHattForsikringOmDenVarBetalt": false,
                 "dekning": null,
                 "opphørsdato": null,
-                "harIndividuellForsikring": false,
-                "forsikringskategori": null
+                "harIndividuellForsikring": false
             }
             """.trimIndent()
         }
@@ -507,8 +499,7 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
                 "villeHattForsikringOmDenVarBetalt": false,
                 "dekning": { "grad": 100, "iVentetid": false },
                 "opphørsdato": "2026-01-01",
-                "harIndividuellForsikring": true,
-                "forsikringskategori": "NAVKJØPT"
+                "harIndividuellForsikring": true
             }
             """.trimIndent()
         }
@@ -543,8 +534,7 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
                 "villeHattForsikringOmDenVarBetalt": false,
                 "dekning": { "grad": 100, "iVentetid": false },
                 "opphørsdato": "2026-01-02",
-                "harIndividuellForsikring": true,
-                "forsikringskategori": "NAVKJØPT"
+                "harIndividuellForsikring": true
             }
             """.trimIndent()
         }
@@ -579,8 +569,7 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
                 "villeHattForsikringOmDenVarBetalt": false,
                 "dekning": { "grad": 100, "iVentetid": false },
                 "opphørsdato": null,
-                "harIndividuellForsikring": true,
-                "forsikringskategori": "NAVKJØPT"
+                "harIndividuellForsikring": true
             }
             """.trimIndent()
         }
@@ -615,8 +604,7 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
                 "villeHattForsikringOmDenVarBetalt": false,
                 "dekning": null,
                 "opphørsdato": null,
-                "harIndividuellForsikring": false,
-                "forsikringskategori": null
+                "harIndividuellForsikring": false
             }
             """.trimIndent()
         }
@@ -651,8 +639,7 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
                 "villeHattForsikringOmDenVarBetalt": false,
                 "dekning": { "grad": 100, "iVentetid": false },
                 "opphørsdato": null,
-                "harIndividuellForsikring": true,
-                "forsikringskategori": "NAVKJØPT"
+                "harIndividuellForsikring": true
             }
             """.trimIndent()
         }
@@ -687,8 +674,7 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
                 "villeHattForsikringOmDenVarBetalt": false,
                 "dekning": { "grad": 100, "iVentetid": false },
                 "opphørsdato": null,
-                "harIndividuellForsikring": true,
-                "forsikringskategori": "NAVKJØPT"
+                "harIndividuellForsikring": true
             }
             """.trimIndent()
         }
@@ -719,8 +705,7 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
                 "villeHattForsikringOmDenVarBetalt": true,
                 "dekning": null,
                 "opphørsdato": null,
-                "harIndividuellForsikring": false,
-                "forsikringskategori": null
+                "harIndividuellForsikring": false
             }
             """.trimIndent()
         }
@@ -752,8 +737,7 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
                 "villeHattForsikringOmDenVarBetalt": true,
                 "dekning": null,
                 "opphørsdato": null,
-                "harIndividuellForsikring": false,
-                "forsikringskategori": null
+                "harIndividuellForsikring": false
             }
             """.trimIndent()
         }
@@ -785,8 +769,7 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
                 "villeHattForsikringOmDenVarBetalt": true,
                 "dekning": null,
                 "opphørsdato": null,
-                "harIndividuellForsikring": false,
-                "forsikringskategori": null
+                "harIndividuellForsikring": false
             }
             """.trimIndent()
         }
@@ -822,8 +805,7 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
                 "villeHattForsikringOmDenVarBetalt": false,
                 "dekning": null,
                 "opphørsdato": null,
-                "harIndividuellForsikring": false,
-                "forsikringskategori": null
+                "harIndividuellForsikring": false
             }
             """.trimIndent()
         }
@@ -859,8 +841,7 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
                 "villeHattForsikringOmDenVarBetalt": false,
                 "dekning": null,
                 "opphørsdato": null,
-                "harIndividuellForsikring": false,
-                "forsikringskategori": null
+                "harIndividuellForsikring": false
             }
             """.trimIndent()
         }
@@ -896,8 +877,7 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
                 "villeHattForsikringOmDenVarBetalt": false,
                 "dekning": { "grad": 100, "iVentetid": false },
                 "opphørsdato": null,
-                "harIndividuellForsikring": true,
-                "forsikringskategori": "NAVKJØPT"
+                "harIndividuellForsikring": true
             }
             """.trimIndent()
         }
@@ -933,8 +913,7 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
                 "villeHattForsikringOmDenVarBetalt": false,
                 "dekning": { "grad": 100, "iVentetid": false },
                 "opphørsdato": null,
-                "harIndividuellForsikring": true,
-                "forsikringskategori": "NAVKJØPT"
+                "harIndividuellForsikring": true
             }
             """.trimIndent()
         }

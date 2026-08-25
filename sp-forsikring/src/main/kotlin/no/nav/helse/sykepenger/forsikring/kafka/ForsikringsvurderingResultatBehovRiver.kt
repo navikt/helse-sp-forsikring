@@ -69,12 +69,6 @@ class ForsikringsvurderingResultatBehovRiver(
                                     },
                                 "opphørsdato" to forsikringsvurdering.opphørsdato(),
                                 "harIndividuellForsikring" to forsikringsvurdering.harIndividuellForsikring(),
-                                "forsikringskategori" to
-                                    when {
-                                        forsikringsvurdering.harIndividuellForsikring() -> "NAVKJØPT"
-                                        forsikringsvurdering.harKollektivForsikring() -> "KOLLEKTIV"
-                                        else -> null
-                                    },
                             ),
                     )
 

@@ -129,10 +129,6 @@ data class SpesialistForsikringsvurderingResponse(
     val individuelleForsikringer: List<IndividuellForsikring>,
     val vurdertTidspunkt: Instant,
 ) {
-    @Deprecated("Nav-kjøpt forsikring heter nå individuell forsikring. Bruk individuelleForsikringer i stedet.")
-    val navKjøpteForsikringer: List<IndividuellForsikring>
-        get() = individuelleForsikringer
-
     data class Dekning(
         val grad: Int,
         val fraDag: Int,

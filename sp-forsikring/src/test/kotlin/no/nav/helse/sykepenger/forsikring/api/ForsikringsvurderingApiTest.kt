@@ -200,28 +200,6 @@ class ForsikringsvurderingApiTest {
     }
 
     @Test
-    fun `GET forsikringsvurderinger returnerer fortsatt det utfasede feltet navKjøpteForsikringer`() {
-        val forsikringsvurdering =
-            lagForsikringsvurdering(
-                skjæringstidspunkt = LocalDate.parse("2026-01-01"),
-                individuelleForsikringer =
-                    listOf(
-                        lagVurdertIndividuellForsikring(
-                            type = IndividuellForsikringType.SELVSTENDIG_80_PROSENT_FRA_DAG_1,
-                            virkningsdato = LocalDate.parse("2025-06-01"),
-                        ),
-                    ),
-            )
-        lagreRåkopiOgForsikringsvurdering(forsikringsvurdering)
-
-        val (statusCode, body) = getForsikringsvurdering(forsikringsvurdering.id.value.toString(), bearerToken())
-
-        assertEquals(200, statusCode) { "Body was: $body" }
-        val json = body.somJson()
-        assertEquals(json["individuelleForsikringer"], json["navKjøpteForsikringer"]) { "Body was: $body" }
-    }
-
-    @Test
     fun `GET forsikringsvurderinger returnerer samlet dekning for individuell forsikring`() {
         val identitetsnummer = lagIdentitetsnummer()
         val forsikringsvurdering =
