@@ -86,6 +86,8 @@ spec:
           namespace: tbd
         - application: spre-gosys
           namespace: tbd
+        - application: sporbar
+          namespace: tbd
         - application: speil
           namespace: tbd
         - application: sp-forsikring-statistikk
