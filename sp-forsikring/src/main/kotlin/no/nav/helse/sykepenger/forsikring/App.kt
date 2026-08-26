@@ -5,16 +5,22 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
 import com.github.navikt.tbd_libs.azure.createAzureTokenClientFromEnvironment
 import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
-import io.ktor.client.*
-import io.ktor.client.engine.cio.*
-import io.ktor.client.plugins.contentnegotiation.*
-import io.ktor.serialization.jackson.*
-import io.ktor.server.application.*
+import io.ktor.client.HttpClient
+import io.ktor.client.engine.cio.CIO
+import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
+import io.ktor.serialization.jackson.jackson
+import io.ktor.server.application.ApplicationStarted
+import io.ktor.server.application.ApplicationStopped
 import no.nav.helse.rapids_rivers.RapidApplication
 import no.nav.helse.sykepenger.forsikring.api.forsikringsvurderingApi
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.ForsikringsvurderingService
 import no.nav.helse.sykepenger.forsikring.gosys.GosysOppgaveClient
-import no.nav.helse.sykepenger.forsikring.kafka.*
+import no.nav.helse.sykepenger.forsikring.kafka.ForsikringsvurderingBehovRiver
+import no.nav.helse.sykepenger.forsikring.kafka.ForsikringsvurderingResultatBehovRiver
+import no.nav.helse.sykepenger.forsikring.kafka.SelvstendigIngenDagerIgjenRiver
+import no.nav.helse.sykepenger.forsikring.kafka.SelvstendigUtbetaltEtterVentetidRiver
+import no.nav.helse.sykepenger.forsikring.kafka.VedtakFattetRiver
+import no.nav.helse.sykepenger.forsikring.kafka.VedtakFattetTellerRiver
 import no.nav.helse.sykepenger.forsikring.shared.logging.loggInfo
 import org.flywaydb.core.Flyway
 import java.time.Duration
@@ -100,6 +106,7 @@ fun launchApplication(env: Map<String, String>) {
                 rapidsConnection = this,
                 replikabaseDataSource = replikabaseDataSource,
                 spForsikringDataSource = spForsikringDataSource,
+                versjonAvKode = env.getValue("NAIS_APP_IMAGE"),
             )
             ForsikringsvurderingResultatBehovRiver(
                 rapidsConnection = this,

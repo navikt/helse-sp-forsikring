@@ -19,13 +19,16 @@ import no.nav.helse.sykepenger.forsikring.shared.logging.loggError
 import no.nav.helse.sykepenger.forsikring.shared.logging.loggInfo
 import no.nav.helse.sykepenger.forsikring.shared.logging.medMdc
 import no.nav.helse.sykepenger.forsikring.shared.util.inTransaction
-import tools.jackson.databind.JsonNode
+import no.nav.helse.sykepenger.forsikring.subsumsjon.Subsumsjonsmelding
+import no.nav.helse.sykepenger.forsikring.subsumsjon.tilSubsumsjonsmeldinger
+import java.util.*
 import javax.sql.DataSource
 
 class ForsikringsvurderingBehovRiver(
     rapidsConnection: RapidsConnection,
     replikabaseDataSource: DataSource,
     private val spForsikringDataSource: DataSource,
+    private val versjonAvKode: String,
 ) : River.PacketListener {
     init {
         River(rapidsConnection)
@@ -38,6 +41,8 @@ class ForsikringsvurderingBehovRiver(
                     it.requireKey(
                         "@id",
                         "fødselsnummer",
+                        "vedtaksperiodeId",
+                        "behandlingId",
                         "yrkesaktivitetstype",
                         "Forsikringsvurdering.spesielleYrkesgrupper",
                         "Forsikringsvurdering.skjæringstidspunkt",
@@ -49,8 +54,6 @@ class ForsikringsvurderingBehovRiver(
 
     private val forsikringsvurderingService: ForsikringsvurderingService =
         ForsikringsvurderingService(replikabaseDataSource)
-
-    inline fun <reified T : Enum<T>> JsonNode.asEnum(): T = enumValueOf<T>(asString())
 
     override fun onPacket(
         packet: JsonMessage,
@@ -93,6 +96,14 @@ class ForsikringsvurderingBehovRiver(
                     RåkopiRepository(transaction).lagre(råkopi)
                     ForsikringsvurderingRepository(transaction).lagre(forsikringsvurdering, packet.toJson())
 
+                    val subsumsjonsMeldinger =
+                        forsikringsvurdering
+                            .tilSubsumsjonsmeldinger(
+                                vedtaksperiodeId = UUID.fromString(packet["vedtaksperiodeId"].stringValue()),
+                                behandlingId = UUID.fromString(packet["behandlingId"].stringValue()),
+                                versjonAvKode = versjonAvKode,
+                            ).map(Subsumsjonsmelding::tilJson)
+
                     packet["@løsning"] =
                         mapOf(
                             "Forsikringsvurdering" to
@@ -102,6 +113,12 @@ class ForsikringsvurderingBehovRiver(
                         )
 
                     val løsningJson = packet.toJson()
+
+                    subsumsjonsMeldinger.forEach { melding ->
+                        loggInfo("Sender subsumsjonsmelding", "subsumsjonsmelding" to melding)
+                        context.publish(melding)
+                    }
+
                     loggInfo("Svarer på Forsikringsvurdering-behov med løsning", "løsning" to løsningJson)
                     context.publish(løsningJson)
                 }

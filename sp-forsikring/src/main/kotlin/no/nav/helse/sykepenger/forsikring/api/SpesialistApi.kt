@@ -1,9 +1,10 @@
 package no.nav.helse.sykepenger.forsikring.api
 
-import io.ktor.http.*
-import io.ktor.server.request.*
-import io.ktor.server.response.*
-import io.ktor.server.routing.*
+import io.ktor.http.HttpStatusCode
+import io.ktor.server.request.uri
+import io.ktor.server.response.respond
+import io.ktor.server.routing.Route
+import io.ktor.server.routing.get
 import no.nav.helse.sykepenger.forsikring.api.SpesialistForsikringsvurderingResponse.IndividuellForsikring
 import no.nav.helse.sykepenger.forsikring.api.SpesialistForsikringsvurderingResponse.IndividuellForsikring.Konklusjon
 import no.nav.helse.sykepenger.forsikring.domain.Forsikringsvurdering
@@ -59,7 +60,7 @@ fun Route.spesialistApi(spForsikringDataSource: DataSource) {
                     forsikringsvurdering.kollektivForsikring?.let {
                         SpesialistForsikringsvurderingResponse.KollektivForsikring(
                             navn = it.navn,
-                            dekningFolketrygdlovenreferanse = it.dekning.folketrygdlovenreferanse.tilApiFolketrygdlovenReferanse(),
+                            dekningFolketrygdlovenreferanse = it.folketrygdlovenreferanse.tilApiFolketrygdlovenReferanse(),
                             kollektivFolketrygdlovenreferanse = KollektivForsikring.KOLLEKTIV_FORSIKRING_GENERELL_FOLKETRYGDLOVENREFERANSE.tilApiFolketrygdlovenReferanse(),
                         )
                     },
@@ -68,7 +69,7 @@ fun Route.spesialistApi(spForsikringDataSource: DataSource) {
                         IndividuellForsikring(
                             navn = forsikring.type.navn,
                             dekningFolketrygdlovenreferanse =
-                                forsikring.type.dekning.folketrygdlovenreferanse
+                                forsikring.type.folketrygdlovenreferanse
                                     .tilApiFolketrygdlovenReferanse(),
                             virkningsdato = forsikring.virkningsdato,
                             opphørsdato = forsikring.opphørsdato,

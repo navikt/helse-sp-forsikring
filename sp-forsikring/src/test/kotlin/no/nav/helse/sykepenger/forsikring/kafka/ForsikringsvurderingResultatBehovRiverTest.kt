@@ -23,6 +23,7 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
                 rapidsConnection = this,
                 replikabaseDataSource = TestcontainersReplikadatabase.dataSource,
                 spForsikringDataSource = TestcontainersSpForsikringDatabase.dataSource,
+                versjonAvKode = "",
             )
             ForsikringsvurderingResultatBehovRiver(
                 rapidsConnection = this,
@@ -378,6 +379,8 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
                 "@behov": [ "Forsikringsvurdering" ],
                 "fødselsnummer": "01020312345",
                 "yrkesaktivitetstype": "$yrkesaktivitetstype",
+                "vedtaksperiodeId": "${UUID.randomUUID()}",
+                "behandlingId": "${UUID.randomUUID()}",
                 "Forsikringsvurdering" : {
                     "spesielleYrkesgrupper": [ ${særskiltGruppe?.let { "\"$it\"" }.orEmpty()} ],
                     "skjæringstidspunkt": "2026-01-01"
@@ -419,6 +422,8 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
                 "@behov": [ "Forsikringsvurdering" ],
                 "fødselsnummer": "01020312345",
                 "yrkesaktivitetstype": "$yrkesaktivitetstype",
+                "vedtaksperiodeId": "${UUID.randomUUID()}",
+                "behandlingId": "${UUID.randomUUID()}",
                 "Forsikringsvurdering" : {
                     "spesielleYrkesgrupper": [ ${særskiltGruppe?.let { "\"$it\"" }.orEmpty()} ],
                     "skjæringstidspunkt": "2026-01-01"
@@ -451,6 +456,8 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
                 "@behov": [ "Forsikringsvurdering" ],
                 "fødselsnummer": "01020312345",
                 "yrkesaktivitetstype": "SELVSTENDIG",
+                "vedtaksperiodeId": "${UUID.randomUUID()}",
+                "behandlingId": "${UUID.randomUUID()}",
                 "Forsikringsvurdering" : {
                     "spesielleYrkesgrupper": [],
                     "skjæringstidspunkt": "2026-01-01"
@@ -484,6 +491,8 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
                 "@behov": [ "Forsikringsvurdering" ],
                 "fødselsnummer": "01020312345",
                 "yrkesaktivitetstype": "SELVSTENDIG",
+                "vedtaksperiodeId": "${UUID.randomUUID()}",
+                "behandlingId": "${UUID.randomUUID()}",
                 "Forsikringsvurdering" : {
                     "spesielleYrkesgrupper": [],
                     "skjæringstidspunkt": "2026-01-01"
@@ -510,6 +519,8 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
                 "@behov": [ "Forsikringsvurdering" ],
                 "fødselsnummer": "01020312345",
                 "yrkesaktivitetstype": "SELVSTENDIG",
+                "vedtaksperiodeId": "${UUID.randomUUID()}",
+                "behandlingId": "${UUID.randomUUID()}",
                 "Forsikringsvurdering" : {
                     "spesielleYrkesgrupper": [],
                     "skjæringstidspunkt": "2026-01-01"
@@ -546,6 +557,8 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
                 "@behov": [ "Forsikringsvurdering" ],
                 "fødselsnummer": "01020312345",
                 "yrkesaktivitetstype": "SELVSTENDIG",
+                "vedtaksperiodeId": "${UUID.randomUUID()}",
+                "behandlingId": "${UUID.randomUUID()}",
                 "Forsikringsvurdering" : {
                     "spesielleYrkesgrupper": [],
                     "skjæringstidspunkt": "2026-01-01"
@@ -582,6 +595,8 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
                 "@behov": [ "Forsikringsvurdering" ],
                 "fødselsnummer": "01020312345",
                 "yrkesaktivitetstype": "SELVSTENDIG",
+                "vedtaksperiodeId": "${UUID.randomUUID()}",
+                "behandlingId": "${UUID.randomUUID()}",
                 "Forsikringsvurdering" : {
                     "spesielleYrkesgrupper": [],
                     "skjæringstidspunkt": "2026-01-01"
@@ -618,6 +633,8 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
                 "@behov": [ "Forsikringsvurdering" ],
                 "fødselsnummer": "01020312345",
                 "yrkesaktivitetstype": "SELVSTENDIG",
+                "vedtaksperiodeId": "${UUID.randomUUID()}",
+                "behandlingId": "${UUID.randomUUID()}",
                 "Forsikringsvurdering" : {
                     "spesielleYrkesgrupper": [],
                     "skjæringstidspunkt": "2026-01-01"
@@ -654,6 +671,8 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
                 "@behov": [ "Forsikringsvurdering" ],
                 "fødselsnummer": "01020312345",
                 "yrkesaktivitetstype": "SELVSTENDIG",
+                "vedtaksperiodeId": "${UUID.randomUUID()}",
+                "behandlingId": "${UUID.randomUUID()}",
                 "Forsikringsvurdering" : {
                     "spesielleYrkesgrupper": [],
                     "skjæringstidspunkt": "2026-01-01"
@@ -690,6 +709,8 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
                 "@behov": [ "Forsikringsvurdering" ],
                 "fødselsnummer": "01020312345",
                 "yrkesaktivitetstype": "SELVSTENDIG",
+                "vedtaksperiodeId": "${UUID.randomUUID()}",
+                "behandlingId": "${UUID.randomUUID()}",
                 "Forsikringsvurdering" : {
                     "spesielleYrkesgrupper": [],
                     "skjæringstidspunkt": "2026-01-01"
@@ -726,6 +747,8 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
                 "@behov": [ "Forsikringsvurdering" ],
                 "fødselsnummer": "01020312345",
                 "yrkesaktivitetstype": "SELVSTENDIG",
+                "vedtaksperiodeId": "${UUID.randomUUID()}",
+                "behandlingId": "${UUID.randomUUID()}",
                 "Forsikringsvurdering" : {
                     "spesielleYrkesgrupper": [],
                     "skjæringstidspunkt": "2026-01-01"
@@ -758,6 +781,8 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
                 "@behov": [ "Forsikringsvurdering" ],
                 "fødselsnummer": "01020312345",
                 "yrkesaktivitetstype": "SELVSTENDIG",
+                "vedtaksperiodeId": "${UUID.randomUUID()}",
+                "behandlingId": "${UUID.randomUUID()}",
                 "Forsikringsvurdering" : {
                     "spesielleYrkesgrupper": [],
                     "skjæringstidspunkt": "2026-01-01"
@@ -791,6 +816,8 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
                 "@behov": [ "Forsikringsvurdering" ],
                 "fødselsnummer": "01020312345",
                 "yrkesaktivitetstype": "SELVSTENDIG",
+                "vedtaksperiodeId": "${UUID.randomUUID()}",
+                "behandlingId": "${UUID.randomUUID()}",
                 "Forsikringsvurdering" : {
                     "spesielleYrkesgrupper": [],
                     "skjæringstidspunkt": "2026-01-01"
@@ -824,6 +851,8 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
                 "@behov": [ "Forsikringsvurdering" ],
                 "fødselsnummer": "01020312345",
                 "yrkesaktivitetstype": "SELVSTENDIG",
+                "vedtaksperiodeId": "${UUID.randomUUID()}",
+                "behandlingId": "${UUID.randomUUID()}",
                 "Forsikringsvurdering" : {
                     "spesielleYrkesgrupper": [],
                     "skjæringstidspunkt": "2026-01-01"
@@ -861,6 +890,8 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
                 "@behov": [ "Forsikringsvurdering" ],
                 "fødselsnummer": "01020312345",
                 "yrkesaktivitetstype": "SELVSTENDIG",
+                "vedtaksperiodeId": "${UUID.randomUUID()}",
+                "behandlingId": "${UUID.randomUUID()}",
                 "Forsikringsvurdering" : {
                     "spesielleYrkesgrupper": [],
                     "skjæringstidspunkt": "2026-01-01"
@@ -898,6 +929,8 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
                 "@behov": [ "Forsikringsvurdering" ],
                 "fødselsnummer": "01020312345",
                 "yrkesaktivitetstype": "SELVSTENDIG",
+                "vedtaksperiodeId": "${UUID.randomUUID()}",
+                "behandlingId": "${UUID.randomUUID()}",
                 "Forsikringsvurdering" : {
                     "spesielleYrkesgrupper": [],
                     "skjæringstidspunkt": "2026-01-01"
@@ -935,6 +968,8 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
                 "@behov": [ "Forsikringsvurdering" ],
                 "fødselsnummer": "01020312345",
                 "yrkesaktivitetstype": "SELVSTENDIG",
+                "vedtaksperiodeId": "${UUID.randomUUID()}",
+                "behandlingId": "${UUID.randomUUID()}",
                 "Forsikringsvurdering" : {
                     "spesielleYrkesgrupper": [],
                     "skjæringstidspunkt": "2026-01-01"
@@ -972,6 +1007,8 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
                 "@behov": [ "Forsikringsvurdering" ],
                 "fødselsnummer": "01020312345",
                 "yrkesaktivitetstype": "SELVSTENDIG",
+                "vedtaksperiodeId": "${UUID.randomUUID()}",
+                "behandlingId": "${UUID.randomUUID()}",
                 "Forsikringsvurdering" : {
                     "spesielleYrkesgrupper": [],
                     "skjæringstidspunkt": "2026-01-01"
@@ -1004,6 +1041,8 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
                 "@behov": [ "Forsikringsvurdering" ],
                 "fødselsnummer": "01020312345",
                 "yrkesaktivitetstype": "$yrkesaktivitetstype",
+                "vedtaksperiodeId": "${UUID.randomUUID()}",
+                "behandlingId": "${UUID.randomUUID()}",
                 "Forsikringsvurdering": {
                     "spesielleYrkesgrupper": [ ${spesielleYrkesgrupper.joinToString(",") { "\"$it\"" }} ],
                     "skjæringstidspunkt": "2026-01-01"
@@ -1026,8 +1065,7 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
     }
 
     private fun popForsikringsvurderingIdFraLøsning(): String {
-        assertEquals(1, rapid.inspektør.size)
-        val forsikringsvurderingId = rapid.inspektør.message(0)["@løsning"]["Forsikringsvurdering"]["forsikringsvurderingId"].asString()
+        val forsikringsvurderingId = rapid.inspektør.message(rapid.inspektør.size - 1)["@løsning"]["Forsikringsvurdering"]["forsikringsvurderingId"].asString()
         rapid.reset()
         return forsikringsvurderingId
     }

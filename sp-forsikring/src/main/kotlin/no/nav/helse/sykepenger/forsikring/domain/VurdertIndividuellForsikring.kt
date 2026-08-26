@@ -29,8 +29,10 @@ class VurdertIndividuellForsikring private constructor(
                 Folketrygdlovenreferanse(
                     kapittel = 8,
                     paragrafIKapittel = 37,
+                    versjon = LocalDate.parse("2019-10-01"),
                     ledd = null,
                     bokstav = null,
+                    punktum = null,
                 ),
         ),
         ALDRI_BETALT(folketrygdlovenReferanse = null),
