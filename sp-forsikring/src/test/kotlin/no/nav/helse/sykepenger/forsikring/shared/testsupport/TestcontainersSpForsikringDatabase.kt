@@ -10,7 +10,7 @@ import org.testcontainers.postgresql.PostgreSQLContainer
 import java.util.*
 
 object TestcontainersSpForsikringDatabase {
-    private val postgresContainer =
+    val postgresContainer =
         PostgreSQLContainer("postgres:18")
             .also { it.start() }
 

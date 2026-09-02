@@ -3,6 +3,9 @@ package no.nav.helse.sykepenger.forsikring
 import com.fasterxml.jackson.databind.SerializationFeature
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
 import com.github.navikt.tbd_libs.azure.createAzureTokenClientFromEnvironment
+import com.github.navikt.tbd_libs.kafka.AivenConfig
+import com.github.navikt.tbd_libs.kafka.Config
+import com.github.navikt.tbd_libs.kafka.ConsumerProducerFactory
 import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
 import io.ktor.client.HttpClient
@@ -26,14 +29,22 @@ import org.flywaydb.core.Flyway
 import java.time.Duration
 
 fun main() {
-    launchApplication(System.getenv())
+    launchApplication(
+        env = System.getenv(),
+        kafkaConfig = AivenConfig.default,
+    )
 }
 
-fun launchApplication(env: Map<String, String>) {
+fun launchApplication(
+    env: Map<String, String>,
+    kafkaConfig: Config,
+) {
     val spForsikringDataSource =
         HikariDataSource(
             HikariConfig().apply {
                 jdbcUrl = env.getValue("DATABASE_JDBC_URL")
+                username = env.getValue("DATABASE_USERNAME")
+                password = env.getValue("DATABASE_PASSWORD")
                 maximumPoolSize = 10
             },
         )
@@ -72,36 +83,40 @@ fun launchApplication(env: Map<String, String>) {
         )
 
     RapidApplication
-        .create(System.getenv(), builder = {
-            withKtorModule {
-                forsikringsvurderingApi(
-                    spForsikringDataSource = spForsikringDataSource,
-                    forsikringsvurderingService = forsikringsvurderingService,
-                    clientId = env.getValue("AZURE_APP_CLIENT_ID"),
-                    issuerUrl = env.getValue("AZURE_OPENID_CONFIG_ISSUER"),
-                    jwkProviderUri = env.getValue("AZURE_OPENID_CONFIG_JWKS_URI"),
-                )
+        .create(
+            env = env,
+            consumerProducerFactory = ConsumerProducerFactory(kafkaConfig),
+            builder = {
+                env["HTTP_PORT"]?.toInt()?.let(::withHttpPort)
+                withKtorModule {
+                    forsikringsvurderingApi(
+                        spForsikringDataSource = spForsikringDataSource,
+                        forsikringsvurderingService = forsikringsvurderingService,
+                        clientId = env.getValue("AZURE_APP_CLIENT_ID"),
+                        issuerUrl = env.getValue("AZURE_OPENID_CONFIG_ISSUER"),
+                        jwkProviderUri = env.getValue("AZURE_OPENID_CONFIG_JWKS_URI"),
+                    )
 
-                monitor.subscribe(ApplicationStarted) {
-                    loggInfo("Migrerer database")
-                    Flyway
-                        .configure()
-                        .dataSource(spForsikringDataSource)
-                        .cleanDisabled(true)
-                        .lockRetryCount(-1)
-                        .load()
-                        .migrate()
-                    loggInfo("Migrering ferdig!")
+                    monitor.subscribe(ApplicationStarted) {
+                        loggInfo("Migrerer database")
+                        Flyway
+                            .configure()
+                            .dataSource(spForsikringDataSource)
+                            .cleanDisabled(true)
+                            .lockRetryCount(-1)
+                            .load()
+                            .migrate()
+                        loggInfo("Migrering ferdig!")
+                    }
+                    monitor.subscribe(ApplicationStopped) {
+                        loggInfo("Forsøker å lukke datasourcer...")
+                        spForsikringDataSource.close()
+                        replikabaseDataSource.close()
+                        loggInfo("Lukket datasourcer")
+                    }
                 }
-                monitor.subscribe(ApplicationStopped) {
-                    loggInfo("Forsøker å lukke datasourcer...")
-                    spForsikringDataSource.close()
-                    replikabaseDataSource.close()
-                    loggInfo("Lukket datasourcer")
-                }
-            }
-        })
-        .apply {
+            },
+        ).apply {
             ForsikringsvurderingBehovRiver(
                 rapidsConnection = this,
                 replikabaseDataSource = replikabaseDataSource,

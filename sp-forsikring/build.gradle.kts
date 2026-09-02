@@ -31,6 +31,7 @@ dependencies {
     testImplementation(libs.mock.oauth2.server)
     testImplementation(libs.wiremock)
     testImplementation(libs.mockk)
+    testImplementation(libs.testcontainers.kafka)
     testImplementation(libs.testcontainers.postgres)
     testImplementation(libs.testcontainers.oracle.free)
 }

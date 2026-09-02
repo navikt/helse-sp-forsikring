@@ -13,7 +13,7 @@ import java.sql.Timestamp
 import java.time.Instant
 
 object TestcontainersReplikadatabase {
-    private val oracleContainer: OracleContainer =
+    val oracleContainer: OracleContainer =
         OracleContainer("gvenzl/oracle-free:slim-faststart")
             .also { it.start() }
 
