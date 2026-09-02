@@ -219,4 +219,4 @@ fun lagRåkopiFor(forsikringsvurdering: Forsikringsvurdering): Råkopi =
                 },
     )
 
-private fun LocalDate?.tilInfotrygddato(): Int = this?.format(DateTimeFormatter.ofPattern("yyyyMMdd"))?.toInt() ?: 0
+fun LocalDate?.tilInfotrygddato(): Int = this?.format(DateTimeFormatter.ofPattern("yyyyMMdd"))?.toInt() ?: 0

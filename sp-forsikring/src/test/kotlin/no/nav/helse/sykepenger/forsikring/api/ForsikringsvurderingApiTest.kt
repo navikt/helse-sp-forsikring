@@ -3,8 +3,8 @@ package no.nav.helse.sykepenger.forsikring.api
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
-import io.ktor.server.cio.*
-import io.ktor.server.engine.*
+import io.ktor.server.cio.CIO
+import io.ktor.server.engine.embeddedServer
 import no.nav.helse.sykepenger.forsikring.domain.IndividuellForsikringType
 import no.nav.helse.sykepenger.forsikring.domain.KollektivForsikring
 import no.nav.helse.sykepenger.forsikring.domain.SpesiellYrkesgruppe
@@ -19,10 +19,13 @@ import no.nav.helse.sykepenger.forsikring.shared.testsupport.lagreRåkopiOgForsi
 import no.nav.helse.sykepenger.forsikring.shared.testsupport.tilInfotrygdFødselsnummer
 import no.nav.security.mock.oauth2.MockOAuth2Server
 import org.apache.hc.client5.http.fluent.Request
-import org.apache.hc.core5.http.ContentType
 import org.apache.hc.core5.http.io.entity.EntityUtils
 import org.junit.jupiter.api.AfterAll
-import org.junit.jupiter.api.Assertions.*
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertFalse
+import org.junit.jupiter.api.Assertions.assertNotNull
+import org.junit.jupiter.api.Assertions.assertNull
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
@@ -613,19 +616,12 @@ class ForsikringsvurderingApiTest {
         skjæringstidspunkt: String = "2026-01-01",
         token: String?,
     ): Pair<Int, String> =
-        Request
-            .post("$serverUrl/api/forsikringsvurdering")
-            .bodyString(
-                """
-                {
-                    "identitetsnummer": "$identitetsnummer",
-                    "yrkesaktivitetstype": "$yrkesaktivitetstype",
-                    "spesielleYrkesgrupper": [ ${spesielleYrkesgrupper.joinToString(",") { "\"$it\"" }} ],
-                    "skjæringstidspunkt": "$skjæringstidspunkt"
-                }
-                """.trimIndent(),
-                ContentType.APPLICATION_JSON,
-            ).apply { token?.let { addHeader("Authorization", "Bearer $it") } }
-            .execute()
-            .handleResponse { response -> response.code to (EntityUtils.toString(response.entity) ?: "") }
+        FlexApiClient.postForsikringsvurdering(
+            baseUrl = serverUrl,
+            identitetsnummer = identitetsnummer,
+            yrkesaktivitetstype = yrkesaktivitetstype,
+            spesielleYrkesgrupper = spesielleYrkesgrupper,
+            skjæringstidspunkt = skjæringstidspunkt,
+            token = token,
+        )
 }

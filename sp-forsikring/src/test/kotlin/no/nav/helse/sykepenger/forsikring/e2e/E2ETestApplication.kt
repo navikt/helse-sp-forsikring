@@ -15,6 +15,7 @@ import java.time.Instant
 import kotlin.concurrent.thread
 
 object E2ETestApplication {
+    const val CLIENT_ID = "sp-forsikring-e2e"
     val mockOAuth2Server = MockOAuth2Server().also(MockOAuth2Server::start)
 
     val gosysWiremock =
@@ -51,15 +52,15 @@ object E2ETestApplication {
                                 mockOAuth2Server
                                     .tokenEndpointUrl("default")
                                     .toString(),
-                            "AZURE_APP_CLIENT_ID" to "sp-forsikring-e2e",
+                            "AZURE_APP_CLIENT_ID" to CLIENT_ID,
                             "AZURE_APP_CLIENT_SECRET" to "en-hemmelighet",
                             "AZURE_OPENID_CONFIG_ISSUER" to mockOAuth2Server.issuerUrl("default").toString(),
                             "AZURE_OPENID_CONFIG_JWKS_URI" to mockOAuth2Server.jwksUrl("default").toString(),
                             "HTTP_PORT" to httpPort.toString(),
-                            "NAIS_APP_NAME" to "sp-forsikring-e2e",
+                            "NAIS_APP_NAME" to CLIENT_ID,
                             "NAIS_APP_IMAGE" to "navikt/sp-forsikring:latest",
-                            "RAPID_APP_NAME" to "sp-forsikring-e2e",
-                            "KAFKA_CONSUMER_GROUP_ID" to "sp-forsikring-e2e",
+                            "RAPID_APP_NAME" to CLIENT_ID,
+                            "KAFKA_CONSUMER_GROUP_ID" to CLIENT_ID,
                             "KAFKA_RAPID_TOPIC" to "tbd.rapid.v1",
                             "KAFKA_RESET_POLICY" to "earliest",
                         ),
