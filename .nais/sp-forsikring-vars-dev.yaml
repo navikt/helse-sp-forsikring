@@ -3,6 +3,20 @@ db:
   tier: "db-f1-micro"
   extraUsers:
     - "sp-forsikring-opprydding-dev"
+# Hvis vi vil gå mot vår egen "replikabase" (fra spleis-testdata), er det denne blokken som er riktig
+replikabase:
+  secret: google-sql-spleis-testdata-forsikring-replika-testdata-9ed7e1ce
+  jdbcUrl: jdbc:postgresql:///$(DATABASE_SP_FORSIKRING_DATABASE)?cloudSqlInstance=$(GCP_TEAM_PROJECT_ID):europe-north1:forsikring-replika-testdata&socketFactory=com.google.cloud.sql.postgres.SocketFactory
+  username: $(DATABASE_SP_FORSIKRING_USERNAME)
+  passord: $(DATABASE_SP_FORSIKRING_PASSWORD)
+  schema: public
+# Hvis vi vil gå mot Q1-basen, er det denne blokken som er riktig
+#replikabase:
+#  secret: sp-forsikring-oracle
+#  jdbcUrl: $(ORACLE_URL)
+#  username: $(ORACLE_USERNAME)
+#  passord: $(ORACLE_PASSWORD)
+#  schema: $(ORACLE_DATABASE)
 ENTRAID_UUID_SAKSBEHANDLER: cda797bb-ac3b-4440-b661-2cd5eb3edba0 # 0000-CA-Speil-Saksbehandler
 ENTRAID_UUID_SPEIL_LESETILGANG: 216b7219-3906-43c5-8e22-03fb74133b42 # 0000-CA-Speil_Lesetilgang
 gosys:

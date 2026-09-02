@@ -9,6 +9,7 @@ sasDeployable {
 dependencies {
     implementation(libs.hikaricp)
     implementation(libs.postgresql)
+    implementation(libs.cloud.sql.postgres.socket.factory)
     implementation(libs.ojdbc11)
     implementation(libs.rapids.and.rivers)
     implementation(libs.bundles.ktor.server)

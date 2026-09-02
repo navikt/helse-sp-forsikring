@@ -1,6 +1,12 @@
 kafkaPool: nav-prod
 db:
   tier: "db-custom-1-3840"
+replikabase:
+  secret: sp-forsikring-oracle
+  jdbcUrl: $(ORACLE_URL)
+  username: $(ORACLE_USERNAME)
+  passord: $(ORACLE_PASSWORD)
+  schema: $(ORACLE_DATABASE)
 ENTRAID_UUID_SAKSBEHANDLER: 611669fa-de5c-4dc2-a0e8-6041a019992a # 0000-AZ-speil-brukere
 ENTRAID_UUID_SPEIL_LESETILGANG: c5f26254-c6fa-4942-b81b-5cdff847d3df # 0000-CA-Speil_Lesetilgang
 gosys:

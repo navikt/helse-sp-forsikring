@@ -41,10 +41,10 @@ fun launchApplication(env: Map<String, String>) {
     val replikabaseDataSource =
         HikariDataSource(
             HikariConfig().apply {
-                jdbcUrl = env.getValue("ORACLE_URL")
-                username = env.getValue("ORACLE_USERNAME")
-                password = env.getValue("ORACLE_PASSWORD")
-                schema = env.getValue("ORACLE_DATABASE")
+                jdbcUrl = env.getValue("REPLIKABASE_JDBC_URL")
+                username = env.getValue("REPLIKABASE_USERNAME")
+                password = env.getValue("REPLIKABASE_PASSWORD")
+                schema = env.getValue("REPLIKABASE_SCHEMA")
                 connectionTimeout = Duration.ofSeconds(20).toMillis()
                 maxLifetime = Duration.ofMinutes(30).toMillis()
                 initializationFailTimeout = Duration.ofMinutes(1).toMillis()

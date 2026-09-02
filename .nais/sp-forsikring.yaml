@@ -69,12 +69,23 @@ spec:
     enabled: true
     path: /metrics
   envFrom:
-    - secret: sp-forsikring-oracle
+    # Secreten avgjøres per miljø. Nøklene i den mappes til REPLIKABASE_*-variablene under,
+    # slik at appen ser samme variabelnavn uansett hvilken base den snakker med.
+    - secret: {{ replikabase.secret }}
   env:
     - name: KAFKA_CONSUMER_GROUP_ID
       value: tbd-sp-forsikring-v1
     - name: KAFKA_RAPID_TOPIC
       value: tbd.rapid.v1
+    - name: REPLIKABASE_JDBC_URL
+      # Trippel-krøllparentes for å unngå at handlebars HTML-escaper & i URL-en
+      value: {{{ replikabase.jdbcUrl }}}
+    - name: REPLIKABASE_USERNAME
+      value: {{ replikabase.username }}
+    - name: REPLIKABASE_PASSWORD
+      value: {{ replikabase.passord }}
+    - name: REPLIKABASE_SCHEMA
+      value: {{ replikabase.schema }}
     - name: GOSYS_BASE_URL
       value: {{ gosys.baseurl }}
     - name: GOSYS_SCOPE
