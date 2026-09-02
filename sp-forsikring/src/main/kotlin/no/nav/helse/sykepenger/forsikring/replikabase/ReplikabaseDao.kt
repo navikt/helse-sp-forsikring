@@ -91,11 +91,11 @@ class ReplikabaseDao(
             }.asList,
         )
 
-    private fun Identitetsnummer.tilInfotrygdFødselsnummer(): String {
+    private fun Identitetsnummer.tilInfotrygdFødselsnummer(): Long {
         val år = value.substring(4, 6)
         val måned = value.substring(2, 4)
         val dag = value.substring(0, 2)
         val id = value.substring(6)
-        return "$år$måned$dag$id"
+        return "$år$måned$dag$id".toLong()
     }
 }
