@@ -23,7 +23,7 @@ spec:
 {{/if}}
         flags:
           - name: cloudsql.enable_pgaudit
-            value: {{db.pgAudit}}
+            value: "{{db.pgAudit}}"
           - name: pgaudit.log
             value: "write,ddl,role"
           - name: pgaudit.log_parameter
