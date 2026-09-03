@@ -3,6 +3,7 @@ db:
   tier: "db-f1-micro"
   extraUsers:
     - "sp-forsikring-opprydding-dev"
+  pgAudit: "off"
 # Hvis vi vil gå mot vår egen "replikabase" (fra spleis-testdata), er det denne blokken som er riktig
 replikabase:
   secret: google-sql-spleis-testdata-forsikring-replika-testdata-9ed7e1ce

@@ -21,6 +21,15 @@ spec:
               - name: {{ extraUser }}
 {{/each}}
 {{/if}}
+        flags:
+          - name: cloudsql.enable_pgaudit
+            value: {{db.pgAudit}}
+          - name: pgaudit.log
+            value: "write,ddl,role"
+          - name: pgaudit.log_parameter
+            value: "on"
+          - name: pgaudit.log_relation
+            value: "on"
   port: 8080
   startup:
     path: isready
