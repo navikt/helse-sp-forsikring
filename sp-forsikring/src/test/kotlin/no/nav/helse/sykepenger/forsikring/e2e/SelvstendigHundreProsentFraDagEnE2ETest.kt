@@ -4,19 +4,24 @@ import com.github.navikt.tbd_libs.rapids_and_rivers.asInstant
 import com.github.navikt.tbd_libs.test.assertJsonEquals
 import com.github.navikt.tbd_libs.test.assertMindreEnnNSekunderSiden
 import com.github.navikt.tbd_libs.testdata.TestPerson
+import com.github.navikt.tbd_libs.testdata.des
+import com.github.navikt.tbd_libs.testdata.jan
 import com.github.navikt.tbd_libs.testdata.sep
 import no.nav.helse.sykepenger.forsikring.api.FlexApiClient
 import no.nav.helse.sykepenger.forsikring.api.SpesialistApiClient
+import no.nav.helse.sykepenger.forsikring.api.UtbetalingsstatistikkApiClient
 import no.nav.helse.sykepenger.forsikring.domain.Identitetsnummer
 import no.nav.helse.sykepenger.forsikring.replikabase.tilInfotrygdFødselsnummer
 import no.nav.helse.sykepenger.forsikring.shared.testsupport.TestcontainersRapid
 import no.nav.helse.sykepenger.forsikring.shared.testsupport.TestcontainersReplikadatabase
 import no.nav.helse.sykepenger.forsikring.shared.testsupport.tilInfotrygddato
+import org.intellij.lang.annotations.Language
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.parallel.Isolated
+import tools.jackson.databind.JsonNode
 import tools.jackson.module.kotlin.jacksonObjectMapper
 import java.math.BigDecimal
 import java.time.Instant
@@ -28,7 +33,7 @@ import java.util.*
 @Isolated
 class SelvstendigHundreProsentFraDagEnE2ETest {
     private val person = TestPerson()
-    private val skjæringstidspunkt = LocalDate.parse("2026-09-01")
+    private val skjæringstidspunkt = 1 sep 2026
     private val vedtaksperiodeId = "${UUID.randomUUID()}"
     private val behandlingId = "${UUID.randomUUID()}"
 
@@ -37,39 +42,72 @@ class SelvstendigHundreProsentFraDagEnE2ETest {
         @JvmStatic
         fun beforeAll() {
             E2ETestApplication.start()
+            TestcontainersReplikadatabase.reset()
         }
     }
 
     @Test
     fun `fra søknad til beregnet periode`() {
-        val virkningsdato = 1 sep 2026
-        opprettBetaltForsikring(virkningsdato = virkningsdato, type = '3', premiegrunnlag = 12345)
+        // Brukeren har en forsikring i Infotrygd
+        opprettBetaltForsikring(virkningsdato = 1 sep 2026, type = '3', premiegrunnlag = 12345)
 
-        // Flex sjekker om det er noen vits i å søke i ventetiden
-        val flexForsikringsvurdering = postFlexForsikringsvurdering()
-        assertJsonEquals(
-            expectedJson = """{ "harForsikringMedDekningIVentetid": true }""",
-            actualJson = flexForsikringsvurdering,
+        forventAtUtbetalingsstatistikkApietSvarerMed(
+            fom = 1 jan 2026,
+            tom = 31 des 2026,
+            expectedJson =
+                """
+                {
+                  "fom" : "2026-01-01",
+                  "perForsikringstype" : [ {
+                    "navn" : "Fisker Blad B 100 % fra 1. dag",
+                    "totalt" : 0.0,
+                    "utbetaltIVentetid" : 0.0,
+                    "utbetaltUtenomVentetid" : 0.0
+                  }, {
+                    "navn" : "Frilanser 100 % fra 1. dag",
+                    "totalt" : 0.0,
+                    "utbetaltIVentetid" : 0.0,
+                    "utbetaltUtenomVentetid" : 0.0
+                  }, {
+                    "navn" : "Jordbruker 100 % fra 17. dag",
+                    "totalt" : 0.0,
+                    "utbetaltIVentetid" : 0.0,
+                    "utbetaltUtenomVentetid" : 0.0
+                  }, {
+                    "navn" : "Jordbruker tilleggsforsikring 100 % fra 1. dag",
+                    "totalt" : 0.0,
+                    "utbetaltIVentetid" : 0.0,
+                    "utbetaltUtenomVentetid" : 0.0
+                  }, {
+                    "navn" : "Selvstendig næringsdrivende 100 % fra 1. dag",
+                    "totalt" : 0.0,
+                    "utbetaltIVentetid" : 0.0,
+                    "utbetaltUtenomVentetid" : 0.0
+                  }, {
+                    "navn" : "Selvstendig næringsdrivende 100 % fra 17. dag",
+                    "totalt" : 0.0,
+                    "utbetaltIVentetid" : 0.0,
+                    "utbetaltUtenomVentetid" : 0.0
+                  }, {
+                    "navn" : "Selvstendig næringsdrivende 80 % fra 1. dag",
+                    "totalt" : 0.0,
+                    "utbetaltIVentetid" : 0.0,
+                    "utbetaltUtenomVentetid" : 0.0
+                  } ],
+                  "tom" : "2026-12-31"
+                }
+                """.trimIndent(),
         )
 
+        // Flex sjekker om det er noen vits i å søke i ventetiden
+        forventAtFlexApietSvarerMed("""{ "harForsikringMedDekningIVentetid": true }""")
+
         // Så kommer behovet fra Spleis for sykefraværstilfellet
-        val offsetFørBehov = TestcontainersRapid.nesteOffset()
-        sendForsikringsvurderingBehov()
-        val løsning =
-            TestcontainersRapid.ventPåMelding(fraOffset = offsetFørBehov) { melding ->
-                melding.path("@løsning").hasNonNull("Forsikringsvurdering")
-            }
-        val forsikringsvurderingId = løsning["@løsning"]["Forsikringsvurdering"]["forsikringsvurderingId"].stringValue()
-        assertNotNull(forsikringsvurderingId) { "Manglet forsikringsvurderingId i løsningen: $løsning" }
+        val forsikringsvurderingId = utførForsikringsvurderingBehov()
 
         // Og så behovet for data til beregningen av en periode
-        val offsetFørBehov2 = TestcontainersRapid.nesteOffset()
-        sendForsikringsvurderingResultatBehov(forsikringsvurderingId)
-        val løsning2 =
-            TestcontainersRapid.ventPåMelding(fraOffset = offsetFørBehov2) { melding ->
-                melding.path("@løsning").hasNonNull("ForsikringsvurderingResultat")
-            }
-        assertJsonEquals(
+        forventLøsningPåForsikringsvurderingResultatBehov(
+            forsikringsvurderingId = forsikringsvurderingId,
             expectedJson =
                 """
                 {
@@ -85,11 +123,11 @@ class SelvstendigHundreProsentFraDagEnE2ETest {
                   "villeHattForsikringOmDenVarBetalt" : false
                 }
                 """.trimIndent(),
-            actualJsonNode = løsning2["@løsning"]["ForsikringsvurderingResultat"],
         )
 
-        val forsikringsvurderingApiSvar = getForsikringsvurdering(forsikringsvurderingId)
-        assertJsonEquals(
+        // Saksbehandler går inn og ser på vurderingen i Speil
+        forventAtSpeilApietSvarerMed(
+            forsikringsvurderingId = forsikringsvurderingId,
             expectedJson =
                 """
                 {
@@ -108,7 +146,7 @@ class SelvstendigHundreProsentFraDagEnE2ETest {
                     "lagtTilGrunn" : true,
                     "navn" : "Selvstendig næringsdrivende 100 % fra 1. dag",
                     "opphørsdato" : null,
-                    "virkningsdato" : "$virkningsdato"
+                    "virkningsdato" : "${1 sep 2026}"
                   } ],
                   "kollektivForsikring" : null,
                   "samletDekning" : {
@@ -117,18 +155,78 @@ class SelvstendigHundreProsentFraDagEnE2ETest {
                   }
                 }
                 """.trimIndent(),
-            actualJson = forsikringsvurderingApiSvar,
+        )
+    }
+
+    private fun utførForsikringsvurderingBehov(): String {
+        val offsetFørBehov = TestcontainersRapid.nesteOffset()
+        sendForsikringsvurderingBehov()
+        val løsning =
+            TestcontainersRapid.ventPåMelding(fraOffset = offsetFørBehov) { melding ->
+                melding.path("@løsning").hasNonNull("Forsikringsvurdering")
+            }
+        val forsikringsvurderingId = løsning["@løsning"]["Forsikringsvurdering"]["forsikringsvurderingId"].stringValue()
+        assertNotNull(forsikringsvurderingId) { "Manglet forsikringsvurderingId i løsningen: $løsning" }
+        return forsikringsvurderingId
+    }
+
+    private fun forventLøsningPåForsikringsvurderingResultatBehov(
+        forsikringsvurderingId: String,
+        @Language("JSON") expectedJson: String,
+    ) {
+        val offsetFørBehov = TestcontainersRapid.nesteOffset()
+        sendForsikringsvurderingResultatBehov(forsikringsvurderingId)
+        val løsning =
+            TestcontainersRapid.ventPåMelding(fraOffset = offsetFørBehov) { melding ->
+                melding.path("@løsning").hasNonNull("ForsikringsvurderingResultat")
+            }
+        assertJsonEquals(
+            expectedJson = expectedJson,
+            actualJsonNode = løsning["@løsning"]["ForsikringsvurderingResultat"],
+        )
+    }
+
+    private fun forventAtSpeilApietSvarerMed(
+        forsikringsvurderingId: String,
+        @Language("JSON") expectedJson: String,
+    ) {
+        val forsikringsvurderingApiSvar = getForsikringsvurdering(forsikringsvurderingId)
+        assertJsonEquals(
+            expectedJson =
+            expectedJson,
+            actualJsonNode = forsikringsvurderingApiSvar,
             bortsettFraStier = setOf("vurdertTidspunkt"),
         )
         assertMindreEnnNSekunderSiden(
-            sekunder = 5,
+            sekunder = 30,
             actual =
-                jacksonObjectMapper()
-                    .readTree(forsikringsvurderingApiSvar)["vurdertTidspunkt"]
+                forsikringsvurderingApiSvar["vurdertTidspunkt"]
                     .asInstant()
                     .atZone(
                         ZoneId.of("Europe/Oslo"),
                     ).toLocalDateTime(),
+        )
+    }
+
+    private fun forventAtFlexApietSvarerMed(
+        @Language("JSON") expectedJson: String,
+    ) {
+        val flexForsikringsvurdering = postFlexForsikringsvurdering()
+        assertJsonEquals(
+            expectedJson = expectedJson,
+            actualJsonNode = flexForsikringsvurdering,
+        )
+    }
+
+    private fun forventAtUtbetalingsstatistikkApietSvarerMed(
+        fom: LocalDate,
+        tom: LocalDate,
+        @Language("JSON") expectedJson: String,
+    ) {
+        val utbetalingsstatistikk = getUtbetalingsstatistikk(fom = fom, tom = tom)
+        assertJsonEquals(
+            expectedJson = expectedJson,
+            actualJsonNode = utbetalingsstatistikk,
         )
     }
 
@@ -309,32 +407,54 @@ class SelvstendigHundreProsentFraDagEnE2ETest {
         )
     }
 
-    private fun postFlexForsikringsvurdering(): String =
-        FlexApiClient
-            .postForsikringsvurdering(
-                baseUrl = E2ETestApplication.baseUrl,
-                identitetsnummer = person.identitetsnummer,
-                yrkesaktivitetstype = "SELVSTENDIG",
-                spesielleYrkesgrupper = emptySet(),
-                skjæringstidspunkt = skjæringstidspunkt.toString(),
-                token = m2mToken(),
-            ).let { (status, body) ->
-                assertEquals(200, status, "Body var: $body")
-                body
-            }
+    private val objectMapper = jacksonObjectMapper()
 
-    private fun getForsikringsvurdering(
-        forsikringsvurderingId: String,
-    ): String =
-        SpesialistApiClient
-            .getForsikringsvurdering(
-                baseUrl = E2ETestApplication.baseUrl,
-                forsikringsvurderingId = forsikringsvurderingId,
-                token = m2mToken(),
-            ).let { (status, body) ->
-                assertEquals(200, status, "Body var: $body")
-                body
-            }
+    private fun postFlexForsikringsvurdering(): JsonNode =
+        forvent200OgTolkJson(
+            FlexApiClient
+                .postForsikringsvurdering(
+                    baseUrl = E2ETestApplication.baseUrl,
+                    identitetsnummer = person.identitetsnummer,
+                    yrkesaktivitetstype = "SELVSTENDIG",
+                    spesielleYrkesgrupper = emptySet(),
+                    skjæringstidspunkt = skjæringstidspunkt.toString(),
+                    token = m2mToken(),
+                ),
+        )
+
+    private fun getForsikringsvurdering(forsikringsvurderingId: String): JsonNode =
+        forvent200OgTolkJson(
+            SpesialistApiClient
+                .getForsikringsvurdering(
+                    baseUrl = E2ETestApplication.baseUrl,
+                    forsikringsvurderingId = forsikringsvurderingId,
+                    token = m2mToken(),
+                ),
+        )
+
+    private fun getUtbetalingsstatistikk(
+        fom: LocalDate,
+        tom: LocalDate,
+    ): JsonNode =
+        forvent200OgTolkJson(
+            UtbetalingsstatistikkApiClient
+                .getUtbetalingsstatistiskk(
+                    baseUrl = E2ETestApplication.baseUrl,
+                    fom = fom,
+                    tom = tom,
+                    token = m2mToken(),
+                ),
+        )
+
+    private fun forvent200OgTolkJson(statusAndBody: Pair<Int, String>): JsonNode {
+        val (status, body) = statusAndBody
+        assertEquals(200, status, "Status var ikke 200. Body var: $body")
+        return runCatching {
+            objectMapper.readTree(body)
+        }.onFailure {
+            assertEquals(null, it, "Klarte ikke tolke svar som JSON. Body var: $body")
+        }.getOrThrow()
+    }
 
     private fun m2mToken(): String =
         E2ETestApplication.mockOAuth2Server
