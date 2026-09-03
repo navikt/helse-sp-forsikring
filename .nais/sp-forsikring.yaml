@@ -70,10 +70,7 @@ spec:
   azure:
     application:
       enabled: true
-      claims:
-        groups:
-          - id: {{ENTRAID_UUID_SAKSBEHANDLER}}
-          - id: {{ENTRAID_UUID_SPEIL_LESETILGANG}}
+      allowAllUsers: true
   prometheus:
     enabled: true
     path: /metrics

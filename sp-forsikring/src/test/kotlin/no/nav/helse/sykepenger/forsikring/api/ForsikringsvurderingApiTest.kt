@@ -3,29 +3,19 @@ package no.nav.helse.sykepenger.forsikring.api
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
-import io.ktor.server.cio.CIO
-import io.ktor.server.engine.embeddedServer
+import io.ktor.server.cio.*
+import io.ktor.server.engine.*
 import no.nav.helse.sykepenger.forsikring.domain.IndividuellForsikringType
 import no.nav.helse.sykepenger.forsikring.domain.KollektivForsikring
 import no.nav.helse.sykepenger.forsikring.domain.SpesiellYrkesgruppe
 import no.nav.helse.sykepenger.forsikring.domain.VurdertIndividuellForsikring
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.ForsikringsvurderingService
-import no.nav.helse.sykepenger.forsikring.shared.testsupport.TestcontainersReplikadatabase
-import no.nav.helse.sykepenger.forsikring.shared.testsupport.TestcontainersSpForsikringDatabase
-import no.nav.helse.sykepenger.forsikring.shared.testsupport.lagForsikringsvurdering
-import no.nav.helse.sykepenger.forsikring.shared.testsupport.lagIdentitetsnummer
-import no.nav.helse.sykepenger.forsikring.shared.testsupport.lagVurdertIndividuellForsikring
-import no.nav.helse.sykepenger.forsikring.shared.testsupport.lagreRåkopiOgForsikringsvurdering
-import no.nav.helse.sykepenger.forsikring.shared.testsupport.tilInfotrygdFødselsnummer
+import no.nav.helse.sykepenger.forsikring.shared.testsupport.*
 import no.nav.security.mock.oauth2.MockOAuth2Server
 import org.apache.hc.client5.http.fluent.Request
 import org.apache.hc.core5.http.io.entity.EntityUtils
 import org.junit.jupiter.api.AfterAll
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertFalse
-import org.junit.jupiter.api.Assertions.assertNotNull
-import org.junit.jupiter.api.Assertions.assertNull
-import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
@@ -90,7 +80,7 @@ class ForsikringsvurderingApiTest {
 
     @Test
     fun `returnerer harForsikringMedDekningIVentetid false når ingen forsikringer finnes i replikabasen`() {
-        val (statusCode, body) = postForsikringsvurdering(token = bearerToken())
+        val (statusCode, body) = postForsikringsvurdering(token = m2mToken())
 
         assertEquals(200, statusCode) { "Body was: $body" }
         assertTrue(body.contains("\"harForsikringMedDekningIVentetid\":false")) { "Forventet false, fikk: $body" }
@@ -107,7 +97,7 @@ class ForsikringsvurderingApiTest {
             IF10_VIRKDATO = 20260101,
         )
 
-        val (statusCode, body) = postForsikringsvurdering(identitetsnummer = identitetsnummer.value, token = bearerToken())
+        val (statusCode, body) = postForsikringsvurdering(identitetsnummer = identitetsnummer.value, token = m2mToken())
 
         assertEquals(200, statusCode) { "Body was: $body" }
         assertTrue(body.contains("\"harForsikringMedDekningIVentetid\":true")) { "Forventet true, fikk: $body" }
@@ -122,7 +112,7 @@ class ForsikringsvurderingApiTest {
             IF10_VIRKDATO = 20260101,
         )
 
-        val (statusCode, body) = postForsikringsvurdering(identitetsnummer = identitetsnummer.value, token = bearerToken())
+        val (statusCode, body) = postForsikringsvurdering(identitetsnummer = identitetsnummer.value, token = m2mToken())
 
         assertEquals(200, statusCode) { "Body was: $body" }
         assertTrue(body.contains("\"harForsikringMedDekningIVentetid\":false")) { "Forventet false, fikk: $body" }
@@ -138,7 +128,7 @@ class ForsikringsvurderingApiTest {
             IF10_FORSTOM = 20251231,
         )
 
-        val (statusCode, body) = postForsikringsvurdering(identitetsnummer = identitetsnummer.value, token = bearerToken())
+        val (statusCode, body) = postForsikringsvurdering(identitetsnummer = identitetsnummer.value, token = m2mToken())
 
         assertEquals(200, statusCode) { "Body was: $body" }
         assertTrue(body.contains("\"harForsikringMedDekningIVentetid\":false")) { "Forventet false, fikk: $body" }
@@ -153,7 +143,7 @@ class ForsikringsvurderingApiTest {
             IF10_VIRKDATO = 20260102,
         )
 
-        val (statusCode, body) = postForsikringsvurdering(identitetsnummer = identitetsnummer.value, token = bearerToken())
+        val (statusCode, body) = postForsikringsvurdering(identitetsnummer = identitetsnummer.value, token = m2mToken())
 
         assertEquals(200, statusCode) { "Body was: $body" }
         assertTrue(body.contains("\"harForsikringMedDekningIVentetid\":false")) { "Forventet false, fikk: $body" }
@@ -161,7 +151,7 @@ class ForsikringsvurderingApiTest {
 
     @Test
     fun `returnerer 400 når identitetsnummer ikke er 11 siffer`() {
-        val (statusCode, body) = postForsikringsvurdering(identitetsnummer = "1234", token = bearerToken())
+        val (statusCode, body) = postForsikringsvurdering(identitetsnummer = "1234", token = m2mToken())
 
         assertEquals(400, statusCode)
         assertTrue(body.contains("\"status\":400")) { "Forventet ProblemDetail-body med status 400, fikk: $body" }
@@ -176,14 +166,14 @@ class ForsikringsvurderingApiTest {
 
     @Test
     fun `returnerer 401 med token med feil audience`() {
-        val (statusCode, _) = postForsikringsvurdering(token = bearerToken(audience = "feil-audience"))
+        val (statusCode, _) = postForsikringsvurdering(token = m2mToken(audience = "feil-audience"))
 
         assertEquals(401, statusCode)
     }
 
     @Test
     fun `returnerer 401 med token fra feil issuer`() {
-        val (statusCode, _) = postForsikringsvurdering(token = bearerToken(issuerId = "feil-issuer"))
+        val (statusCode, _) = postForsikringsvurdering(token = m2mToken(issuerId = "feil-issuer"))
 
         assertEquals(401, statusCode)
     }
@@ -196,10 +186,10 @@ class ForsikringsvurderingApiTest {
     }
 
     @Test
-    fun `GET forsikringsvurderinger slipper gjennom brukertoken fordi spesialist-apiet også brukes av innloggede brukere`() {
+    fun `GET forsikringsvurderinger returnerer 401 for brukertoken`() {
         val (statusCode, _) = getForsikringsvurdering(UUID.randomUUID().toString(), brukertoken())
 
-        assertEquals(404, statusCode)
+        assertEquals(401, statusCode)
     }
 
     @Test
@@ -221,7 +211,7 @@ class ForsikringsvurderingApiTest {
         val forsikringsvurderingId =
             forsikringsvurdering.id
 
-        val (statusCode, body) = getForsikringsvurdering(forsikringsvurderingId.value.toString(), bearerToken())
+        val (statusCode, body) = getForsikringsvurdering(forsikringsvurderingId.value.toString(), m2mToken())
 
         assertEquals(200, statusCode) { "Body was: $body" }
         val json = body.somJson()
@@ -263,7 +253,7 @@ class ForsikringsvurderingApiTest {
         val forsikringsvurderingId =
             forsikringsvurdering.id
 
-        val (statusCode, body) = getForsikringsvurdering(forsikringsvurderingId.value.toString(), bearerToken())
+        val (statusCode, body) = getForsikringsvurdering(forsikringsvurderingId.value.toString(), m2mToken())
 
         assertEquals(200, statusCode) { "Body was: $body" }
         val json = body.somJson()
@@ -286,7 +276,7 @@ class ForsikringsvurderingApiTest {
         val forsikringsvurderingId =
             forsikringsvurdering.id
 
-        val (statusCode, body) = getForsikringsvurdering(forsikringsvurderingId.value.toString(), bearerToken())
+        val (statusCode, body) = getForsikringsvurdering(forsikringsvurderingId.value.toString(), m2mToken())
 
         assertEquals(200, statusCode) { "Body was: $body" }
         val json = body.somJson()
@@ -307,7 +297,7 @@ class ForsikringsvurderingApiTest {
         val forsikringsvurderingId =
             forsikringsvurdering.id
 
-        val (statusCode, body) = getForsikringsvurdering(forsikringsvurderingId.value.toString(), bearerToken())
+        val (statusCode, body) = getForsikringsvurdering(forsikringsvurderingId.value.toString(), m2mToken())
 
         assertEquals(200, statusCode) { "Body was: $body" }
         val json = body.somJson()
@@ -350,7 +340,7 @@ class ForsikringsvurderingApiTest {
         val forsikringsvurderingId =
             forsikringsvurdering.id
 
-        val (statusCode, body) = getForsikringsvurdering(forsikringsvurderingId.value.toString(), bearerToken())
+        val (statusCode, body) = getForsikringsvurdering(forsikringsvurderingId.value.toString(), m2mToken())
 
         assertEquals(200, statusCode) { "Body was: $body" }
         val json = body.somJson()
@@ -378,7 +368,7 @@ class ForsikringsvurderingApiTest {
             )
         lagreRåkopiOgForsikringsvurdering(forsikringsvurdering)
 
-        val (statusCode, body) = getForsikringsvurdering(forsikringsvurdering.id.value.toString(), bearerToken())
+        val (statusCode, body) = getForsikringsvurdering(forsikringsvurdering.id.value.toString(), m2mToken())
 
         assertEquals(200, statusCode) { "Body was: $body" }
         val json = body.somJson()
@@ -410,7 +400,7 @@ class ForsikringsvurderingApiTest {
         val forsikringsvurderingId =
             forsikringsvurdering.id
 
-        val (statusCode, body) = getForsikringsvurdering(forsikringsvurderingId.value.toString(), bearerToken())
+        val (statusCode, body) = getForsikringsvurdering(forsikringsvurderingId.value.toString(), m2mToken())
 
         assertEquals(200, statusCode) { "Body was: $body" }
         val json = body.somJson()
@@ -449,7 +439,7 @@ class ForsikringsvurderingApiTest {
         val forsikringsvurderingId =
             forsikringsvurdering.id
 
-        val (statusCode, body) = getForsikringsvurdering(forsikringsvurderingId.value.toString(), bearerToken())
+        val (statusCode, body) = getForsikringsvurdering(forsikringsvurderingId.value.toString(), m2mToken())
 
         assertEquals(200, statusCode) { "Body was: $body" }
         val forsikring = body.somJson()["individuelleForsikringer"].single()
@@ -484,7 +474,7 @@ class ForsikringsvurderingApiTest {
         val forsikringsvurderingId =
             forsikringsvurdering.id
 
-        val (statusCode, body) = getForsikringsvurdering(forsikringsvurderingId.value.toString(), bearerToken())
+        val (statusCode, body) = getForsikringsvurdering(forsikringsvurderingId.value.toString(), m2mToken())
 
         assertEquals(200, statusCode) { "Body was: $body" }
         val json = body.somJson()
@@ -503,7 +493,7 @@ class ForsikringsvurderingApiTest {
 
     @Test
     fun `GET forsikringsvurderinger returnerer 404 når id ikke finnes`() {
-        val (statusCode, body) = getForsikringsvurdering(UUID.randomUUID().toString(), bearerToken())
+        val (statusCode, body) = getForsikringsvurdering(UUID.randomUUID().toString(), m2mToken())
 
         assertEquals(404, statusCode) { "Body was: $body" }
         assertTrue(body.contains("\"status\":404")) { "Forventet ProblemDetail-body med status 404, fikk: $body" }
@@ -511,7 +501,7 @@ class ForsikringsvurderingApiTest {
 
     @Test
     fun `GET forsikringsvurderinger returnerer 400 når id ikke er en UUID`() {
-        val (statusCode, body) = getForsikringsvurdering("ikke-en-uuid", bearerToken())
+        val (statusCode, body) = getForsikringsvurdering("ikke-en-uuid", m2mToken())
 
         assertEquals(400, statusCode) { "Body was: $body" }
         assertTrue(body.contains("\"status\":400")) { "Forventet ProblemDetail-body med status 400, fikk: $body" }
@@ -543,7 +533,7 @@ class ForsikringsvurderingApiTest {
         val forsikringsvurderingId =
             forsikringsvurdering.id
 
-        val (statusCode, body) = getForsikringsvurdering(forsikringsvurderingId.value.toString(), bearerToken())
+        val (statusCode, body) = getForsikringsvurdering(forsikringsvurderingId.value.toString(), m2mToken())
 
         assertEquals(200, statusCode) { "Body was: $body" }
         val json = body.somJson()
@@ -574,7 +564,7 @@ class ForsikringsvurderingApiTest {
         val forsikringsvurderingId =
             forsikringsvurdering.id
 
-        val (statusCode, body) = getForsikringsvurdering(forsikringsvurderingId.value.toString(), bearerToken())
+        val (statusCode, body) = getForsikringsvurdering(forsikringsvurderingId.value.toString(), m2mToken())
 
         assertEquals(200, statusCode) { "Body was: $body" }
         val forsikring = body.somJson()["individuelleForsikringer"].single()
@@ -585,10 +575,20 @@ class ForsikringsvurderingApiTest {
         )
     }
 
+    private fun m2mToken(
+        issuerId: String = "default",
+        audience: String = CLIENT_ID,
+    ): String =
+        bearerToken(
+            issuerId = issuerId,
+            audience = audience,
+            claims = mapOf("idtyp" to "app"),
+        )
+
     private fun bearerToken(
         issuerId: String = "default",
         audience: String = CLIENT_ID,
-        claims: Map<String, Any> = mapOf("idtyp" to "app"),
+        claims: Map<String, Any>,
     ): String =
         mockOAuth2Server
             .issueToken(
@@ -597,7 +597,7 @@ class ForsikringsvurderingApiTest {
                 claims = claims,
             ).serialize()
 
-    private fun brukertoken(): String = bearerToken(claims = mapOf("NAVident" to "A123456"))
+    private fun brukertoken(grupper: List<String> = emptyList()): String = bearerToken(claims = mapOf("NAVident" to "A123456", "groups" to grupper))
 
     private fun getForsikringsvurdering(
         forsikringsvurderingId: String,
