@@ -14,11 +14,13 @@ import no.nav.helse.sykepenger.forsikring.domain.Identitetsnummer
 import no.nav.helse.sykepenger.forsikring.replikabase.tilInfotrygdFødselsnummer
 import no.nav.helse.sykepenger.forsikring.shared.testsupport.TestcontainersRapid
 import no.nav.helse.sykepenger.forsikring.shared.testsupport.TestcontainersReplikadatabase
+import no.nav.helse.sykepenger.forsikring.shared.testsupport.TestcontainersSpForsikringDatabase
 import no.nav.helse.sykepenger.forsikring.shared.testsupport.tilInfotrygddato
 import org.intellij.lang.annotations.Language
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.BeforeAll
+import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.parallel.Isolated
 import tools.jackson.databind.JsonNode
@@ -42,8 +44,13 @@ class SelvstendigHundreProsentFraDagEnE2ETest {
         @JvmStatic
         fun beforeAll() {
             E2ETestApplication.start()
-            TestcontainersReplikadatabase.reset()
         }
+    }
+
+    @BeforeEach
+    fun setUp() {
+        TestcontainersReplikadatabase.reset()
+        TestcontainersSpForsikringDatabase.reset()
     }
 
     @Test
