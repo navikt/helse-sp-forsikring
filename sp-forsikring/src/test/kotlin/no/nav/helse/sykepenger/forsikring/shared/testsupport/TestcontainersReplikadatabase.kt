@@ -5,12 +5,16 @@ import com.zaxxer.hikari.HikariDataSource
 import kotliquery.Parameter
 import kotliquery.queryOf
 import kotliquery.sessionOf
+import no.nav.helse.sykepenger.forsikring.domain.Identitetsnummer
+import no.nav.helse.sykepenger.forsikring.replikabase.tilInfotrygdFødselsnummer
 import org.flywaydb.core.Flyway
 import org.intellij.lang.annotations.Language
 import org.testcontainers.oracle.OracleContainer
 import java.math.BigDecimal
 import java.sql.Timestamp
 import java.time.Instant
+import java.time.LocalDate
+import java.time.YearMonth
 
 object TestcontainersReplikadatabase {
     val oracleContainer: OracleContainer =
@@ -38,6 +42,9 @@ object TestcontainersReplikadatabase {
             .migrate()
     }
 
+    var vedfrivtSeq = 0
+    var fkontoSeq = 0
+
     fun reset() {
         sessionOf(dataSource).use { session ->
             session.transaction { transaction ->
@@ -45,10 +52,82 @@ object TestcontainersReplikadatabase {
                 transaction.run(queryOf("DELETE FROM IF_VEDFRIVT_10").asUpdate)
             }
         }
+        vedfrivtSeq = 0
+        fkontoSeq = 0
     }
 
     fun shutdown() {
         dataSource.close()
+    }
+
+    fun opprettBetaltForsikring(
+        identitetsnummer: Identitetsnummer,
+        virkningsdato: LocalDate,
+        type: Char,
+        premiegrunnlag: Int,
+        opphørsdato: LocalDate? = null,
+        opphørsgrunn: String? = null,
+    ) {
+        val vedfrivtId = vedfrivtSeq++
+        val nå = Instant.now()
+        val IF01_KODE = '1'
+        val IF01_AGNR_FNR = identitetsnummer.tilInfotrygdFødselsnummer()
+        val IF10_FORSFOM_SEQ = vedfrivtId
+        val forsikringFom = virkningsdato.minusDays(28L)
+        TestcontainersReplikadatabase.insertVedfrivt(
+            IF01_KODE = IF01_KODE,
+            IF01_AGNR_FNR = IF01_AGNR_FNR,
+            IF10_FORSFOM_SEQ = IF10_FORSFOM_SEQ,
+            IF10_GODKJ = 'J',
+            IF10_FORSFOM = forsikringFom.tilInfotrygddato(),
+            IF10_VIRKDATO = virkningsdato.tilInfotrygddato(),
+            IF10_TYPE = type,
+            IF10_SELVFOM = " ",
+            IF10_KOMBI = 'N',
+            IF10_PREMGRL = premiegrunnlag,
+            IF10_FOM = 0,
+            IF10_PREMIE = 0,
+            IF10_GML_PREMGRL = 0,
+            IF10_GML_FOM = 0,
+            IF10_GML_PREMIE = 0,
+            IF10_FRIFOM = 0,
+            IF10_FORSTOM = opphørsdato?.tilInfotrygddato() ?: 0,
+            IF10_OPPHGR = opphørsgrunn ?: " ",
+            IF10_VARSEL = 0,
+            IF10_TERM_KV = ' ',
+            IF10_TERM_AAR = " ",
+            IF10_VARSEL_BELOEP = 0,
+            IF10_BETALT_BELOEP = 0,
+            IF10_PURR = 0,
+            IF10_TKNR_BOST = 0,
+            IF10_TKNR_BEH = 0,
+            OPPRETTET = nå,
+            ENDRET_I_KILDE = nå,
+            KILDE_IF = " ",
+            ID_VED = BigDecimal.valueOf(vedfrivtId.toLong()),
+            OPPDATERT = nå,
+        )
+        val fkontoId = fkontoSeq++
+
+        val betalingFomYearMonth = YearMonth.of(forsikringFom.year, 1 + (6 * (forsikringFom.month.value / 7)))
+        val betalingTomYearMonth = betalingFomYearMonth.plusMonths(5)
+        TestcontainersReplikadatabase.insertFkonto12(
+            IF01_KODE = IF01_KODE,
+            IF01_AGNR_FNR = IF01_AGNR_FNR,
+            IF10_FORSFOM_SEQ = IF10_FORSFOM_SEQ,
+            IF12_BETDATO_SEQ = fkontoId,
+            IF12_FOM = betalingFomYearMonth.atDay(1).tilInfotrygddato(),
+            IF12_TOM = betalingTomYearMonth.atEndOfMonth().tilInfotrygddato(),
+            IF12_BET_KODE = 'B',
+            IF12_FRIUKER = null,
+            IF12_BELOEP = null,
+            IF12_BETDATO = forsikringFom.plusDays(14).tilInfotrygddato(),
+            OPPRETTET = nå,
+            ENDRET_I_KILDE = nå,
+            KILDE_IF = " ",
+            ID_KONT = BigDecimal.valueOf(fkontoId.toLong()),
+            OPPDATERT = nå,
+        )
     }
 
     fun insertVedfrivt(

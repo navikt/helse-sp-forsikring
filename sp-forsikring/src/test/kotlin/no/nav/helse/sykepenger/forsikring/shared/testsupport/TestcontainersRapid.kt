@@ -31,52 +31,42 @@ object TestcontainersRapid {
             .let { KafkaConfig(it.bootstrapServers) }
             .also { opprettTopic(RAPID_TOPIC, it) }
 
-    private val producer by lazy {
-        KafkaProducer(kafkaConfig.producerConfig(Properties()), StringSerializer(), StringSerializer())
+    private val partition = TopicPartition(RAPID_TOPIC, 0)
+
+    private val adminClient by lazy {
+        AdminClient
+            .create(kafkaConfig.adminConfig(Properties()))
             .also { Runtime.getRuntime().addShutdownHook(Thread { it.close() }) }
     }
 
-    fun sendPåRapid(
-        key: String,
-        melding: String,
-    ) {
-        producer.send(ProducerRecord(RAPID_TOPIC, key, melding)).get()
-    }
-
-    private val objectMapper = jacksonObjectMapper()
-
-    private val rapidPartisjon = TopicPartition(RAPID_TOPIC, 0)
-
-    private fun nyConsumer() =
-        KafkaConsumer(
-            kafkaConfig.consumerConfig("testcontainers-rapid-${UUID.randomUUID()}", Properties()),
-            StringDeserializer(),
-            StringDeserializer(),
-        )
-
     /**
-     * Offseten neste melding på rapiden vil få. Les den av før du sender en melding, og bruk den som
-     * startpunkt i [ventPåMelding] for å slippe å lese meldinger som ble produsert tidligere i testen.
+     * Venter til konsumentgruppen har committet et offset som er høyere enn [offset], altså at meldingen på det
+     * offsetet er ferdig behandlet. KafkaRapid gjør commitSync etter at alle meldingene i en poll-batch er behandlet
+     * ferdig av alle rivere, så et committet offset er en pålitelig indikasjon på at applikasjonen faktisk er ferdig
+     * med meldingen - inkludert eventuelle databaseskrivinger.
      */
-    fun nesteOffset(): Long = nyConsumer().use { consumer -> consumer.endOffsets(listOf(rapidPartisjon))[rapidPartisjon] ?: 0L }
-
-    fun ventPåMelding(
-        fraOffset: Long,
-        timeout: Duration = Duration.ofSeconds(30),
-        predikat: (JsonNode) -> Boolean,
-    ): JsonNode =
-        nyConsumer().use { consumer ->
-            consumer.assign(listOf(rapidPartisjon))
-            consumer.seek(rapidPartisjon, fraOffset)
-            val frist = Instant.now().plus(timeout)
-            while (Instant.now() < frist) {
-                for (record in consumer.poll(Duration.ofMillis(500))) {
-                    val melding = runCatching { objectMapper.readTree(record.value()) }.getOrNull() ?: continue
-                    if (predikat(melding)) return melding
-                }
-            }
-            error("Fant ingen melding på rapiden som matchet predikatet innen $timeout")
+    fun ventTilMeldingErFerdigBehandlet(
+        konsumentgruppe: String,
+        offset: Long,
+        timeout: Duration = Duration.ofSeconds(20),
+    ) {
+        val timeoutInstant = Instant.now().plus(timeout)
+        var sistObserverteOffset: Long? = null
+        while (Instant.now() < timeoutInstant) {
+            sistObserverteOffset =
+                adminClient
+                    .listConsumerGroupOffsets(konsumentgruppe)
+                    .partitionsToOffsetAndMetadata()
+                    .get()[partition]
+                    ?.offset()
+            if (sistObserverteOffset != null && sistObserverteOffset > offset) return
+            Thread.sleep(20)
         }
+        error(
+            "Konsumentgruppen $konsumentgruppe ble ikke ferdig med meldingen på offset $offset innen $timeout " +
+                "(sist committede offset var $sistObserverteOffset)",
+        )
+    }
 
     fun opprettTopic(
         topic: String,
@@ -89,6 +79,76 @@ object TestcontainersRapid {
                 // Topicet finnes allerede, og det er helt greit
                 if (err.cause !is org.apache.kafka.common.errors.TopicExistsException) throw err
             }
+        }
+    }
+
+    class Klient(
+        startOffset: Long? = null,
+    ) : AutoCloseable {
+        private val consumer =
+            KafkaConsumer(
+                kafkaConfig.consumerConfig("testcontainers-rapid-${UUID.randomUUID()}", Properties()),
+                StringDeserializer(),
+                StringDeserializer(),
+            ).apply {
+                assign(listOf(partition))
+                if (startOffset != null) {
+                    seek(partition, startOffset)
+                } else {
+                    seekToEnd(setOf(partition))
+                }
+                // Seek er lazy, denne linjen sørger for at vi faktisk går dit nå
+                position(partition)
+            }
+
+        private val producer =
+            KafkaProducer(
+                kafkaConfig.producerConfig(Properties()),
+                StringSerializer(),
+                StringSerializer(),
+            )
+
+        private val meldingsbuffer = mutableListOf<JsonNode>()
+        private val objectMapper = jacksonObjectMapper()
+
+        /** @return offsetet meldingen ble lagt på */
+        fun send(
+            key: String,
+            melding: JsonNode,
+        ): Long =
+            producer
+                .send(ProducerRecord(RAPID_TOPIC, key, melding.toPrettyString()))
+                .get()
+                .offset()
+
+        fun konsumerMelding(
+            timeoutSekunder: Int = 5,
+            predicate: (JsonNode) -> Boolean,
+        ): JsonNode {
+            val timeoutInstant = Instant.now().plusSeconds(timeoutSekunder.toLong())
+            while (Instant.now() < timeoutInstant) {
+                val matchingMessage = meldingsbuffer.find { predicate(it) }
+                if (matchingMessage != null) {
+                    meldingsbuffer.remove(matchingMessage)
+                    return matchingMessage
+                } else {
+                    meldingsbuffer.addAll(
+                        consumer
+                            .poll(Duration.ofMillis(250))
+                            .map { objectMapper.readTree(it.value()) },
+                    )
+                }
+            }
+            error(
+                "Fikk ingen melding som matchet forventningene innen $timeoutSekunder sekunder. " +
+                    "Meldingene i bufferet var:\n" +
+                    meldingsbuffer.joinToString("\n") { it.toString() },
+            )
+        }
+
+        override fun close() {
+            consumer.close()
+            producer.close()
         }
     }
 

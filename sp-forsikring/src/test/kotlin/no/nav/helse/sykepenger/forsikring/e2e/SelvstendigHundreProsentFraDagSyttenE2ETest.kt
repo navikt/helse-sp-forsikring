@@ -4,7 +4,7 @@ import com.github.navikt.tbd_libs.testdata.jul
 import com.github.navikt.tbd_libs.testdata.sep
 import org.junit.jupiter.api.Test
 
-class SelvstendigHundreProsentFraDagEnE2ETest :
+class SelvstendigHundreProsentFraDagSyttenE2ETest :
     AbstractE2ETest(
         skjæringstidspunkt = 1 sep 2026,
     ) {
@@ -12,18 +12,18 @@ class SelvstendigHundreProsentFraDagEnE2ETest :
     fun `happy path`() {
         brukerenHarEnBetaltForsikringIInfotrygd(
             virkningsdato = 1 jul 2026,
-            infotrygdType = '3',
+            infotrygdType = '2',
             premiegrunnlag = 12345,
         )
         utbetalingsstatistikkenForIÅrErTom()
 
-        flexSjekkerOmDetErNoeVitsIÅSøkeIVentetiden(forventetSvar = true)
+        flexSjekkerOmDetErNoeVitsIÅSøkeIVentetiden(forventetSvar = false)
 
         spleisSenderBehovForForsikringsvurdering()
         val forsikringsvurderingId = detBlirPublisertEnForsikringsvurderingLøsning()
         detBlirPublisertEnSubsumsjonsmeldingForSykefraværstilfellet(
             ledd = 1,
-            bokstav = 'c',
+            bokstav = 'b',
             forsikringsvurderingId = forsikringsvurderingId,
         )
 
@@ -34,7 +34,7 @@ class SelvstendigHundreProsentFraDagEnE2ETest :
             {
               "dekning" : {
                 "grad" : 100,
-                "iVentetid" : true
+                "iVentetid" : false
               },
               "forsikringsvurderingId" : "$forsikringsvurderingId",
               "harForsikring" : true,
@@ -54,7 +54,7 @@ class SelvstendigHundreProsentFraDagEnE2ETest :
                   "identitetsnummer" : "${testPerson.identitetsnummer}",
                   "individuelleForsikringer" : [ {
                     "dekningFolketrygdlovenreferanse" : {
-                      "bokstav" : "c",
+                      "bokstav" : "b",
                       "kapittel" : 8,
                       "ledd" : 1,
                       "paragrafIKapittel" : 36
@@ -64,13 +64,13 @@ class SelvstendigHundreProsentFraDagEnE2ETest :
                       "forklaring" : "Lagt til grunn"
                     },
                     "lagtTilGrunn" : true,
-                    "navn" : "Selvstendig næringsdrivende 100 % fra 1. dag",
+                    "navn" : "Selvstendig næringsdrivende 100 % fra 17. dag",
                     "opphørsdato" : null,
                     "virkningsdato" : "2026-07-01"
                   } ],
                   "kollektivForsikring" : null,
                   "samletDekning" : {
-                    "fraDag" : 1,
+                    "fraDag" : 17,
                     "grad" : 100
                   }
                 }
@@ -81,20 +81,20 @@ class SelvstendigHundreProsentFraDagEnE2ETest :
         spesialistSenderVedtakFattet(
             vedtaksperiode = førsteVedtaksperiode,
             forsikringsvurderingId = forsikringsvurderingId,
-            dekning = """{ "dekningsgrad": 100, "gjelderFraDag": 1 }""",
-            dekningsgradIVentetid = 100,
+            dekning = """{ "dekningsgrad": 100, "gjelderFraDag": 17 }""",
+            dekningsgradIVentetid = 80,
             dekningsgradEtterVentetid = 100,
             sykepengegrunnlag = 12345,
-            dagbeløpIVentetid = 3151,
+            dagbeløpIVentetid = 0,
             dagsbeløpEtterVentetid = 3151,
         )
 
         utbetalingsstatistikkenForIÅrErTomBortsettFra(
             """
             {
-                "navn" : "Selvstendig næringsdrivende 100 % fra 1. dag",
-                "totalt" : 44114.0,
-                "utbetaltIVentetid" : 37812.0,
+                "navn" : "Selvstendig næringsdrivende 100 % fra 17. dag",
+                "totalt" : 6302.0,
+                "utbetaltIVentetid" : 0.0,
                 "utbetaltUtenomVentetid" : 6302.0
               }
             """.trimIndent(),
@@ -107,7 +107,7 @@ class SelvstendigHundreProsentFraDagEnE2ETest :
             {
               "dekning" : {
                 "grad" : 100,
-                "iVentetid" : true
+                "iVentetid" : false
               },
               "forsikringsvurderingId" : "$forsikringsvurderingId",
               "harForsikring" : true,
@@ -123,20 +123,20 @@ class SelvstendigHundreProsentFraDagEnE2ETest :
         spesialistSenderVedtakFattet(
             vedtaksperiode = andreVedtaksperiode,
             forsikringsvurderingId = forsikringsvurderingId,
-            dekning = """{ "dekningsgrad": 100, "gjelderFraDag": 1 }""",
-            dekningsgradIVentetid = 100,
+            dekning = """{ "dekningsgrad": 100, "gjelderFraDag": 17 }""",
+            dekningsgradIVentetid = 80,
             dekningsgradEtterVentetid = 100,
             sykepengegrunnlag = 12345,
-            dagbeløpIVentetid = 3151,
+            dagbeløpIVentetid = 0,
             dagsbeløpEtterVentetid = 3151,
         )
 
         utbetalingsstatistikkenForIÅrErTomBortsettFra(
             """
             {
-                "navn" : "Selvstendig næringsdrivende 100 % fra 1. dag",
-                "totalt" : 57978.4,
-                "utbetaltIVentetid" : 37812.0,
+                "navn" : "Selvstendig næringsdrivende 100 % fra 17. dag",
+                "totalt" : 20166.4,
+                "utbetaltIVentetid" : 0.0,
                 "utbetaltUtenomVentetid" : 20166.4
               }
             """.trimIndent(),

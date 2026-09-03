@@ -25,15 +25,30 @@ object E2ETestApplication {
     private val httpPort = ServerSocket(0).use(ServerSocket::getLocalPort)
     val baseUrl = "http://localhost:$httpPort"
 
+    const val KAFKA_CONSUMER_GROUP_ID = CLIENT_ID
+
+    private var started = false
+
+    @Synchronized
+    private fun ensureStarted() {
+        if (!started) {
+            ventTilIsreadyGir200()
+            // Venter på livssyklusmeldingene fra rapids and rivers
+            TestcontainersRapid.Klient(startOffset = 0).use { rapid ->
+                rapid.konsumerMelding(timeoutSekunder = 30) { it["@event_name"].stringValue() == "application_up" }
+                rapid.konsumerMelding(timeoutSekunder = 30) { it["@event_name"].stringValue() == "application_ready" }
+            }
+            started = true
+        }
+    }
+
+    fun reset() {
+        ensureStarted()
+        TestcontainersReplikadatabase.reset()
+        TestcontainersSpForsikringDatabase.reset()
+    }
+
     private val applikasjonstråd by lazy {
-        startIEgenTråd()
-    }
-
-    fun start() {
-        ventTilApplikasjonenErKlar()
-    }
-
-    private fun startIEgenTråd(): Thread =
         thread(name = "e2e-applikasjon", isDaemon = true) {
             try {
                 launchApplication(
@@ -60,7 +75,7 @@ object E2ETestApplication {
                             "NAIS_APP_NAME" to CLIENT_ID,
                             "NAIS_APP_IMAGE" to "navikt/sp-forsikring:latest",
                             "RAPID_APP_NAME" to CLIENT_ID,
-                            "KAFKA_CONSUMER_GROUP_ID" to CLIENT_ID,
+                            "KAFKA_CONSUMER_GROUP_ID" to KAFKA_CONSUMER_GROUP_ID,
                             "KAFKA_RAPID_TOPIC" to "tbd.rapid.v1",
                             "KAFKA_RESET_POLICY" to "earliest",
                         ),
@@ -71,18 +86,19 @@ object E2ETestApplication {
                 throw feil
             }
         }
+    }
 
-    private fun ventTilApplikasjonenErKlar() {
+    private fun ventTilIsreadyGir200() {
         val timeoutTidspunkt = Instant.now().plus(Duration.ofMinutes(2))
         while (Instant.now() < timeoutTidspunkt) {
             check(applikasjonstråd.isAlive) { "Applikasjonen stoppet under oppstart" }
-            if (erKlar()) return
+            if (isreadyGir200()) return
             Thread.sleep(100)
         }
         error("Applikasjonen brukte for lang tid på å starte opp")
     }
 
-    private fun erKlar(): Boolean =
+    private fun isreadyGir200(): Boolean =
         runCatching {
             Request
                 .get("$baseUrl/isready")
