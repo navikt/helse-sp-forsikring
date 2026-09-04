@@ -45,7 +45,9 @@ fun launchApplication(
                 jdbcUrl = env.getValue("DATABASE_JDBC_URL")
                 username = env.getValue("DATABASE_USERNAME")
                 password = env.getValue("DATABASE_PASSWORD")
-                maximumPoolSize = 10
+                maximumPoolSize = env.getValue("DB_MAX_POOL_SIZE").toInt()
+                minimumIdle = 1
+                idleTimeout = Duration.ofMinutes(10).toMillis()
             },
         )
 
@@ -56,6 +58,9 @@ fun launchApplication(
                 username = env.getValue("REPLIKABASE_USERNAME")
                 password = env.getValue("REPLIKABASE_PASSWORD")
                 schema = env.getValue("REPLIKABASE_SCHEMA")
+                maximumPoolSize = 3
+                minimumIdle = 1
+                idleTimeout = Duration.ofMinutes(10).toMillis()
                 connectionTimeout = Duration.ofSeconds(20).toMillis()
                 maxLifetime = Duration.ofMinutes(30).toMillis()
                 initializationFailTimeout = Duration.ofMinutes(1).toMillis()

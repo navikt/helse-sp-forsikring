@@ -1,6 +1,7 @@
 kafkaPool: nav-prod
 db:
   tier: "db-custom-1-3840"
+  maxPoolSize: 10
   pgAudit: "on"
 replikabase:
   secret: sp-forsikring-oracle

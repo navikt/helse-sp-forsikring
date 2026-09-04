@@ -92,6 +92,7 @@ object E2ETestApplication {
                             "DATABASE_JDBC_URL" to TestcontainersSpForsikringDatabase.postgresContainer.jdbcUrl,
                             "DATABASE_USERNAME" to TestcontainersSpForsikringDatabase.postgresContainer.username,
                             "DATABASE_PASSWORD" to TestcontainersSpForsikringDatabase.postgresContainer.password,
+                            "DB_MAX_POOL_SIZE" to "3",
                             "REPLIKABASE_JDBC_URL" to TestcontainersReplikadatabase.oracleContainer.jdbcUrl,
                             "REPLIKABASE_USERNAME" to TestcontainersReplikadatabase.oracleContainer.username,
                             "REPLIKABASE_PASSWORD" to TestcontainersReplikadatabase.oracleContainer.password,

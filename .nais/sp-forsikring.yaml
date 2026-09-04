@@ -83,6 +83,8 @@ spec:
       value: tbd-sp-forsikring-v1
     - name: KAFKA_RAPID_TOPIC
       value: tbd.rapid.v1
+    - name: DB_MAX_POOL_SIZE
+      value: "{{ db.maxPoolSize }}"
     - name: REPLIKABASE_JDBC_URL
       # Trippel-krøllparentes for å unngå at handlebars HTML-escaper & i URL-en
       value: {{{ replikabase.jdbcUrl }}}

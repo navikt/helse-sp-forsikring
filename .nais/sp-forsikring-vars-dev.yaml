@@ -1,6 +1,7 @@
 kafkaPool: nav-dev
 db:
   tier: "db-f1-micro"
+  maxPoolSize: 3
   extraUsers:
     - "sp-forsikring-opprydding-dev"
   pgAudit: "off"
