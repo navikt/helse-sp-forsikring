@@ -48,11 +48,14 @@ object TestcontainersRapid {
     fun ventTilMeldingErFerdigBehandlet(
         konsumentgruppe: String,
         offset: Long,
-        timeout: Duration = Duration.ofSeconds(20),
+        melding: JsonNode,
+        sjekkAtApplikasjonenLever: () -> Unit,
     ) {
-        val timeoutInstant = Instant.now().plus(timeout)
+        val timeoutSeconds = 5L
+        val timeoutInstant = Instant.now().plusSeconds(timeoutSeconds)
         var sistObserverteOffset: Long? = null
         while (Instant.now() < timeoutInstant) {
+            sjekkAtApplikasjonenLever()
             sistObserverteOffset =
                 adminClient
                     .listConsumerGroupOffsets(konsumentgruppe)
@@ -63,8 +66,8 @@ object TestcontainersRapid {
             Thread.sleep(20)
         }
         error(
-            "Konsumentgruppen $konsumentgruppe ble ikke ferdig med meldingen på offset $offset innen $timeout " +
-                "(sist committede offset var $sistObserverteOffset)",
+            "Konsumentgruppen $konsumentgruppe behandlet ikke meldingen på offset $offset innen $timeoutSeconds " +
+                "(sist committede offset var $sistObserverteOffset).\nMeldingen:\n${melding.toPrettyString()}",
         )
     }
 
@@ -84,6 +87,7 @@ object TestcontainersRapid {
 
     class Klient(
         startOffset: Long? = null,
+        private val sjekkAtApplikasjonenLever: () -> Unit = {},
     ) : AutoCloseable {
         private val consumer =
             KafkaConsumer(
@@ -127,6 +131,7 @@ object TestcontainersRapid {
         ): JsonNode {
             val timeoutInstant = Instant.now().plusSeconds(timeoutSekunder.toLong())
             while (Instant.now() < timeoutInstant) {
+                sjekkAtApplikasjonenLever()
                 val matchingMessage = meldingsbuffer.find { predicate(it) }
                 if (matchingMessage != null) {
                     meldingsbuffer.remove(matchingMessage)

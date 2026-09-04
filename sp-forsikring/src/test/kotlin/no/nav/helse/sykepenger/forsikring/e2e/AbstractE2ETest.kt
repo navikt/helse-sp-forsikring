@@ -43,6 +43,8 @@ data class Sykefraværstilfelle(
 
 @Isolated
 abstract class AbstractE2ETest(
+    protected val yrkesaktivitetstype: String,
+    protected val spesiellYrkesgruppe: String? = null,
     skjæringstidspunkt: LocalDate,
 ) {
     protected val testPerson = TestPerson()
@@ -67,7 +69,7 @@ abstract class AbstractE2ETest(
         )
     protected val førsteVedtaksperiode = sykefraværstilfelle.vedtaksperioder.first()
     protected val andreVedtaksperiode = sykefraværstilfelle.vedtaksperioder[1]
-    protected val rapid = TestcontainersRapid.Klient()
+    protected val rapid = TestcontainersRapid.Klient(sjekkAtApplikasjonenLever = E2ETestApplication::sjekkAtApplikasjonenLever)
 
     @BeforeEach
     fun setUp() {
@@ -128,11 +130,11 @@ abstract class AbstractE2ETest(
               "vedtaksperiodeId": "${førsteVedtaksperiode.vedtaksperiodeId}",
               "system_read_count": 1,
               "meldingsreferanseId": "$forårsaketAvId",
-              "organisasjonsnummer": "SELVSTENDIG",
-              "yrkesaktivitetstype": "SELVSTENDIG",
+              "organisasjonsnummer": "$yrkesaktivitetstype",
+              "yrkesaktivitetstype": "$yrkesaktivitetstype",
               "Forsikringsvurdering": {
                 "skjæringstidspunkt": "${sykefraværstilfelle.skjæringstidspunkt}",
-                "spesielleYrkesgrupper": [ ]
+                "spesielleYrkesgrupper": [ ${spesiellYrkesgruppe?.let { "\"$it\"" }.orEmpty()} ]
               },
               "system_participating_services": [
                 {
@@ -162,6 +164,8 @@ abstract class AbstractE2ETest(
         TestcontainersRapid.ventTilMeldingErFerdigBehandlet(
             konsumentgruppe = E2ETestApplication.KAFKA_CONSUMER_GROUP_ID,
             offset = offset,
+            melding = melding,
+            sjekkAtApplikasjonenLever = E2ETestApplication::sjekkAtApplikasjonenLever,
         )
     }
 
@@ -193,8 +197,8 @@ abstract class AbstractE2ETest(
               "vedtaksperiodeId": "${vedtaksperiode.vedtaksperiodeId}",
               "system_read_count": 1,
               "meldingsreferanseId": "$forårsaketAvId",
-              "organisasjonsnummer": "SELVSTENDIG",
-              "yrkesaktivitetstype": "SELVSTENDIG",
+              "organisasjonsnummer": "$yrkesaktivitetstype",
+              "yrkesaktivitetstype": "$yrkesaktivitetstype",
               "ForsikringsvurderingResultat": {
                 "forsikringsvurderingId": "$forsikringsvurderingId"
               },
@@ -226,8 +230,8 @@ abstract class AbstractE2ETest(
                 .postForsikringsvurdering(
                     baseUrl = E2ETestApplication.baseUrl,
                     identitetsnummer = testPerson.identitetsnummer,
-                    yrkesaktivitetstype = "SELVSTENDIG",
-                    spesielleYrkesgrupper = emptySet(),
+                    yrkesaktivitetstype = yrkesaktivitetstype,
+                    spesielleYrkesgrupper = setOfNotNull(spesiellYrkesgruppe),
                     skjæringstidspunkt = sykefraværstilfelle.skjæringstidspunkt.toString(),
                     token = m2mToken(),
                 ),
@@ -317,10 +321,10 @@ abstract class AbstractE2ETest(
               "@event_name": "vedtak_fattet",
               "fødselsnummer": "${testPerson.identitetsnummer}",
               "aktørId": "${testPerson.aktørId}",
-              "yrkesaktivitetstype": "SELVSTENDIG",
+              "yrkesaktivitetstype": "$yrkesaktivitetstype",
               "vedtaksperiodeId": "${vedtaksperiode.vedtaksperiodeId}",
               "behandlingId": "${vedtaksperiode.behandlingId}",
-              "organisasjonsnummer": "SELVSTENDIG",
+              "organisasjonsnummer": "$yrkesaktivitetstype",
               "fom": "${vedtaksperiode.fom}",
               "tom": "${vedtaksperiode.tom}",
               "skjæringstidspunkt": "${sykefraværstilfelle.skjæringstidspunkt}",
@@ -447,8 +451,7 @@ abstract class AbstractE2ETest(
     }
 
     protected fun detBlirPublisertEnSubsumsjonsmeldingForSykefraværstilfellet(
-        ledd: Int,
-        bokstav: Char,
+        referansedel: String,
         forsikringsvurderingId: String,
     ) {
         val subsumsjonMelding =
@@ -474,14 +477,11 @@ abstract class AbstractE2ETest(
                       "vedtaksperiode" : [ "${førsteVedtaksperiode.vedtaksperiodeId}" ]
                     },
                     "lovverk" : "folketrygdloven",
-                    "lovverksversjon" : "2019-10-01",
-                    "paragraf" : "8-36",
-                    "ledd" : $ledd,
-                    "bokstav" : "$bokstav",
+                    $referansedel,
                     "input" : {
                       "skjæringstidspunkt" : "${sykefraværstilfelle.skjæringstidspunkt}",
-                      "yrkesaktivitetstype" : "SELVSTENDIG",
-                      "spesielleYrkesgrupper" : [ ]
+                      "yrkesaktivitetstype" : "$yrkesaktivitetstype",
+                      "spesielleYrkesgrupper" : [ ${spesiellYrkesgruppe?.let { "\"$it\"" }.orEmpty()} ]
                     },
                     "output" : {
                       "forsikringsvurderingId" : "$forsikringsvurderingId"
@@ -570,20 +570,22 @@ abstract class AbstractE2ETest(
     }
 
     protected fun utbetalingsstatistikkenForIÅrErTomBortsettFra(
-        @Language("JSON") oppdatertStatistikkobjekt: String,
+        @Language("JSON") vararg oppdatertStatistikkobjekt: String,
     ) {
         val iÅr = LocalDate.now().year
         val fom = 1 jan iÅr
         val tom = 31 des iÅr
 
-        val override = jacksonObjectMapper().readTree(oppdatertStatistikkobjekt)
+        val overrides = oppdatertStatistikkobjekt.map { jacksonObjectMapper().readTree(it) }
         assertJsonEquals(
             expectedJsonNode =
                 tomUtbetalingsstatistikk(fom, tom).apply {
                     this["perForsikringstype"].asArray().apply {
-                        val index = indexOfFirst { it["navn"].stringValue() == override["navn"].stringValue() }
-                        check(index >= 0) { "Forsikringstypen ${override["navn"].stringValue()} matcher ikke tom utbetalingsstatistikk" }
-                        set(index, override)
+                        overrides.forEach { override ->
+                            val index = indexOfFirst { it["navn"].stringValue() == override["navn"].stringValue() }
+                            check(index >= 0) { "Forsikringstypen ${override["navn"].stringValue()} matcher ikke tom utbetalingsstatistikk" }
+                            set(index, override)
+                        }
                     }
                 },
             actualJsonNode = getUtbetalingsstatistikk(fom = fom, tom = tom),

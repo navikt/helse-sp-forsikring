@@ -29,6 +29,28 @@ object E2ETestApplication {
 
     private var started = false
 
+    @Volatile
+    private var applikasjonsfeil: Throwable? = null
+
+    /**
+     * Alle E2E-testene deler den samme applikasjonsinstansen. Hvis en river kaster exception, stopper hele
+     * applikasjonen, og da vil alle etterfølgende tester bare stå og vente på meldinger som aldri kommer.
+     * Denne sjekken gjør at vi feiler raskt og med den opprinnelige feilen i stedet for på en kryptisk timeout.
+     */
+    fun sjekkAtApplikasjonenLever() {
+        applikasjonsfeil?.let {
+            throw IllegalStateException(
+                "E2E-applikasjonen har krasjet og er ikke lenger i stand til å behandle meldinger. " +
+                    "Feilen kan ha skjedd i en tidligere test - se årsaken under.",
+                it,
+            )
+        }
+        check(applikasjonstråd.isAlive) {
+            "E2E-applikasjonen er ikke lenger i live og behandler ingen meldinger. Den ble sannsynligvis stoppet " +
+                "av exception i en river i en tidligere test - se etter den første feilen i loggen."
+        }
+    }
+
     @Synchronized
     private fun ensureStarted() {
         if (!started) {
@@ -44,6 +66,7 @@ object E2ETestApplication {
 
     fun reset() {
         ensureStarted()
+        sjekkAtApplikasjonenLever()
         TestcontainersReplikadatabase.reset()
         TestcontainersSpForsikringDatabase.reset()
     }
@@ -82,6 +105,7 @@ object E2ETestApplication {
                     kafkaConfig = TestcontainersRapid.kafkaConfig,
                 )
             } catch (feil: Throwable) {
+                applikasjonsfeil = feil
                 feil.printStackTrace()
                 throw feil
             }

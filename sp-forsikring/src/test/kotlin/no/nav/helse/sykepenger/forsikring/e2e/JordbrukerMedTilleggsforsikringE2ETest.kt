@@ -4,16 +4,17 @@ import com.github.navikt.tbd_libs.testdata.jul
 import com.github.navikt.tbd_libs.testdata.sep
 import org.junit.jupiter.api.Test
 
-class SelvstendigÅttiProsentFraDagEnE2ETest :
+class JordbrukerMedTilleggsforsikringE2ETest :
     AbstractE2ETest(
         yrkesaktivitetstype = "SELVSTENDIG",
+        spesiellYrkesgruppe = "JORDBRUKER",
         skjæringstidspunkt = 1 sep 2026,
     ) {
     @Test
     fun `happy path`() {
         brukerenHarEnBetaltForsikringIInfotrygd(
             virkningsdato = 1 jul 2026,
-            infotrygdType = '1',
+            infotrygdType = '4',
             premiegrunnlag = 12345,
         )
         utbetalingsstatistikkenForIÅrErTom()
@@ -27,8 +28,17 @@ class SelvstendigÅttiProsentFraDagEnE2ETest :
                 """
                 "lovverksversjon" : "2019-10-01",
                 "paragraf" : "8-36",
+                "ledd" : 4
+                """.trimIndent(),
+            forsikringsvurderingId = forsikringsvurderingId,
+        )
+        detBlirPublisertEnSubsumsjonsmeldingForSykefraværstilfellet(
+            referansedel =
+                """
+                "lovverksversjon" : "2019-10-01",
+                "paragraf" : "8-36",
                 "ledd" : 1,
-                "bokstav" : "a"
+                "bokstav" : "c"
                 """.trimIndent(),
             forsikringsvurderingId = forsikringsvurderingId,
         )
@@ -39,7 +49,7 @@ class SelvstendigÅttiProsentFraDagEnE2ETest :
             """
             {
               "dekning" : {
-                "grad" : 80,
+                "grad" : 100,
                 "iVentetid" : true
               },
               "forsikringsvurderingId" : "$forsikringsvurderingId",
@@ -60,7 +70,7 @@ class SelvstendigÅttiProsentFraDagEnE2ETest :
                   "identitetsnummer" : "${testPerson.identitetsnummer}",
                   "individuelleForsikringer" : [ {
                     "dekningFolketrygdlovenreferanse" : {
-                      "bokstav" : "a",
+                      "bokstav" : "c",
                       "kapittel" : 8,
                       "ledd" : 1,
                       "paragrafIKapittel" : 36
@@ -70,14 +80,28 @@ class SelvstendigÅttiProsentFraDagEnE2ETest :
                       "forklaring" : "Lagt til grunn"
                     },
                     "lagtTilGrunn" : true,
-                    "navn" : "Selvstendig næringsdrivende 80 % fra 1. dag",
+                    "navn" : "Jordbruker tilleggsforsikring 100 % fra 1. dag",
                     "opphørsdato" : null,
                     "virkningsdato" : "2026-07-01"
                   } ],
-                  "kollektivForsikring" : null,
+                  "kollektivForsikring" : {
+                    "dekningFolketrygdlovenreferanse" : {
+                      "bokstav" : "b",
+                      "kapittel" : 8,
+                      "ledd" : 1,
+                      "paragrafIKapittel" : 36
+                    },
+                    "kollektivFolketrygdlovenreferanse" : {
+                      "bokstav" : null,
+                      "kapittel" : 8,
+                      "ledd" : 4,
+                      "paragrafIKapittel" : 36
+                    },
+                    "navn" : "Jordbruker 100 % fra 17. dag"
+                  },
                   "samletDekning" : {
                     "fraDag" : 1,
-                    "grad" : 80
+                    "grad" : 100
                   }
                 }
                 """.trimIndent(),
@@ -87,22 +111,30 @@ class SelvstendigÅttiProsentFraDagEnE2ETest :
         spesialistSenderVedtakFattet(
             vedtaksperiode = førsteVedtaksperiode,
             forsikringsvurderingId = forsikringsvurderingId,
-            dekning = """{ "dekningsgrad": 80, "gjelderFraDag": 1 }""",
-            dekningsgradIVentetid = 80,
-            dekningsgradEtterVentetid = 80,
+            dekning = """{ "dekningsgrad": 100, "gjelderFraDag": 1 }""",
+            dekningsgradIVentetid = 100,
+            dekningsgradEtterVentetid = 100,
             sykepengegrunnlag = 12345,
-            dagbeløpIVentetid = 2521,
-            dagsbeløpEtterVentetid = 2521,
+            dagbeløpIVentetid = 3151,
+            dagsbeløpEtterVentetid = 3151,
         )
 
         utbetalingsstatistikkenForIÅrErTomBortsettFra(
             """
             {
-                "navn" : "Selvstendig næringsdrivende 80 % fra 1. dag",
-                "totalt" : 30252.0,
-                "utbetaltIVentetid" : 30252.0,
-                "utbetaltUtenomVentetid" : 0.0
-              }
+              "navn" : "Jordbruker 100 % fra 17. dag",
+              "totalt" : 6302.0,
+              "utbetaltIVentetid" : 0.0,
+              "utbetaltUtenomVentetid" : 6302.0
+            }
+            """.trimIndent(),
+            """
+            {
+              "navn" : "Jordbruker tilleggsforsikring 100 % fra 1. dag",
+              "totalt" : 37812.0,
+              "utbetaltIVentetid" : 37812.0,
+              "utbetaltUtenomVentetid" : 0.0
+            }
             """.trimIndent(),
         )
 
@@ -112,7 +144,7 @@ class SelvstendigÅttiProsentFraDagEnE2ETest :
             """
             {
               "dekning" : {
-                "grad" : 80,
+                "grad" : 100,
                 "iVentetid" : true
               },
               "forsikringsvurderingId" : "$forsikringsvurderingId",
@@ -129,22 +161,30 @@ class SelvstendigÅttiProsentFraDagEnE2ETest :
         spesialistSenderVedtakFattet(
             vedtaksperiode = andreVedtaksperiode,
             forsikringsvurderingId = forsikringsvurderingId,
-            dekning = """{ "dekningsgrad": 80, "gjelderFraDag": 1 }""",
-            dekningsgradIVentetid = 80,
-            dekningsgradEtterVentetid = 80,
+            dekning = """{ "dekningsgrad": 100, "gjelderFraDag": 1 }""",
+            dekningsgradIVentetid = 100,
+            dekningsgradEtterVentetid = 100,
             sykepengegrunnlag = 12345,
-            dagbeløpIVentetid = 2521,
-            dagsbeløpEtterVentetid = 2521,
+            dagbeløpIVentetid = 3151,
+            dagsbeløpEtterVentetid = 3151,
         )
 
         utbetalingsstatistikkenForIÅrErTomBortsettFra(
             """
             {
-                "navn" : "Selvstendig næringsdrivende 80 % fra 1. dag",
-                "totalt" : 30252.0,
-                "utbetaltIVentetid" : 30252.0,
-                "utbetaltUtenomVentetid" : 0.0
-              }
+              "navn" : "Jordbruker 100 % fra 17. dag",
+              "totalt" : 20166.4,
+              "utbetaltIVentetid" : 0.0,
+              "utbetaltUtenomVentetid" : 20166.4
+            }
+            """.trimIndent(),
+            """
+            {
+              "navn" : "Jordbruker tilleggsforsikring 100 % fra 1. dag",
+              "totalt" : 37812.0,
+              "utbetaltIVentetid" : 37812.0,
+              "utbetaltUtenomVentetid" : 0.0
+            }
             """.trimIndent(),
         )
     }

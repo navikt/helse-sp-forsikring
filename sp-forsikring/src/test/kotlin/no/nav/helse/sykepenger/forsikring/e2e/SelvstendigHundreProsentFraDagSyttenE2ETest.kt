@@ -6,6 +6,7 @@ import org.junit.jupiter.api.Test
 
 class SelvstendigHundreProsentFraDagSyttenE2ETest :
     AbstractE2ETest(
+        yrkesaktivitetstype = "SELVSTENDIG",
         skjæringstidspunkt = 1 sep 2026,
     ) {
     @Test
@@ -22,8 +23,13 @@ class SelvstendigHundreProsentFraDagSyttenE2ETest :
         spleisSenderBehovForForsikringsvurdering()
         val forsikringsvurderingId = detBlirPublisertEnForsikringsvurderingLøsning()
         detBlirPublisertEnSubsumsjonsmeldingForSykefraværstilfellet(
-            ledd = 1,
-            bokstav = 'b',
+            referansedel =
+                """
+                "lovverksversjon" : "2019-10-01",
+                "paragraf" : "8-36",
+                "ledd" : 1,
+                "bokstav" : "b"
+                """.trimIndent(),
             forsikringsvurderingId = forsikringsvurderingId,
         )
 
