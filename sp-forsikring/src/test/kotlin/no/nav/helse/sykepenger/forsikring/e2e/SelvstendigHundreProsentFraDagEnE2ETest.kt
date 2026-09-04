@@ -14,7 +14,7 @@ class SelvstendigHundreProsentFraDagEnE2ETest :
         brukerenHarEnBetaltForsikringIInfotrygd(
             virkningsdato = 1 jul 2026,
             infotrygdType = '3',
-            premiegrunnlag = 12345,
+            premiegrunnlag = 11000,
         )
         utbetalingsstatistikkenForIÅrErTom()
 
@@ -84,15 +84,23 @@ class SelvstendigHundreProsentFraDagEnE2ETest :
         )
 
         // Første vedtaksperiode utbetales
-        spesialistSenderVedtakFattet(
-            vedtaksperiode = førsteVedtaksperiode,
-            forsikringsvurderingId = forsikringsvurderingId,
-            dekning = """{ "dekningsgrad": 100, "gjelderFraDag": 1 }""",
-            dekningsgradIVentetid = 100,
-            dekningsgradEtterVentetid = 100,
-            sykepengegrunnlag = 12345,
-            dagbeløpIVentetid = 3151,
-            dagsbeløpEtterVentetid = 3151,
+        val førsteVedtakFattet =
+            spesialistSenderVedtakFattet(
+                vedtaksperiode = førsteVedtaksperiode,
+                forsikringsvurderingId = forsikringsvurderingId,
+                dekning = """{ "dekningsgrad": 100, "gjelderFraDag": 1 }""",
+                dekningsgradIVentetid = 100,
+                dekningsgradEtterVentetid = 100,
+                sykepengegrunnlag = 12345,
+                dagbeløpIVentetid = 3151,
+                dagsbeløpEtterVentetid = 3151,
+            )
+
+        detBlirOpprettetEnGosysoppgave(
+            uuid = førsteVedtakFattet["@id"].stringValue(),
+            forventetBeskrivelse =
+                "Årsak: For stort avvik mellom sykepengegrunnlag, 12345.00, og premiegrunnlag, 11000.00. " +
+                    "Avviket er 10.90. Skjæringstidspunkt: 01.09.2026.",
         )
 
         utbetalingsstatistikkenForIÅrErTomBortsettFra(
@@ -136,6 +144,8 @@ class SelvstendigHundreProsentFraDagEnE2ETest :
             dagbeløpIVentetid = 3151,
             dagsbeløpEtterVentetid = 3151,
         )
+
+        detBlirIkkeOpprettetFlereGosysoppgaver(antallOppgaverTotalt = 1)
 
         utbetalingsstatistikkenForIÅrErTomBortsettFra(
             """

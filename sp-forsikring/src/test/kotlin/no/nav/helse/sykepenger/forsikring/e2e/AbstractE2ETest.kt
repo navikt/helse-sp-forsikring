@@ -6,6 +6,9 @@ import com.github.navikt.tbd_libs.test.assertMindreEnnNSekunderSiden
 import com.github.navikt.tbd_libs.testdata.TestPerson
 import com.github.navikt.tbd_libs.testdata.des
 import com.github.navikt.tbd_libs.testdata.jan
+import com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor
+import com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo
+import com.github.tomakehurst.wiremock.verification.LoggedRequest
 import no.nav.helse.sykepenger.forsikring.api.FlexApiClient
 import no.nav.helse.sykepenger.forsikring.api.SpesialistApiClient
 import no.nav.helse.sykepenger.forsikring.api.UtbetalingsstatistikkApiClient
@@ -15,6 +18,7 @@ import no.nav.helse.sykepenger.forsikring.shared.testsupport.TestcontainersRepli
 import org.intellij.lang.annotations.Language
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.parallel.Isolated
 import tools.jackson.databind.JsonNode
@@ -69,7 +73,8 @@ abstract class AbstractE2ETest(
         )
     protected val førsteVedtaksperiode = sykefraværstilfelle.vedtaksperioder.first()
     protected val andreVedtaksperiode = sykefraværstilfelle.vedtaksperioder[1]
-    protected val rapid = TestcontainersRapid.Klient(sjekkAtApplikasjonenLever = E2ETestApplication::sjekkAtApplikasjonenLever)
+    protected val rapid =
+        TestcontainersRapid.Klient(sjekkAtApplikasjonenLever = E2ETestApplication::sjekkAtApplikasjonenLever)
 
     @BeforeEach
     fun setUp() {
@@ -285,20 +290,76 @@ abstract class AbstractE2ETest(
         sykepengegrunnlag: Int,
         dagbeløpIVentetid: Int,
         dagsbeløpEtterVentetid: Int,
+    ): JsonNode =
+        lagVedtakFattetMelding(
+            vedtaksperiode = vedtaksperiode,
+            forsikringsvurderingId = forsikringsvurderingId,
+            dekning = dekning,
+            dekningsgradIVentetid = dekningsgradIVentetid,
+            dekningsgradEtterVentetid = dekningsgradEtterVentetid,
+            sykepengegrunnlag = sykepengegrunnlag,
+            dagbeløpIVentetid = dagbeløpIVentetid,
+            dagsbeløpEtterVentetid = dagsbeløpEtterVentetid,
+        ).also { publiserMeldingOgVentTilDenErBehandlet(it) }
+
+    protected fun detBlirOpprettetEnGosysoppgave(
+        uuid: String,
+        forventetBeskrivelse: String,
     ) {
-        publiserMeldingOgVentTilDenErBehandlet(
-            lagVedtakFattetMelding(
-                vedtaksperiode = vedtaksperiode,
-                forsikringsvurderingId = forsikringsvurderingId,
-                dekning = dekning,
-                dekningsgradIVentetid = dekningsgradIVentetid,
-                dekningsgradEtterVentetid = dekningsgradEtterVentetid,
-                sykepengegrunnlag = sykepengegrunnlag,
-                dagbeløpIVentetid = dagbeløpIVentetid,
-                dagsbeløpEtterVentetid = dagsbeløpEtterVentetid,
-            ),
+        val oppgaveforespørsler = gosysoppgaveforespørsler()
+        assertEquals(
+            1,
+            oppgaveforespørsler.size,
+            "Forventet nøyaktig én oppgaveforespørsel mot Gosys, men fikk ${oppgaveforespørsler.size}",
+        )
+        val forespørsel = oppgaveforespørsler.single()
+
+        val contentType = forespørsel.getHeader("Content-Type")
+        assertTrue(
+            contentType.orEmpty().startsWith("application/json"),
+            "Forventet JSON-innhold i oppgaveforespørselen, men Content-Type var $contentType",
+        )
+        val authorization = forespørsel.getHeader("Authorization")
+        assertTrue(
+            authorization.orEmpty().startsWith("Bearer "),
+            "Forventet at oppgaveforespørselen hadde et bearer token, men Authorization-headeren var $authorization",
+        )
+        // Skal være en gyldig UUID - kaster hvis den ikke er det
+        UUID.fromString(forespørsel.getHeader("X-Correlation-ID"))
+
+        assertJsonEquals(
+            expectedJson =
+                """
+                {
+                  "personident" : "${testPerson.identitetsnummer}",
+                  "uuid" : "$uuid",
+                  "aktivDato" : "${LocalDate.now()}",
+                  "prioritet" : "NORM",
+                  "oppgavetype" : "VURD_HENV",
+                  "tema" : "FOS",
+                  "behandlingstype" : "ae0221",
+                  "beskrivelse" : "$forventetBeskrivelse"
+                }
+                """.trimIndent(),
+            actualJsonNode = objectMapper.readTree(forespørsel.bodyAsString),
         )
     }
+
+    protected fun detBlirIkkeOpprettetFlereGosysoppgaver(antallOppgaverTotalt: Int) {
+        val oppgaveforespørsler = gosysoppgaveforespørsler()
+        assertEquals(
+            antallOppgaverTotalt,
+            oppgaveforespørsler.size,
+            "Forventet at det totalt var sendt $antallOppgaverTotalt oppgaveforespørsler mot Gosys, " +
+                "men det var sendt ${oppgaveforespørsler.size}: " +
+                oppgaveforespørsler.joinToString(separator = "\n") { it.bodyAsString },
+        )
+    }
+
+    private fun gosysoppgaveforespørsler(): List<LoggedRequest> =
+        E2ETestApplication.gosysWiremock.findAll(
+            postRequestedFor(urlPathEqualTo(E2ETestApplication.GOSYS_OPPGAVER_PATH)),
+        )
 
     private fun lagVedtakFattetMelding(
         vedtaksperiode: Sykefraværstilfelle.Vedtaksperiode,
@@ -314,6 +375,8 @@ abstract class AbstractE2ETest(
         val now = Instant.now()
         val localNow = now.atZone(ZoneId.of("Europe/Oslo")).toLocalDateTime()
         val forårsaketAvId = UUID.randomUUID()
+        val førstegangsbehandlingEllerForlengelse =
+            if (vedtaksperiode == sykefraværstilfelle.vedtaksperioder.first()) "Førstegangsbehandling" else "Forlengelse"
         // language=json
         val testmelding =
             """
@@ -332,7 +395,7 @@ abstract class AbstractE2ETest(
               "sykepengegrunnlag": ${BigDecimal.valueOf(sykepengegrunnlag.toLong()).setScale(1)},
               "vedtakFattetTidspunkt": "${LocalDateTime.now()}",
               "utbetalingId": "${UUID.randomUUID()}",
-              "tags": [ "Førstegangsbehandling", "Personutbetaling", "Innvilget", "EnArbeidsgiver" ],
+              "tags": [ "$førstegangsbehandlingEllerForlengelse", "Personutbetaling", "Innvilget", "EnArbeidsgiver" ],
               "sykepengegrunnlagsfakta": {
                 "fastsatt": "EtterHovedregel",
                 "6G": 900000.0,
