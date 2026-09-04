@@ -513,6 +513,50 @@ abstract class AbstractE2ETest(
         return forsikringsvurderingResultatBehovMelding
     }
 
+    protected fun spleisSenderSelvstendigUtbetaltEtterVentetid(
+        vedtaksperiode: Sykefraværstilfelle.Vedtaksperiode,
+        forsikringsvurderingId: String,
+    ): JsonNode =
+        lagSelvstendigUtbetaltEtterVentetidMelding(
+            vedtaksperiode = vedtaksperiode,
+            forsikringsvurderingId = forsikringsvurderingId,
+        ).also { publiserMeldingOgVentTilDenErBehandlet(it) }
+
+    private fun lagSelvstendigUtbetaltEtterVentetidMelding(
+        vedtaksperiode: Sykefraværstilfelle.Vedtaksperiode,
+        forsikringsvurderingId: String,
+    ): JsonNode {
+        val meldingId = UUID.randomUUID()
+        val now = Instant.now()
+        val localNow = now.atZone(ZoneId.of("Europe/Oslo")).toLocalDateTime()
+        // language=json
+        val testmelding =
+            """
+            {
+              "@event_name": "selvstendig_utbetalt_etter_ventetid",
+              "@id": "$meldingId",
+              "@opprettet": "$localNow",
+              "@opprettetUTC": "$now",
+              "fødselsnummer": "${testPerson.identitetsnummer}",
+              "yrkesaktivitetstype": "$yrkesaktivitetstype",
+              "behandlingId": "${vedtaksperiode.behandlingId}",
+              "skjæringstidspunkt": "${sykefraværstilfelle.skjæringstidspunkt}",
+              "forsikringsvurderingId": "$forsikringsvurderingId",
+              "system_read_count": 0,
+              "system_participating_services": [
+                {
+                  "id": "$meldingId",
+                  "time": "$localNow",
+                  "service": "helse-spleis",
+                  "instance": "helse-spleis-abc123def-feesh",
+                  "image": "europe-north1-docker.pkg.dev/nais-management-233d/tbd/helse-spleis-spleis:2026.09.02-10.09-3235925@sha256:8f3eda3e0eaf25ad269c1711264cdf276e4b333aa2e3683f9fff5c4ec20d2585"
+                }
+              ]
+            }
+            """.trimIndent()
+        return objectMapper.readTree(testmelding)
+    }
+
     protected fun detBlirPublisertEnSubsumsjonsmeldingForSykefraværstilfellet(
         referansedel: String,
         forsikringsvurderingId: String,

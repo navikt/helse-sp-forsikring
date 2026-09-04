@@ -108,6 +108,19 @@ class JordbrukerMedTilleggsforsikringE2ETest :
         )
 
         // Første vedtaksperiode utbetales
+        val utbetaltEtterVentetidMelding =
+            spleisSenderSelvstendigUtbetaltEtterVentetid(
+                vedtaksperiode = førsteVedtaksperiode,
+                forsikringsvurderingId = forsikringsvurderingId,
+            )
+
+        detBlirOpprettetEnGosysoppgave(
+            uuid = utbetaltEtterVentetidMelding["@id"].stringValue(),
+            forventetBeskrivelse =
+                "Årsak: Det er utbetalt sykepenger for en Jordbruker fra dag en og vedkommende har 100% dekningsgrad. " +
+                    "Skjæringstidspunkt: 01.09.2026.",
+        )
+
         spesialistSenderVedtakFattet(
             vedtaksperiode = førsteVedtaksperiode,
             forsikringsvurderingId = forsikringsvurderingId,
@@ -168,6 +181,8 @@ class JordbrukerMedTilleggsforsikringE2ETest :
             dagbeløpIVentetid = 3151,
             dagsbeløpEtterVentetid = 3151,
         )
+
+        detBlirIkkeOpprettetFlereGosysoppgaver(antallOppgaverTotalt = 1)
 
         utbetalingsstatistikkenForIÅrErTomBortsettFra(
             """

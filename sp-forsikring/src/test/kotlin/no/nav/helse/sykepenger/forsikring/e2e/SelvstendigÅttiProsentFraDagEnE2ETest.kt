@@ -84,6 +84,19 @@ class SelvstendigÅttiProsentFraDagEnE2ETest :
         )
 
         // Første vedtaksperiode utbetales
+        val selvstendigUtbetaltEtterVentetidMelding =
+            spleisSenderSelvstendigUtbetaltEtterVentetid(
+                vedtaksperiode = førsteVedtaksperiode,
+                forsikringsvurderingId = forsikringsvurderingId,
+            )
+
+        detBlirOpprettetEnGosysoppgave(
+            uuid = selvstendigUtbetaltEtterVentetidMelding["@id"].stringValue(),
+            forventetBeskrivelse =
+                "Årsak: Det er utbetalt sykepenger fra dag én og vedkommende har 80% dekningsgrad. " +
+                    "Skjæringstidspunkt: 01.09.2026.",
+        )
+
         spesialistSenderVedtakFattet(
             vedtaksperiode = førsteVedtaksperiode,
             forsikringsvurderingId = forsikringsvurderingId,
@@ -136,6 +149,8 @@ class SelvstendigÅttiProsentFraDagEnE2ETest :
             dagbeløpIVentetid = 2521,
             dagsbeløpEtterVentetid = 2521,
         )
+
+        detBlirIkkeOpprettetFlereGosysoppgaver(antallOppgaverTotalt = 1)
 
         utbetalingsstatistikkenForIÅrErTomBortsettFra(
             """

@@ -84,7 +84,15 @@ class SelvstendigHundreProsentFraDagEnE2ETest :
         )
 
         // Første vedtaksperiode utbetales
-        val førsteVedtakFattet =
+        spleisSenderSelvstendigUtbetaltEtterVentetid(
+            vedtaksperiode = førsteVedtaksperiode,
+            forsikringsvurderingId = forsikringsvurderingId,
+        )
+
+        // 100 % fra dag 1 uten at det er en jordbruker skal ikke gi noen oppgave
+        detBlirIkkeOpprettetFlereGosysoppgaver(antallOppgaverTotalt = 0)
+
+        val førsteVedtakFattetMelding =
             spesialistSenderVedtakFattet(
                 vedtaksperiode = førsteVedtaksperiode,
                 forsikringsvurderingId = forsikringsvurderingId,
@@ -97,7 +105,7 @@ class SelvstendigHundreProsentFraDagEnE2ETest :
             )
 
         detBlirOpprettetEnGosysoppgave(
-            uuid = førsteVedtakFattet["@id"].stringValue(),
+            uuid = førsteVedtakFattetMelding["@id"].stringValue(),
             forventetBeskrivelse =
                 "Årsak: For stort avvik mellom sykepengegrunnlag, 12345.00, og premiegrunnlag, 11000.00. " +
                     "Avviket er 10.90. Skjæringstidspunkt: 01.09.2026.",
