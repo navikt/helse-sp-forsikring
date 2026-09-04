@@ -1,7 +1,5 @@
 package no.nav.helse.sykepenger.forsikring.subsumsjon
 
-import com.github.navikt.tbd_libs.test.assertJsonEquals
-import com.github.navikt.tbd_libs.testdata.lagIdentitetsnummer
 import no.nav.helse.sykepenger.forsikring.domain.Identitetsnummer
 import no.nav.helse.sykepenger.forsikring.domain.IndividuellForsikringType
 import no.nav.helse.sykepenger.forsikring.domain.KollektivForsikring
@@ -9,6 +7,8 @@ import no.nav.helse.sykepenger.forsikring.domain.SpesiellYrkesgruppe
 import no.nav.helse.sykepenger.forsikring.domain.Yrkesaktivitetstype
 import no.nav.helse.sykepenger.forsikring.shared.testsupport.lagForsikringsvurdering
 import no.nav.helse.sykepenger.forsikring.shared.testsupport.lagVurdertIndividuellForsikring
+import no.nav.sykepenger.libs.testing.assertions.assertJsonEquals
+import no.nav.sykepenger.libs.testing.testdata.lagIdentitetsnummer
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.CsvSource

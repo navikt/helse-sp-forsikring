@@ -6,7 +6,6 @@ import no.nav.helse.sykepenger.forsikring.shared.logging.loggInfo
 import no.nav.helse.sykepenger.forsikring.shared.util.generateUuidV7
 import org.intellij.lang.annotations.Language
 import java.sql.Timestamp
-import kotlin.collections.forEach
 
 class RåkopiRepository(
     private val spForsikringTransaction: TransactionalSession,

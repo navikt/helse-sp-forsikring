@@ -3,7 +3,7 @@ package no.nav.helse.sykepenger.forsikring.råkopi
 import no.nav.helse.sykepenger.forsikring.shared.util.generateUuidV7
 import java.math.BigDecimal
 import java.time.Instant
-import java.util.UUID
+import java.util.*
 
 data class RåkopiIfFkonto12(
     val IF01_KODE: Char,

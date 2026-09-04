@@ -17,7 +17,7 @@ import java.time.format.DateTimeFormatter
 
 fun lagIdentitetsnummer(): Identitetsnummer =
     Identitetsnummer.fraString(
-        com.github.navikt.tbd_libs.testdata
+        no.nav.sykepenger.libs.testing.testdata
             .lagIdentitetsnummer(),
     )
 

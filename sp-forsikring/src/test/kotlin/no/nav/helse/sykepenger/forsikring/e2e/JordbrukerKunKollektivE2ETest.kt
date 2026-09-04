@@ -1,6 +1,6 @@
 package no.nav.helse.sykepenger.forsikring.e2e
 
-import com.github.navikt.tbd_libs.testdata.sep
+import no.nav.sykepenger.libs.testing.testdata.sep
 import org.junit.jupiter.api.Test
 
 class JordbrukerKunKollektivE2ETest :

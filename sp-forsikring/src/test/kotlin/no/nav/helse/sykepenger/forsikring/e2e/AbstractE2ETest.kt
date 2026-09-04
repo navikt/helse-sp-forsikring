@@ -1,11 +1,6 @@
 package no.nav.helse.sykepenger.forsikring.e2e
 
 import com.github.navikt.tbd_libs.rapids_and_rivers.asInstant
-import com.github.navikt.tbd_libs.test.assertJsonEquals
-import com.github.navikt.tbd_libs.test.assertMindreEnnNSekunderSiden
-import com.github.navikt.tbd_libs.testdata.TestPerson
-import com.github.navikt.tbd_libs.testdata.des
-import com.github.navikt.tbd_libs.testdata.jan
 import com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor
 import com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo
 import com.github.tomakehurst.wiremock.verification.LoggedRequest
@@ -15,6 +10,11 @@ import no.nav.helse.sykepenger.forsikring.api.UtbetalingsstatistikkApiClient
 import no.nav.helse.sykepenger.forsikring.domain.Identitetsnummer
 import no.nav.helse.sykepenger.forsikring.shared.testsupport.TestcontainersRapid
 import no.nav.helse.sykepenger.forsikring.shared.testsupport.TestcontainersReplikadatabase
+import no.nav.sykepenger.libs.testing.assertions.assertJsonEquals
+import no.nav.sykepenger.libs.testing.assertions.assertMindreEnnNSekunderSiden
+import no.nav.sykepenger.libs.testing.testdata.TestPerson
+import no.nav.sykepenger.libs.testing.testdata.des
+import no.nav.sykepenger.libs.testing.testdata.jan
 import org.intellij.lang.annotations.Language
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals

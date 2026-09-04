@@ -5,7 +5,7 @@ import io.mockk.mockk
 import no.nav.helse.sykepenger.forsikring.gosys.GosysOppgaveClient
 import no.nav.helse.sykepenger.forsikring.gosys.Årsak
 import java.time.LocalDate
-import java.util.UUID
+import java.util.*
 
 /**
  * Fanger opp oppgavene rivere ber om, slik at testene kan sjekke hva som ville blitt sendt til Gosys.

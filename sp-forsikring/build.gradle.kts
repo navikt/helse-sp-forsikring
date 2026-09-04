@@ -15,7 +15,7 @@ dependencies {
     implementation(libs.bundles.ktor.server)
     implementation(libs.bundles.ktor.client)
     implementation(libs.kotlinx.coroutines.core)
-    implementation(libs.bundles.logback)
+    implementation(libs.sykepengerLibs.logging)
     implementation(libs.kotliquery)
     implementation(libs.flyway.database.postgresql)
     implementation(libs.jackson.datatype.jsr310)
@@ -25,7 +25,7 @@ dependencies {
 
     testImplementation(libs.ktor.client.mock)
     testImplementation(libs.flyway.database.oracle)
-    testImplementation(libs.tbd.libs.test)
+    testImplementation(libs.sykepengerLibs.testing)
     testImplementation(libs.tbd.libs.rapids.and.rivers.test)
     testImplementation(libs.httpclient5.fluent)
     testImplementation(libs.mock.oauth2.server)

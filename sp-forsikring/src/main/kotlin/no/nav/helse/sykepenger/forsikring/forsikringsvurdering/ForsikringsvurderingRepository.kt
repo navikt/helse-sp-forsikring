@@ -2,8 +2,12 @@ package no.nav.helse.sykepenger.forsikring.forsikringsvurdering
 
 import kotliquery.TransactionalSession
 import kotliquery.queryOf
-import no.nav.helse.sykepenger.forsikring.domain.*
+import no.nav.helse.sykepenger.forsikring.domain.Forsikringsvurdering
 import no.nav.helse.sykepenger.forsikring.domain.Identitetsnummer
+import no.nav.helse.sykepenger.forsikring.domain.KollektivForsikring
+import no.nav.helse.sykepenger.forsikring.domain.SpesiellYrkesgruppe
+import no.nav.helse.sykepenger.forsikring.domain.VurdertIndividuellForsikring
+import no.nav.helse.sykepenger.forsikring.domain.Yrkesaktivitetstype
 import no.nav.helse.sykepenger.forsikring.råkopi.Råkopi.Id
 import no.nav.helse.sykepenger.forsikring.råkopi.RåkopiIfVedfrivt10
 import org.intellij.lang.annotations.Language

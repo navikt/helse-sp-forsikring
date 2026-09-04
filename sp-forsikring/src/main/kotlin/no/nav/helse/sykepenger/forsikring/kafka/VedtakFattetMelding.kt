@@ -4,7 +4,7 @@ import com.fasterxml.jackson.annotation.JsonProperty
 import no.nav.helse.sykepenger.forsikring.kafka.lib.LenientEnum
 import java.time.LocalDate
 import java.time.LocalDateTime
-import java.util.UUID
+import java.util.*
 
 data class VedtakFattetMelding(
     @JsonProperty("@id")
