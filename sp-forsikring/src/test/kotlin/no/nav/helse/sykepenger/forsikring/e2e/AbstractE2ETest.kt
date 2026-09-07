@@ -8,6 +8,7 @@ import no.nav.helse.sykepenger.forsikring.api.FlexApiClient
 import no.nav.helse.sykepenger.forsikring.api.SpesialistApiClient
 import no.nav.helse.sykepenger.forsikring.api.UtbetalingsstatistikkApiClient
 import no.nav.helse.sykepenger.forsikring.domain.Identitetsnummer
+import no.nav.helse.sykepenger.forsikring.kafka.Testmeldingsfabrikk
 import no.nav.helse.sykepenger.forsikring.shared.testsupport.TestcontainersRapid
 import no.nav.helse.sykepenger.forsikring.shared.testsupport.TestcontainersReplikadatabase
 import no.nav.sykepenger.libs.testing.assertions.assertJsonEquals
@@ -23,8 +24,6 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.parallel.Isolated
 import tools.jackson.databind.JsonNode
 import tools.jackson.module.kotlin.jacksonObjectMapper
-import java.math.BigDecimal
-import java.time.DayOfWeek
 import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalDateTime
@@ -284,22 +283,18 @@ abstract class AbstractE2ETest(
     protected fun spesialistSenderVedtakFattet(
         vedtaksperiode: Sykefraværstilfelle.Vedtaksperiode,
         forsikringsvurderingId: String,
-        @Language("JSON") dekning: String,
-        dekningsgradIVentetid: Int,
         dekningsgradEtterVentetid: Int,
         sykepengegrunnlag: Int,
-        dagbeløpIVentetid: Int,
-        dagsbeløpEtterVentetid: Int,
+        utbetalingIVentetid: Boolean,
+        dagsbeløp: Int,
     ): JsonNode =
         lagVedtakFattetMelding(
             vedtaksperiode = vedtaksperiode,
             forsikringsvurderingId = forsikringsvurderingId,
-            dekning = dekning,
-            dekningsgradIVentetid = dekningsgradIVentetid,
-            dekningsgradEtterVentetid = dekningsgradEtterVentetid,
+            dekningsgrad = dekningsgradEtterVentetid,
             sykepengegrunnlag = sykepengegrunnlag,
-            dagbeløpIVentetid = dagbeløpIVentetid,
-            dagsbeløpEtterVentetid = dagsbeløpEtterVentetid,
+            utbetalingIVentetid = utbetalingIVentetid,
+            dagsbeløp = dagsbeløp,
         ).also { publiserMeldingOgVentTilDenErBehandlet(it) }
 
     protected fun detBlirOpprettetEnGosysoppgave(
@@ -364,124 +359,29 @@ abstract class AbstractE2ETest(
     private fun lagVedtakFattetMelding(
         vedtaksperiode: Sykefraværstilfelle.Vedtaksperiode,
         forsikringsvurderingId: String,
-        @Language("JSON") dekning: String,
-        dekningsgradIVentetid: Int,
-        dekningsgradEtterVentetid: Int,
+        dekningsgrad: Int,
         sykepengegrunnlag: Int,
-        dagbeløpIVentetid: Int,
-        dagsbeløpEtterVentetid: Int,
-    ): JsonNode {
-        val meldingId = UUID.randomUUID()
-        val now = Instant.now()
-        val localNow = now.atZone(ZoneId.of("Europe/Oslo")).toLocalDateTime()
-        val forårsaketAvId = UUID.randomUUID()
-        val førstegangsbehandlingEllerForlengelse =
-            if (vedtaksperiode == sykefraværstilfelle.vedtaksperioder.first()) "Førstegangsbehandling" else "Forlengelse"
-        // language=json
-        val testmelding =
-            """
-            {
-              "@event_name": "vedtak_fattet",
-              "fødselsnummer": "${testPerson.identitetsnummer}",
-              "aktørId": "${testPerson.aktørId}",
-              "yrkesaktivitetstype": "$yrkesaktivitetstype",
-              "vedtaksperiodeId": "${vedtaksperiode.vedtaksperiodeId}",
-              "behandlingId": "${vedtaksperiode.behandlingId}",
-              "organisasjonsnummer": "$yrkesaktivitetstype",
-              "fom": "${vedtaksperiode.fom}",
-              "tom": "${vedtaksperiode.tom}",
-              "skjæringstidspunkt": "${sykefraværstilfelle.skjæringstidspunkt}",
-              "hendelser": [ "${UUID.randomUUID()}" ],
-              "sykepengegrunnlag": ${BigDecimal.valueOf(sykepengegrunnlag.toLong()).setScale(1)},
-              "vedtakFattetTidspunkt": "${LocalDateTime.now()}",
-              "utbetalingId": "${UUID.randomUUID()}",
-              "tags": [ "$førstegangsbehandlingEllerForlengelse", "Personutbetaling", "Innvilget", "EnArbeidsgiver" ],
-              "sykepengegrunnlagsfakta": {
-                "fastsatt": "EtterHovedregel",
-                "6G": 900000.0,
-                "tags": [ "6GBegrenset" ],
-                "selvstendig": {
-                  "beregningsgrunnlag": 1006791.0,
-                  "pensjonsgivendeInntekter": [
-                    { "årstall": ${vedtaksperiode.fom.year - 1}, "beløp": 654321.0 },
-                    { "årstall": ${vedtaksperiode.fom.year - 2}, "beløp": 654321.0 },
-                    { "årstall": ${vedtaksperiode.fom.year - 3}, "beløp": 654321.0 }
-                  ]
-                }
-              },
-              "begrunnelser": [
-                {
-                  "type": "Innvilgelse",
-                  "begrunnelse": "",
-                  "perioder": [ { "fom": "${vedtaksperiode.fom}", "tom": "${vedtaksperiode.tom}" } ]
-                }
-              ],
-              "saksbehandler": { "ident": "A123456", "navn": "A123456" },
-              "automatiskFattet": false,
-              "dekning": $dekning,
-              "forsikringsvurderingId": "$forsikringsvurderingId",
-              "utbetalingsdager": ${
-                generateSequence(vedtaksperiode.fom) { dato ->
-                    dato.plusDays(1L).takeUnless { it > vedtaksperiode.tom }
-                }
-                    .joinToString(prefix = "[", separator = ",", postfix = "]") { dato ->
-                        val erVentetid = dato < sykefraværstilfelle.skjæringstidspunkt.plusDays(16)
-                        val erHelg = dato.dayOfWeek in setOf(DayOfWeek.SATURDAY, DayOfWeek.SUNDAY)
-                        val type =
-                            when {
-                                erVentetid -> "Ventetidsdag"
-                                erHelg -> "NavHelgDag"
-                                else -> "NavDag"
-                            }
-                        val dekningsgrad = if (erVentetid) dekningsgradIVentetid else dekningsgradEtterVentetid
-                        val beløpTilBruker =
-                            when {
-                                erHelg -> 0
-                                erVentetid -> dagbeløpIVentetid
-                                else -> dagsbeløpEtterVentetid
-                            }
-                        // language=json
-                        """
-                        {
-                            "dato": "$dato",
-                            "type": "$type",
-                            "sykdomsgrad": 100,
-                            "begrunnelser": [ ],
-                            "dekningsgrad": $dekningsgrad,
-                            "beløpTilBruker": $beløpTilBruker,
-                            "beløpTilArbeidsgiver": 0
-                        }
-                        """.trimIndent()
-                    }
-            },
-              "@id": "$meldingId",
-              "@opprettet": "$localNow",
-              "system_read_count": 1,
-              "system_participating_services": [
-                {
-                  "id": "$meldingId",
-                  "time": "$localNow",
-                  "service": "spesialist",
-                  "instance": "spesialist-abc123def-feesh",
-                  "image": "europe-north1-docker.pkg.dev/nais-management-233d/tbd/spesialist:2026.09.03-07.02-ae761cf42afe@sha256:fec16c23771a858c4a1417d69c9375a45e71e0dc75f3ee5fd14f774457efae97"
-                },
-                {
-                  "id": "$meldingId",
-                  "time": "$localNow",
-                  "service": "sp-forsikring",
-                  "instance": "sp-forsikring-fed456cba0-awooo",
-                  "image": "europe-north1-docker.pkg.dev/nais-management-233d/tbd/helse-sp-forsikring:2026.09.03-12.47-8f420717699f@sha256:d7a66191a0501919cb85e52efcd10b3168c8bb0cb34df9f335f50f27bfced8ea"
-                }
-              ],
-              "@forårsaket_av": {
-                "id": "$forårsaketAvId",
-                "opprettet": "$localNow",
-                "event_name": "avsluttet_med_vedtak"
-              }
-            }
-            """.trimIndent()
-        return objectMapper.readTree(testmelding)
-    }
+        utbetalingIVentetid: Boolean,
+        dagsbeløp: Int,
+    ): JsonNode =
+        Testmeldingsfabrikk.lagVedtakFattetMelding(
+            eventName = "vedtak_fattet",
+            yrkesaktivitetstype = yrkesaktivitetstype,
+            fødselsnummer = testPerson.identitetsnummer,
+            behandlingId = vedtaksperiode.behandlingId,
+            førstegangsbehandling = vedtaksperiode == sykefraværstilfelle.vedtaksperioder.first(),
+            sykepengegrunnlag = sykepengegrunnlag,
+            skjæringstidspunkt = sykefraværstilfelle.skjæringstidspunkt,
+            forsikringsvurderingId = forsikringsvurderingId,
+            vedtakFattetTidspunkt = LocalDateTime.now(),
+            utbetalingsdagerFom = vedtaksperiode.fom,
+            utbetalingsdagerTom = vedtaksperiode.tom,
+            utbetalingsdagerUtbetalingIVentetid = utbetalingIVentetid,
+            utbetalingsdagerDekningsgrad = dekningsgrad,
+            utbetalingsdagerEndretDekningsgradFraOgMed = null,
+            utbetalingsdagerEndretDekningsgrad = null,
+            utbetalingsdagerBeløpTilBruker = dagsbeløp,
+        )
 
     protected fun detBlirProdusertEnForsikringsvurderingResultatLøsning(
         @Language("JSON") forventetLøsning: String,

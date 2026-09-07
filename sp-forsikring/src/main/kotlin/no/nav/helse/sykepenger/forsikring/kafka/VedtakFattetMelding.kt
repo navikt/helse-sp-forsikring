@@ -2,6 +2,7 @@ package no.nav.helse.sykepenger.forsikring.kafka
 
 import com.fasterxml.jackson.annotation.JsonProperty
 import no.nav.helse.sykepenger.forsikring.kafka.lib.LenientEnum
+import java.math.BigDecimal
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.util.*
@@ -11,6 +12,9 @@ data class VedtakFattetMelding(
     val id: UUID,
     val fødselsnummer: String,
     val behandlingId: UUID,
+    val tags: List<String>,
+    val sykepengegrunnlag: BigDecimal,
+    val skjæringstidspunkt: LocalDate,
     val forsikringsvurderingId: UUID?,
     val vedtakFattetTidspunkt: LocalDateTime,
     val utbetalingsdager: List<Utbetalingsdag>,

@@ -50,12 +50,10 @@ class SelvstendigUtenForsikringE2ETest :
         spesialistSenderVedtakFattet(
             vedtaksperiode = førsteVedtaksperiode,
             forsikringsvurderingId = forsikringsvurderingId,
-            dekning = """{ "dekningsgrad": 80, "gjelderFraDag": 1 }""",
-            dekningsgradIVentetid = 80,
             dekningsgradEtterVentetid = 80,
             sykepengegrunnlag = 12345,
-            dagbeløpIVentetid = 0,
-            dagsbeløpEtterVentetid = 3151,
+            utbetalingIVentetid = false,
+            dagsbeløp = 3151,
         )
 
         utbetalingsstatistikkenForIÅrErTom()
@@ -80,12 +78,10 @@ class SelvstendigUtenForsikringE2ETest :
         spesialistSenderVedtakFattet(
             vedtaksperiode = andreVedtaksperiode,
             forsikringsvurderingId = forsikringsvurderingId,
-            dekning = """{ "dekningsgrad": 80, "gjelderFraDag": 17 }""",
-            dekningsgradIVentetid = 80,
             dekningsgradEtterVentetid = 80,
             sykepengegrunnlag = 12345,
-            dagbeløpIVentetid = 0,
-            dagsbeløpEtterVentetid = 3151,
+            utbetalingIVentetid = false,
+            dagsbeløp = 3151,
         )
 
         utbetalingsstatistikkenForIÅrErTom()

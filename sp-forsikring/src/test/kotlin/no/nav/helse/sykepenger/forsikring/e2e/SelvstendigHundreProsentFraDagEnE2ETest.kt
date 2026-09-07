@@ -96,12 +96,10 @@ class SelvstendigHundreProsentFraDagEnE2ETest :
             spesialistSenderVedtakFattet(
                 vedtaksperiode = førsteVedtaksperiode,
                 forsikringsvurderingId = forsikringsvurderingId,
-                dekning = """{ "dekningsgrad": 100, "gjelderFraDag": 1 }""",
-                dekningsgradIVentetid = 100,
                 dekningsgradEtterVentetid = 100,
                 sykepengegrunnlag = 12345,
-                dagbeløpIVentetid = 3151,
-                dagsbeløpEtterVentetid = 3151,
+                utbetalingIVentetid = true,
+                dagsbeløp = 3151,
             )
 
         detBlirOpprettetEnGosysoppgave(
@@ -145,12 +143,10 @@ class SelvstendigHundreProsentFraDagEnE2ETest :
         spesialistSenderVedtakFattet(
             vedtaksperiode = andreVedtaksperiode,
             forsikringsvurderingId = forsikringsvurderingId,
-            dekning = """{ "dekningsgrad": 100, "gjelderFraDag": 1 }""",
-            dekningsgradIVentetid = 100,
             dekningsgradEtterVentetid = 100,
             sykepengegrunnlag = 12345,
-            dagbeløpIVentetid = 3151,
-            dagsbeløpEtterVentetid = 3151,
+            utbetalingIVentetid = true,
+            dagsbeløp = 3151,
         )
 
         detBlirIkkeOpprettetFlereGosysoppgaver(antallOppgaverTotalt = 1)

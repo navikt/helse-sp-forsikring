@@ -23,7 +23,6 @@ import no.nav.helse.sykepenger.forsikring.kafka.ForsikringsvurderingResultatBeho
 import no.nav.helse.sykepenger.forsikring.kafka.SelvstendigIngenDagerIgjenRiver
 import no.nav.helse.sykepenger.forsikring.kafka.SelvstendigUtbetaltEtterVentetidRiver
 import no.nav.helse.sykepenger.forsikring.kafka.VedtakFattetRiver
-import no.nav.helse.sykepenger.forsikring.kafka.VedtakFattetTellerRiver
 import no.nav.helse.sykepenger.forsikring.shared.logging.loggInfo
 import org.flywaydb.core.Flyway
 import java.time.Duration
@@ -145,10 +144,6 @@ fun launchApplication(
             VedtakFattetRiver(
                 rapidsConnection = this,
                 gosysOppgaveClient = gosysOppgaveClient,
-                spForsikringDataSource = spForsikringDataSource,
-            )
-            VedtakFattetTellerRiver(
-                rapidsConnection = this,
                 spForsikringDataSource = spForsikringDataSource,
             )
         }.start()

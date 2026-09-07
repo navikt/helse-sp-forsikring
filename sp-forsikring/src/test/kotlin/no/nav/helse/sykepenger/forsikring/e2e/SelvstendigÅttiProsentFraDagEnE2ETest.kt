@@ -100,12 +100,10 @@ class SelvstendigÅttiProsentFraDagEnE2ETest :
         spesialistSenderVedtakFattet(
             vedtaksperiode = førsteVedtaksperiode,
             forsikringsvurderingId = forsikringsvurderingId,
-            dekning = """{ "dekningsgrad": 80, "gjelderFraDag": 1 }""",
-            dekningsgradIVentetid = 80,
             dekningsgradEtterVentetid = 80,
             sykepengegrunnlag = 12345,
-            dagbeløpIVentetid = 2521,
-            dagsbeløpEtterVentetid = 2521,
+            utbetalingIVentetid = true,
+            dagsbeløp = 2521,
         )
 
         utbetalingsstatistikkenForIÅrErTomBortsettFra(
@@ -142,12 +140,10 @@ class SelvstendigÅttiProsentFraDagEnE2ETest :
         spesialistSenderVedtakFattet(
             vedtaksperiode = andreVedtaksperiode,
             forsikringsvurderingId = forsikringsvurderingId,
-            dekning = """{ "dekningsgrad": 80, "gjelderFraDag": 1 }""",
-            dekningsgradIVentetid = 80,
             dekningsgradEtterVentetid = 80,
             sykepengegrunnlag = 12345,
-            dagbeløpIVentetid = 2521,
-            dagsbeløpEtterVentetid = 2521,
+            utbetalingIVentetid = true,
+            dagsbeløp = 2521,
         )
 
         detBlirIkkeOpprettetFlereGosysoppgaver(antallOppgaverTotalt = 1)
