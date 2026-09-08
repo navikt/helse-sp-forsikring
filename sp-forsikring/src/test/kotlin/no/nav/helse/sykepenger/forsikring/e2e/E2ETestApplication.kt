@@ -2,6 +2,7 @@ package no.nav.helse.sykepenger.forsikring.e2e
 
 import com.github.tomakehurst.wiremock.WireMockServer
 import com.github.tomakehurst.wiremock.client.WireMock.aResponse
+import com.github.tomakehurst.wiremock.client.WireMock.okJson
 import com.github.tomakehurst.wiremock.client.WireMock.post
 import com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig
@@ -30,6 +31,22 @@ object E2ETestApplication {
                 wireMockServer.stubFor(
                     post(urlPathEqualTo(GOSYS_OPPGAVER_PATH))
                         .willReturn(aResponse().withStatus(201)),
+                )
+            }
+
+    private val texasWiremock =
+        WireMockServer(wireMockConfig().dynamicPort())
+            .also(WireMockServer::start)
+            .also {
+                it.stubFor(
+                    post(urlPathEqualTo("/token")).willReturn(
+                        okJson("""{ "access_token": "stub-access-token", "expires_in": 3599, "token_type": "Bearer" }"""),
+                    ),
+                )
+                it.stubFor(
+                    post(urlPathEqualTo("/token/exchange")).willReturn(
+                        okJson("""{ "access_token": "stub-obo-token", "expires_in": 3599, "token_type": "Bearer" }"""),
+                    ),
                 )
             }
 
@@ -99,12 +116,9 @@ object E2ETestApplication {
                             "REPLIKABASE_SCHEMA" to TestcontainersReplikadatabase.oracleContainer.username,
                             "GOSYS_BASE_URL" to gosysWiremock.baseUrl(),
                             "GOSYS_SCOPE" to "api://dev-fss.oppgavehandtering.oppgave/.default",
-                            "AZURE_OPENID_CONFIG_TOKEN_ENDPOINT" to
-                                mockOAuth2Server
-                                    .tokenEndpointUrl("default")
-                                    .toString(),
+                            "NAIS_TOKEN_ENDPOINT" to "${texasWiremock.baseUrl()}/token",
+                            "NAIS_TOKEN_EXCHANGE_ENDPOINT" to "${texasWiremock.baseUrl()}/token/exchange",
                             "AZURE_APP_CLIENT_ID" to CLIENT_ID,
-                            "AZURE_APP_CLIENT_SECRET" to "en-hemmelighet",
                             "AZURE_OPENID_CONFIG_ISSUER" to mockOAuth2Server.issuerUrl("default").toString(),
                             "AZURE_OPENID_CONFIG_JWKS_URI" to mockOAuth2Server.jwksUrl("default").toString(),
                             "HTTP_PORT" to httpPort.toString(),

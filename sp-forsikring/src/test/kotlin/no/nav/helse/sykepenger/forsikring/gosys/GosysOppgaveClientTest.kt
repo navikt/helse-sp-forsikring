@@ -3,9 +3,7 @@ package no.nav.helse.sykepenger.forsikring.gosys
 import com.fasterxml.jackson.databind.SerializationFeature
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
-import com.github.navikt.tbd_libs.azure.AzureToken
-import com.github.navikt.tbd_libs.azure.AzureTokenProvider
-import com.github.navikt.tbd_libs.result_object.ok
+import com.github.navikt.tbd_libs.access_token.AccessTokenProvider
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.mock.MockEngine
 import io.ktor.client.engine.mock.respond
@@ -25,7 +23,6 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import java.math.BigDecimal
 import java.time.LocalDate
-import java.time.LocalDateTime
 import java.util.*
 import kotlin.test.Test
 
@@ -216,14 +213,14 @@ class GosysOppgaveClientTest {
                 }
             }
 
-        val azureTokenProvider: AzureTokenProvider =
+        val accessTokenProvider: AccessTokenProvider =
             mockk {
-                every { bearerToken(any()) } returns AzureToken("test-token-123", LocalDateTime.MAX).ok()
+                every { machineToken(any()) } returns "test-token-123"
             }
 
         return GosysOppgaveClient(
             baseUrl = "http://test.no",
-            tokenClient = azureTokenProvider,
+            tokenClient = accessTokenProvider,
             httpClient = httpClient,
             gosysScope = "test-scope",
         )

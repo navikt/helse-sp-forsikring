@@ -2,7 +2,7 @@ package no.nav.helse.sykepenger.forsikring
 
 import com.fasterxml.jackson.databind.SerializationFeature
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
-import com.github.navikt.tbd_libs.azure.createAzureTokenClientFromEnvironment
+import com.github.navikt.tbd_libs.access_token.TexasClient
 import com.github.navikt.tbd_libs.kafka.AivenConfig
 import com.github.navikt.tbd_libs.kafka.Config
 import com.github.navikt.tbd_libs.kafka.ConsumerProducerFactory
@@ -25,6 +25,7 @@ import no.nav.helse.sykepenger.forsikring.kafka.SelvstendigUtbetaltEtterVentetid
 import no.nav.helse.sykepenger.forsikring.kafka.VedtakFattetRiver
 import no.nav.helse.sykepenger.forsikring.shared.logging.loggInfo
 import org.flywaydb.core.Flyway
+import java.net.URI
 import java.time.Duration
 
 fun main() {
@@ -78,10 +79,16 @@ fun launchApplication(
             }
         }
 
+    val accessTokenProvider =
+        TexasClient(
+            tokenEndpoint = URI(env.getValue("NAIS_TOKEN_ENDPOINT")),
+            tokenExchangeEndpoint = URI(env.getValue("NAIS_TOKEN_EXCHANGE_ENDPOINT")),
+        )
+
     val gosysOppgaveClient =
         GosysOppgaveClient(
             baseUrl = env.getValue("GOSYS_BASE_URL"),
-            tokenClient = createAzureTokenClientFromEnvironment(env),
+            tokenClient = accessTokenProvider,
             httpClient = httpClient,
             gosysScope = env.getValue("GOSYS_SCOPE"),
         )
