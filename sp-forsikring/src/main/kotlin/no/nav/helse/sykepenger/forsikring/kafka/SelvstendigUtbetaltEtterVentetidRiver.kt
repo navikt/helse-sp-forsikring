@@ -10,7 +10,7 @@ import no.nav.helse.sykepenger.forsikring.domain.Forsikringsvurdering
 import no.nav.helse.sykepenger.forsikring.domain.IndividuellForsikringType
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.ForsikringsvurderingRepository
 import no.nav.helse.sykepenger.forsikring.gosys.GosysOppgaveClient
-import no.nav.helse.sykepenger.forsikring.kafka.lib.medParsetMeldingOgTransaksjon
+import no.nav.helse.sykepenger.forsikring.kafka.lib.medParsetMeldingOgTransaction
 import no.nav.sykepenger.libs.logging.MdcKey
 import java.time.format.DateTimeFormatter
 import javax.sql.DataSource
@@ -39,12 +39,8 @@ class SelvstendigUtbetaltEtterVentetidRiver(
         metadata: MessageMetadata,
         meterRegistry: MeterRegistry,
     ) {
-        packet.medParsetMeldingOgTransaksjon<SelvstendigUtbetaltEtterVentetidMelding>(
-            mdcMapping =
-                mapOf(
-                    MdcKey.MELDING_ID to SelvstendigUtbetaltEtterVentetidMelding::id,
-                    MdcKey.FORSIKRINGSVURDERING_ID to SelvstendigUtbetaltEtterVentetidMelding::forsikringsvurderingId,
-                ),
+        packet.medParsetMeldingOgTransaction<SelvstendigUtbetaltEtterVentetidMelding>(
+            mdcMapping = mapOf(MdcKey.FORSIKRINGSVURDERING_ID to SelvstendigUtbetaltEtterVentetidMelding::forsikringsvurderingId),
             dataSource = spForsikringDataSource,
         ) { melding, transaction ->
             val forsikringsvurderingId = Forsikringsvurdering.Id(melding.forsikringsvurderingId)
@@ -59,7 +55,7 @@ class SelvstendigUtbetaltEtterVentetidRiver(
                     IndividuellForsikringType.SELVSTENDIG_JORDBRUKER_100_PROSENT_FRA_DAG_1,
                 )
             ) {
-                return@medParsetMeldingOgTransaksjon
+                return@medParsetMeldingOgTransaction
             }
 
             gosysOppgaveClient.opprettOppgave(

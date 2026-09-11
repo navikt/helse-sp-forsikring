@@ -5,8 +5,6 @@ import java.time.LocalDate
 import java.util.*
 
 data class ForsikringsvurderingBehovMelding(
-    @JsonProperty("@id")
-    val id: UUID,
     val fødselsnummer: String,
     val vedtaksperiodeId: UUID,
     val behandlingId: UUID,

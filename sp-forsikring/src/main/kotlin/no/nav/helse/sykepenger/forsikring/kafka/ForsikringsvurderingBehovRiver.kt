@@ -12,11 +12,10 @@ import no.nav.helse.sykepenger.forsikring.domain.SpesiellYrkesgruppe
 import no.nav.helse.sykepenger.forsikring.domain.Yrkesaktivitetstype
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.ForsikringsvurderingRepository
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.ForsikringsvurderingService
-import no.nav.helse.sykepenger.forsikring.kafka.lib.medParsetMeldingOgTransaksjon
+import no.nav.helse.sykepenger.forsikring.kafka.lib.medParsetMeldingOgTransaction
 import no.nav.helse.sykepenger.forsikring.råkopi.RåkopiRepository
 import no.nav.helse.sykepenger.forsikring.subsumsjon.Subsumsjonsmelding
 import no.nav.helse.sykepenger.forsikring.subsumsjon.tilSubsumsjonsmeldinger
-import no.nav.sykepenger.libs.logging.MdcKey
 import no.nav.sykepenger.libs.logging.loggError
 import no.nav.sykepenger.libs.logging.loggInfo
 import javax.sql.DataSource
@@ -59,8 +58,7 @@ class ForsikringsvurderingBehovRiver(
         meterRegistry: MeterRegistry,
     ) {
         try {
-            packet.medParsetMeldingOgTransaksjon<ForsikringsvurderingBehovMelding>(
-                mdcMapping = mapOf(MdcKey.MELDING_ID to ForsikringsvurderingBehovMelding::id),
+            packet.medParsetMeldingOgTransaction<ForsikringsvurderingBehovMelding>(
                 dataSource = spForsikringDataSource,
             ) { melding, transaction ->
                 val (råkopi, forsikringsvurdering) =

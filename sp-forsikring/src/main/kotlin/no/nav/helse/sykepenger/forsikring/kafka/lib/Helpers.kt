@@ -8,16 +8,17 @@ import no.nav.sykepenger.libs.logging.loggError
 import no.nav.sykepenger.libs.logging.loggInfo
 import no.nav.sykepenger.libs.logging.medMdc
 import tools.jackson.databind.DeserializationFeature
+import tools.jackson.databind.JsonNode
 import tools.jackson.databind.introspect.DefaultAccessorNamingStrategy
 import tools.jackson.databind.json.JsonMapper
 import tools.jackson.module.kotlin.jacksonMapperBuilder
-import tools.jackson.module.kotlin.readValue
+import tools.jackson.module.kotlin.treeToValue
 import javax.sql.DataSource
 
-inline fun <reified M> JsonMessage.medParsetMeldingOgTransaksjon(
-    mdcMapping: Map<MdcKey, M.() -> Any?>,
+inline fun <reified M> JsonMessage.medParsetMeldingOgTransaction(
+    mdcMapping: Map<MdcKey, M.() -> Any?> = emptyMap(),
     dataSource: DataSource,
-    crossinline block: (melding: M, transactionalSession: TransactionalSession) -> Unit,
+    crossinline block: (melding: M, transaction: TransactionalSession) -> Unit,
 ) {
     medParsetMelding<M>(mdcMapping) { melding ->
         dataSource.inTransaction { transaction ->
@@ -31,11 +32,22 @@ inline fun <reified M> JsonMessage.medParsetMelding(
     crossinline block: (M) -> Unit,
 ) {
     val meldingJson = toJson()
-    val parsetMelding =
-        runCatching { objectMapper.readValue<M>(meldingJson) }
+    val meldingJsonNode =
+        runCatching { objectMapper.readTree(meldingJson) }
             .getOrElse { throwable ->
                 loggError(
-                    "Klarte ikke tolke melding fra JSON",
+                    "Klarte ikke tolke melding som JSON",
+                    throwable,
+                    "meldingJson" to meldingJson,
+                )
+                throw throwable
+            }
+
+    val parsetMelding =
+        runCatching { objectMapper.treeToValue<M>(meldingJsonNode) }
+            .getOrElse { throwable ->
+                loggError(
+                    "Klarte ikke tolke JSON til forventet meldingstype",
                     throwable,
                     "meldingJson" to meldingJson,
                 )
@@ -43,8 +55,9 @@ inline fun <reified M> JsonMessage.medParsetMelding(
             }
 
     val mdcKeyValues =
-        mdcMapping
-            .map { (mdcKey, hentVerdi) -> mdcKey to hentVerdi(parsetMelding)?.toString() }
+        automatiskeMdcVerdier(meldingJsonNode)
+            .plus(mdcMapping.map { (mdcKey, hentVerdi) -> mdcKey to hentVerdi(parsetMelding)?.toString() })
+            .toList()
             .toTypedArray()
 
     medMdc(*mdcKeyValues) {
@@ -52,6 +65,41 @@ inline fun <reified M> JsonMessage.medParsetMelding(
         block(parsetMelding)
     }
 }
+
+fun automatiskeMdcVerdier(melding: JsonNode): Map<MdcKey, String?> =
+    runCatching {
+        buildMap {
+            putIfString(MdcKey.IDENTITETSNUMMER, melding["fødselsnummer"])
+            putIfString(MdcKey.MELDING_ID, melding["@id"])
+            putIfString(MdcKey.VEDTAKSPERIODE_ID, melding["vedtaksperiodeId"])
+            putIfString(MdcKey.SPLEIS_BEHANDLING_ID, melding["behandlingId"])
+            melding.meldingnavn()?.let { put(MdcKey.MELDINGNAVN, it) }
+        }
+    }.getOrElse { emptyMap() }
+
+private fun MutableMap<MdcKey, String>.putIfString(
+    key: MdcKey,
+    jsonNode: JsonNode?,
+) {
+    jsonNode?.stringValueIfString()?.let { put(key, it) }
+}
+
+private fun JsonNode.meldingnavn(): String? =
+    when (val eventName = get("@event_name")?.stringValueIfString()) {
+        null -> null
+        "behov" ->
+            eventName +
+                get("@behov")
+                    ?.takeIf { it.isArray }
+                    ?.mapNotNull { it.stringValueIfString() }
+                    ?.takeUnless { it.isEmpty() }
+                    ?.joinToString(prefix = "[", separator = ",", postfix = "]")
+                    .orEmpty()
+
+        else -> eventName
+    }
+
+private fun JsonNode?.stringValueIfString(): String? = this?.takeIf { it.isString }?.stringValue()
 
 val objectMapper: JsonMapper =
     jacksonMapperBuilder()

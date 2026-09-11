@@ -13,7 +13,7 @@ import no.nav.helse.sykepenger.forsikring.domain.Utbetalingsdag
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.ForsikringsvurderingRepository
 import no.nav.helse.sykepenger.forsikring.gosys.GosysOppgaveClient
 import no.nav.helse.sykepenger.forsikring.kafka.VedtakFattetMelding.Utbetalingsdag.Type
-import no.nav.helse.sykepenger.forsikring.kafka.lib.medParsetMeldingOgTransaksjon
+import no.nav.helse.sykepenger.forsikring.kafka.lib.medParsetMeldingOgTransaction
 import no.nav.helse.sykepenger.forsikring.tellingutbetaling.UtbetalingPerForsikringstypeDao
 import no.nav.helse.sykepenger.forsikring.tellingutbetaling.VedtakFattetMeldingDao
 import no.nav.sykepenger.libs.logging.MdcKey
@@ -49,23 +49,19 @@ class VedtakFattetRiver(
         metadata: MessageMetadata,
         meterRegistry: MeterRegistry,
     ) {
-        packet.medParsetMeldingOgTransaksjon<VedtakFattetMelding>(
-            mdcMapping =
-                mapOf(
-                    MdcKey.MELDING_ID to VedtakFattetMelding::id,
-                    MdcKey.FORSIKRINGSVURDERING_ID to VedtakFattetMelding::forsikringsvurderingId,
-                ),
+        packet.medParsetMeldingOgTransaction<VedtakFattetMelding>(
+            mdcMapping = mapOf(MdcKey.FORSIKRINGSVURDERING_ID to VedtakFattetMelding::forsikringsvurderingId),
             dataSource = spForsikringDataSource,
-        ) { vedtakFattetMelding, transaction ->
+        ) { melding, transaction ->
             val vedtakFattetMeldingDao = VedtakFattetMeldingDao(transaction)
 
-            if (vedtakFattetMeldingDao.eksisterer(vedtakFattetMelding.id)) {
+            if (vedtakFattetMeldingDao.eksisterer(melding.id)) {
                 loggInfo("Hopper over vedtak_fattet-melding som allerede er lagret ned")
-                return@medParsetMeldingOgTransaksjon
+                return@medParsetMeldingOgTransaction
             }
 
             val forsikringsvurdering =
-                vedtakFattetMelding.forsikringsvurderingId
+                melding.forsikringsvurderingId
                     ?.let { Forsikringsvurdering.Id(it) }
                     ?.let {
                         ForsikringsvurderingRepository(transaction).hent(it)
@@ -73,23 +69,23 @@ class VedtakFattetRiver(
                     }
 
             vedtakFattetMeldingDao.insert(
-                id = vedtakFattetMelding.id,
+                id = melding.id,
                 forsikringsvurderingId = forsikringsvurdering?.id,
-                identitetsnummer = Identitetsnummer.fraString(vedtakFattetMelding.fødselsnummer),
-                behandlingId = vedtakFattetMelding.behandlingId,
-                vedtakFattetTidspunkt = vedtakFattetMelding.vedtakFattetTidspunkt.tilInstantIOslo(),
+                identitetsnummer = Identitetsnummer.fraString(melding.fødselsnummer),
+                behandlingId = melding.behandlingId,
+                vedtakFattetTidspunkt = melding.vedtakFattetTidspunkt.tilInstantIOslo(),
                 json = packet.toJson(),
             )
 
             if (forsikringsvurdering == null) {
-                return@medParsetMeldingOgTransaksjon
+                return@medParsetMeldingOgTransaction
             }
 
             val kollektivForsikring = forsikringsvurdering.kollektivForsikring
             val individuellForsikring = forsikringsvurdering.gjeldendeIndividuellForsikring()
 
             val utbetalingsdager =
-                vedtakFattetMelding.utbetalingsdager.map {
+                melding.utbetalingsdager.map {
                     Utbetalingsdag(
                         dato = it.dato,
                         beløpTilBruker = it.beløpTilBruker,
@@ -114,7 +110,7 @@ class VedtakFattetRiver(
             val utbetalingPerForsikringstypeDao = UtbetalingPerForsikringstypeDao(transaction)
             if (kollektivForsikring != null) {
                 utbetalingPerForsikringstypeDao.insert(
-                    vedtakFattetMeldingId = vedtakFattetMelding.id,
+                    vedtakFattetMeldingId = melding.id,
                     forsikringstype = kollektivForsikring,
                     utbetaltIVentetid = fordelingerIVentetid.summer { it.påGrunnAvKollektivForsikring },
                     utbetaltUtenomVentetid = fordelingerUtenomVentetid.summer { it.påGrunnAvKollektivForsikring },
@@ -122,31 +118,31 @@ class VedtakFattetRiver(
             }
             if (individuellForsikring != null) {
                 utbetalingPerForsikringstypeDao.insert(
-                    vedtakFattetMeldingId = vedtakFattetMelding.id,
+                    vedtakFattetMeldingId = melding.id,
                     forsikringstype = individuellForsikring.type,
                     utbetaltIVentetid = fordelingerIVentetid.summer { it.påGrunnAvIndividuellForsikring },
                     utbetaltUtenomVentetid = fordelingerUtenomVentetid.summer { it.påGrunnAvIndividuellForsikring },
                 )
             }
 
-            if ("Førstegangsbehandling" in vedtakFattetMelding.tags && individuellForsikring != null) {
+            if ("Førstegangsbehandling" in melding.tags && individuellForsikring != null) {
                 val premiegrunnlag = individuellForsikring.premiegrunnlag
-                val avviksbeløp = vedtakFattetMelding.sykepengegrunnlag.subtract(BigDecimal(premiegrunnlag)).abs()
+                val avviksbeløp = melding.sykepengegrunnlag.subtract(BigDecimal(premiegrunnlag)).abs()
                 loggInfo("Beregnet avvik: ${avviksbeløp.iBeløpsFormat()}")
 
                 val avviksgrense = 100
                 if (avviksbeløp >= BigDecimal(avviksgrense)) {
                     gosysOppgaveClient.opprettOppgave(
-                        personident = vedtakFattetMelding.fødselsnummer,
-                        uuid = vedtakFattetMelding.id.toString(),
+                        personident = melding.fødselsnummer,
+                        uuid = melding.id.toString(),
                         beskrivelse =
                             "Sykepenger er utbetalt med sykepengegrunnlag" +
-                                " ${vedtakFattetMelding.sykepengegrunnlag.iBeløpsFormat()}," +
+                                " ${melding.sykepengegrunnlag.iBeløpsFormat()}," +
                                 " med forsikring med premiegrunnlag ${premiegrunnlag.iBeløpsFormat()}." +
                                 " Avviket er på ${avviksbeløp.iBeløpsFormat()}," +
                                 " som er høyere enn ønsket (<${avviksgrense.iBeløpsFormat()})." +
                                 " Utbetalingen skjedde for sykefravær med skjæringstidspunkt " +
-                                "${vedtakFattetMelding.skjæringstidspunkt.format(DateTimeFormatter.ofPattern("dd.MM.yyyy"))}.",
+                                "${melding.skjæringstidspunkt.format(DateTimeFormatter.ofPattern("dd.MM.yyyy"))}.",
                     )
                 }
             }

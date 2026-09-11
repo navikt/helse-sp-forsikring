@@ -9,7 +9,7 @@ import com.github.navikt.tbd_libs.rapids_and_rivers_api.RapidsConnection
 import io.micrometer.core.instrument.MeterRegistry
 import no.nav.helse.sykepenger.forsikring.domain.Forsikringsvurdering
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.ForsikringsvurderingRepository
-import no.nav.helse.sykepenger.forsikring.kafka.lib.medParsetMeldingOgTransaksjon
+import no.nav.helse.sykepenger.forsikring.kafka.lib.medParsetMeldingOgTransaction
 import no.nav.sykepenger.libs.logging.MdcKey
 import no.nav.sykepenger.libs.logging.loggError
 import no.nav.sykepenger.libs.logging.loggInfo
@@ -42,15 +42,12 @@ class ForsikringsvurderingResultatBehovRiver(
         meterRegistry: MeterRegistry,
     ) {
         try {
-            packet.medParsetMeldingOgTransaksjon<ForsikringsvurderingResultatBehovMelding>(
-                mdcMapping =
-                    mapOf(
-                        MdcKey.MELDING_ID to ForsikringsvurderingResultatBehovMelding::id,
-                        MdcKey.FORSIKRINGSVURDERING_ID to { forsikringsvurderingResultat.forsikringsvurderingId },
-                    ),
+            packet.medParsetMeldingOgTransaction<ForsikringsvurderingResultatBehovMelding>(
+                mdcMapping = mapOf(MdcKey.FORSIKRINGSVURDERING_ID to { forsikringsvurderingResultat.forsikringsvurderingId }),
                 dataSource = spForsikringDataSource,
             ) { melding, transaction ->
-                val forsikringsvurderingId = Forsikringsvurdering.Id(melding.forsikringsvurderingResultat.forsikringsvurderingId)
+                val forsikringsvurderingId =
+                    Forsikringsvurdering.Id(melding.forsikringsvurderingResultat.forsikringsvurderingId)
 
                 val forsikringsvurdering =
                     ForsikringsvurderingRepository(transaction).hent(forsikringsvurderingId)

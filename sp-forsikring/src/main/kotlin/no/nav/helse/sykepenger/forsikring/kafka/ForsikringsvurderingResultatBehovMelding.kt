@@ -4,8 +4,6 @@ import com.fasterxml.jackson.annotation.JsonProperty
 import java.util.*
 
 data class ForsikringsvurderingResultatBehovMelding(
-    @JsonProperty("@id")
-    val id: UUID,
     @JsonProperty("ForsikringsvurderingResultat")
     val forsikringsvurderingResultat: ForsikringsvurderingResultat,
 ) {

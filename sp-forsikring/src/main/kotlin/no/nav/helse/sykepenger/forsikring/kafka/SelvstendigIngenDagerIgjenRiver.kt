@@ -9,7 +9,7 @@ import io.micrometer.core.instrument.MeterRegistry
 import no.nav.helse.sykepenger.forsikring.domain.Forsikringsvurdering
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.ForsikringsvurderingRepository
 import no.nav.helse.sykepenger.forsikring.gosys.GosysOppgaveClient
-import no.nav.helse.sykepenger.forsikring.kafka.lib.medParsetMeldingOgTransaksjon
+import no.nav.helse.sykepenger.forsikring.kafka.lib.medParsetMeldingOgTransaction
 import no.nav.sykepenger.libs.logging.MdcKey
 import java.time.format.DateTimeFormatter
 import javax.sql.DataSource
@@ -42,12 +42,8 @@ class SelvstendigIngenDagerIgjenRiver(
         metadata: MessageMetadata,
         meterRegistry: MeterRegistry,
     ) {
-        packet.medParsetMeldingOgTransaksjon<SelvstendigIngenDagerIgjenMelding>(
-            mdcMapping =
-                mapOf(
-                    MdcKey.MELDING_ID to SelvstendigIngenDagerIgjenMelding::id,
-                    MdcKey.FORSIKRINGSVURDERING_ID to SelvstendigIngenDagerIgjenMelding::forsikringsvurderingId,
-                ),
+        packet.medParsetMeldingOgTransaction<SelvstendigIngenDagerIgjenMelding>(
+            mdcMapping = mapOf(MdcKey.FORSIKRINGSVURDERING_ID to SelvstendigIngenDagerIgjenMelding::forsikringsvurderingId),
             dataSource = spForsikringDataSource,
         ) { melding, transaction ->
             val forsikringsvurderingId = Forsikringsvurdering.Id(melding.forsikringsvurderingId)
@@ -55,7 +51,7 @@ class SelvstendigIngenDagerIgjenRiver(
             val forsikringsvurdering =
                 ForsikringsvurderingRepository(transaction).hent(forsikringsvurderingId)
                     ?: error("Fant ikke vurdering for forsikringsvurderingId=$forsikringsvurderingId")
-            if (!forsikringsvurdering.harForsikring()) return@medParsetMeldingOgTransaksjon
+            if (!forsikringsvurdering.harForsikring()) return@medParsetMeldingOgTransaction
 
             gosysOppgaveClient.opprettOppgave(
                 personident = melding.fødselsnummer,
