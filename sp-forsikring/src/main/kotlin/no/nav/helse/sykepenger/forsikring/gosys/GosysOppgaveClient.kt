@@ -16,6 +16,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import no.nav.helse.sykepenger.forsikring.shared.logging.loggError
 import no.nav.helse.sykepenger.forsikring.shared.logging.loggInfo
+import no.nav.helse.sykepenger.forsikring.shared.util.somBeløpstekst
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.util.*
@@ -37,7 +38,7 @@ class GosysOppgaveClient(
             when (årsak) {
                 Årsak.UtbetaltFraDagÉnOgDekningsgrad80Prosent -> "Det er utbetalt sykepenger fra dag én og vedkommende har 80% dekningsgrad"
                 Årsak.SykepengerettOpphørtPåGrunnAvMaksdatoAlderEllerDød -> "Sykepengerett har opphørt som følge av ingen gjenstående dager"
-                is Årsak.ForStortAvvikMellomSykepengegrunnlagOgPremiegrunnlag -> "For stort avvik mellom sykepengegrunnlag, ${årsak.sykepengegrunnlag.setScale(2)}, og premiegrunnlag, ${årsak.premiegrunnlag.setScale(2)}. Avviket er ${årsak.avviksprosent.setScale(2)}"
+                is Årsak.ForStortAvvikMellomSykepengegrunnlagOgPremiegrunnlag -> "For stort avvik mellom sykepengegrunnlag, ${årsak.sykepengegrunnlag.somBeløpstekst()} kr, og premiegrunnlag, ${årsak.premiegrunnlag.somBeløpstekst()} kr. Avviket er ${årsak.avviksbeløp.somBeløpstekst()} kr"
                 Årsak.UtbetaltFraDagÉnOgDekningsgrad100ProsentJordbruker -> "Det er utbetalt sykepenger for en Jordbruker fra dag en og vedkommende har 100% dekningsgrad"
             }
         retry {

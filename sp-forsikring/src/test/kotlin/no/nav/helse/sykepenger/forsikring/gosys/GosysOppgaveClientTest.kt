@@ -104,7 +104,7 @@ class GosysOppgaveClientTest {
         val fødselsnummer = "11111111111"
         val skjæringstidspunkt = LocalDate.of(2024, 3, 15)
         val sykepengegrunnlag = BigDecimal("500000")
-        val premiegrunnlag = BigDecimal("300000")
+        val premiegrunnlag = 300000
 
         runBlocking {
             client.lagOppgave(
@@ -114,7 +114,7 @@ class GosysOppgaveClientTest {
                     Årsak.ForStortAvvikMellomSykepengegrunnlagOgPremiegrunnlag(
                         sykepengegrunnlag = sykepengegrunnlag,
                         premiegrunnlag = premiegrunnlag,
-                        avviksprosent = BigDecimal("66.67"),
+                        avviksbeløp = BigDecimal("200000"),
                     ),
                 skjæringstidspunkt = skjæringstidspunkt,
             )
@@ -123,7 +123,32 @@ class GosysOppgaveClientTest {
         assertEquals(1, capturedRequests.size)
         val requestBody = parseRequestBody(capturedRequests.first())
 
-        assertEquals("Årsak: For stort avvik mellom sykepengegrunnlag, 500000.00, og premiegrunnlag, 300000.00. Avviket er 66.67. Skjæringstidspunkt: 15.03.2024.", requestBody.beskrivelse)
+        assertEquals("Årsak: For stort avvik mellom sykepengegrunnlag, 500 000 kr, og premiegrunnlag, 300 000 kr. Avviket er 200 000 kr. Skjæringstidspunkt: 15.03.2024.", requestBody.beskrivelse)
+    }
+
+    @Test
+    fun `viser øre i oppgaveteksten når sykepengegrunnlaget ikke er et helt kronebeløp`() {
+        val capturedRequests = mutableListOf<HttpRequestData>()
+        val mockEngine = createMockEngine(capturedRequests, HttpStatusCode.Created)
+        val client = createGosysOppgaveClient(mockEngine)
+
+        runBlocking {
+            client.lagOppgave(
+                duplikatkontrollId = UUID.randomUUID(),
+                fødselsnummer = "11111111111",
+                årsak =
+                    Årsak.ForStortAvvikMellomSykepengegrunnlagOgPremiegrunnlag(
+                        sykepengegrunnlag = BigDecimal("500000.50"),
+                        premiegrunnlag = 300000,
+                        avviksbeløp = BigDecimal("200000.50"),
+                    ),
+                skjæringstidspunkt = LocalDate.of(2024, 3, 15),
+            )
+        }
+
+        val requestBody = parseRequestBody(capturedRequests.first())
+
+        assertEquals("Årsak: For stort avvik mellom sykepengegrunnlag, 500 000,50 kr, og premiegrunnlag, 300 000 kr. Avviket er 200 000,50 kr. Skjæringstidspunkt: 15.03.2024.", requestBody.beskrivelse)
     }
 
     @Test

@@ -11,7 +11,7 @@ sealed interface Årsak {
 
     data class ForStortAvvikMellomSykepengegrunnlagOgPremiegrunnlag(
         val sykepengegrunnlag: BigDecimal,
-        val premiegrunnlag: BigDecimal,
-        val avviksprosent: BigDecimal,
+        val premiegrunnlag: Int,
+        val avviksbeløp: BigDecimal,
     ) : Årsak
 }

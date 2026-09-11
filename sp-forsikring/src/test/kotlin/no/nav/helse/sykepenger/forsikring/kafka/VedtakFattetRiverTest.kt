@@ -79,8 +79,8 @@ class VedtakFattetRiverTest {
         assertNotNull(oppgave)
         val årsak = assertIs<Årsak.ForStortAvvikMellomSykepengegrunnlagOgPremiegrunnlag>(oppgave.årsak)
         assertEquals(0, årsak.sykepengegrunnlag.compareTo(BigDecimal(sykepengegrunnlag)))
-        assertEquals(0, årsak.premiegrunnlag.compareTo(BigDecimal(premiegrunnlag)))
-        assertEquals(0, årsak.avviksprosent.compareTo(BigDecimal("50.00")))
+        assertEquals(premiegrunnlag, årsak.premiegrunnlag)
+        assertEquals(0, årsak.avviksbeløp.compareTo(BigDecimal("200000")))
         assertEquals(identitetsnummer.value, oppgave.fødselsnummer)
     }
 
@@ -102,6 +102,68 @@ class VedtakFattetRiverTest {
         )
 
         assertNull(oppgaveOppsamler.sisteOppgave)
+    }
+
+    @Test
+    fun `lager ingen oppgave når avviket er mindre enn 100`() {
+        val forsikringsvurderingId =
+            settOppForsikringsvurdering(
+                individuellForsikringType = IndividuellForsikringType.SELVSTENDIG_100_PROSENT_FRA_DAG_1,
+                premiegrunnlag = 7900,
+            )
+
+        sendVedtakFattet(
+            forsikringsvurderingId = forsikringsvurderingId,
+            sykepengegrunnlag = 7999,
+            dekningsgrad = 100,
+            utbetalingIVentetid = true,
+        )
+
+        assertNull(oppgaveOppsamler.sisteOppgave)
+    }
+
+    @Test
+    fun `lager oppgave når avviket er nøyaktig 100`() {
+        val forsikringsvurderingId =
+            settOppForsikringsvurdering(
+                individuellForsikringType = IndividuellForsikringType.SELVSTENDIG_100_PROSENT_FRA_DAG_1,
+                premiegrunnlag = 8000,
+            )
+
+        sendVedtakFattet(
+            forsikringsvurderingId = forsikringsvurderingId,
+            sykepengegrunnlag = 8100,
+            dekningsgrad = 100,
+            utbetalingIVentetid = true,
+        )
+
+        val oppgave = oppgaveOppsamler.sisteOppgave
+        assertNotNull(oppgave)
+        val årsak = assertIs<Årsak.ForStortAvvikMellomSykepengegrunnlagOgPremiegrunnlag>(oppgave.årsak)
+        assertEquals(0, årsak.sykepengegrunnlag.compareTo(BigDecimal(8100)))
+        assertEquals(8000, årsak.premiegrunnlag)
+        assertEquals(0, årsak.avviksbeløp.compareTo(BigDecimal("100")))
+    }
+
+    @Test
+    fun `lager oppgave når premiegrunnlaget er 100 høyere enn sykepengegrunnlaget`() {
+        val forsikringsvurderingId =
+            settOppForsikringsvurdering(
+                individuellForsikringType = IndividuellForsikringType.SELVSTENDIG_100_PROSENT_FRA_DAG_1,
+                premiegrunnlag = 8100,
+            )
+
+        sendVedtakFattet(
+            forsikringsvurderingId = forsikringsvurderingId,
+            sykepengegrunnlag = 8000,
+            dekningsgrad = 100,
+            utbetalingIVentetid = true,
+        )
+
+        val oppgave = oppgaveOppsamler.sisteOppgave
+        assertNotNull(oppgave)
+        val årsak = assertIs<Årsak.ForStortAvvikMellomSykepengegrunnlagOgPremiegrunnlag>(oppgave.årsak)
+        assertEquals(0, årsak.avviksbeløp.compareTo(BigDecimal("100")))
     }
 
     @Test

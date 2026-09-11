@@ -18,10 +18,10 @@ import no.nav.helse.sykepenger.forsikring.kafka.VedtakFattetMelding.Utbetalingsd
 import no.nav.helse.sykepenger.forsikring.kafka.lib.medParsetMeldingOgTransaksjon
 import no.nav.helse.sykepenger.forsikring.shared.logging.MdcKey
 import no.nav.helse.sykepenger.forsikring.shared.logging.loggInfo
+import no.nav.helse.sykepenger.forsikring.shared.util.somBeløpstekst
 import no.nav.helse.sykepenger.forsikring.tellingutbetaling.UtbetalingPerForsikringstypeDao
 import no.nav.helse.sykepenger.forsikring.tellingutbetaling.VedtakFattetMeldingDao
 import java.math.BigDecimal
-import java.math.RoundingMode
 import java.time.Instant
 import java.time.LocalDateTime
 import java.time.ZoneId
@@ -129,16 +129,16 @@ class VedtakFattetRiver(
             }
 
             if ("Førstegangsbehandling" in vedtakFattetMelding.tags && individuellForsikring != null) {
-                val premiegrunnlag = BigDecimal(individuellForsikring.premiegrunnlag)
+                val premiegrunnlag = individuellForsikring.premiegrunnlag
+                val avviksbeløp = beregnAvviksbeløp(vedtakFattetMelding.sykepengegrunnlag, premiegrunnlag)
 
-                if (vedtakFattetMelding.sykepengegrunnlag.compareTo(premiegrunnlag) != 0) {
-                    val avviksprosent = beregnAvvik(vedtakFattetMelding.sykepengegrunnlag, premiegrunnlag)
+                if (avviksbeløp >= AVVIKSGRENSE) {
                     loggInfo(
                         """
                         Avvik mellom sykepengegrunnlag og premiegrunnlag. Oppretter oppgave.
-                        Sykepengegrunnlag: ${vedtakFattetMelding.sykepengegrunnlag.setScale(2)}
-                        Premiegrunnlag: $premiegrunnlag
-                        Avviksprosent: ${avviksprosent.setScale(2)}
+                        Sykepengegrunnlag: ${vedtakFattetMelding.sykepengegrunnlag.somBeløpstekst()} kr
+                        Premiegrunnlag: ${premiegrunnlag.somBeløpstekst()} kr
+                        Avviksbeløp: ${avviksbeløp.somBeløpstekst()} kr
                         """.trimIndent(),
                         "fødselsnummer" to vedtakFattetMelding.fødselsnummer,
                     )
@@ -151,7 +151,7 @@ class VedtakFattetRiver(
                                 Årsak.ForStortAvvikMellomSykepengegrunnlagOgPremiegrunnlag(
                                     vedtakFattetMelding.sykepengegrunnlag,
                                     premiegrunnlag,
-                                    avviksprosent,
+                                    avviksbeløp,
                                 ),
                             skjæringstidspunkt = vedtakFattetMelding.skjæringstidspunkt,
                         )
@@ -161,26 +161,10 @@ class VedtakFattetRiver(
         }
     }
 
-    /**
-     * Beregner og returnerer prosentvis avvik mellom sykepengegrunnlag og premiegrunnlag.
-     *
-     * @param sykepengegrunnlag Det beregnede sykepengegrunnlaget.
-     * @param premiegrunnlag Det registrerte premiegrunnlaget.
-     * @return prosent avvik mellom sykepengegrunnlaget og premiegrunnlaget
-     *
-     * Formel: Avvik (%) = ((Fastsatt sykepengegrunnlag - fastsatt premiegrunnlag) / fastsatt sykepengegrunnlag) * 100
-     */
-
-    private fun beregnAvvik(
+    private fun beregnAvviksbeløp(
         sykepengegrunnlag: BigDecimal,
-        premiegrunnlag: BigDecimal,
-    ): BigDecimal =
-        sykepengegrunnlag
-            .subtract(premiegrunnlag)
-            .abs()
-            .divide(sykepengegrunnlag, 10, RoundingMode.HALF_UP)
-            .multiply(BigDecimal("100"))
-            .setScale(2, RoundingMode.HALF_UP)
+        premiegrunnlag: Int,
+    ): BigDecimal = sykepengegrunnlag.subtract(BigDecimal(premiegrunnlag)).abs()
 
     /**
      * Summerer beløpene med full mellomregningspresisjon. Avrunding til to desimaler skjer først når summen
@@ -189,4 +173,9 @@ class VedtakFattetRiver(
     private fun List<FordelingAvBeløpPåUtbetalingsdag>.summer(beløp: (FordelingAvBeløpPåUtbetalingsdag) -> BigDecimal): BigDecimal = fold(BigDecimal.ZERO) { sum, fordeling -> sum + beløp(fordeling) }
 
     private fun LocalDateTime.tilInstantIOslo(): Instant = atZone(ZoneId.of("Europe/Oslo")).toInstant()
+
+    private companion object {
+        /** Avvik på 100 kroner eller mer mellom sykepengegrunnlag og premiegrunnlag gir oppgave. */
+        private val AVVIKSGRENSE = BigDecimal("100")
+    }
 }
