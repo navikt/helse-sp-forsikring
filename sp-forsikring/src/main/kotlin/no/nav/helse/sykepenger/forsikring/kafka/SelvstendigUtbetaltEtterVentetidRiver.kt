@@ -11,7 +11,7 @@ import no.nav.helse.sykepenger.forsikring.domain.IndividuellForsikringType
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.ForsikringsvurderingRepository
 import no.nav.helse.sykepenger.forsikring.gosys.GosysOppgaveClient
 import no.nav.helse.sykepenger.forsikring.kafka.lib.medParsetMeldingOgTransaksjon
-import no.nav.helse.sykepenger.forsikring.shared.logging.MdcKey
+import no.nav.sykepenger.libs.logging.MdcKey
 import java.time.format.DateTimeFormatter
 import javax.sql.DataSource
 

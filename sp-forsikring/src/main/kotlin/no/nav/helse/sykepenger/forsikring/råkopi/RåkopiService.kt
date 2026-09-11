@@ -4,8 +4,8 @@ import no.nav.helse.sykepenger.forsikring.domain.Identitetsnummer
 import no.nav.helse.sykepenger.forsikring.replikabase.InfotrygdIfFkonto12Dto
 import no.nav.helse.sykepenger.forsikring.replikabase.InfotrygdIfVedfrivt10Dto
 import no.nav.helse.sykepenger.forsikring.replikabase.ReplikabaseDao
-import no.nav.helse.sykepenger.forsikring.shared.logging.loggInfo
 import no.nav.helse.sykepenger.forsikring.shared.util.inTransaction
+import no.nav.sykepenger.libs.logging.loggInfo
 import java.time.Instant
 import javax.sql.DataSource
 

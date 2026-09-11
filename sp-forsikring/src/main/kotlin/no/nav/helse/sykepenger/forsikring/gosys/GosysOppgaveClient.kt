@@ -2,8 +2,8 @@ package no.nav.helse.sykepenger.forsikring.gosys
 
 import com.github.navikt.tbd_libs.access_token.AccessTokenProvider
 import com.github.navikt.tbd_libs.retry.retryBlocking
-import no.nav.helse.sykepenger.forsikring.shared.logging.loggError
-import no.nav.helse.sykepenger.forsikring.shared.logging.loggInfo
+import no.nav.sykepenger.libs.logging.loggError
+import no.nav.sykepenger.libs.logging.loggInfo
 import org.apache.hc.client5.http.fluent.Request
 import org.apache.hc.core5.http.ContentType
 import org.apache.hc.core5.http.HttpStatus

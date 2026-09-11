@@ -2,11 +2,11 @@ package no.nav.helse.sykepenger.forsikring.kafka.lib
 
 import com.github.navikt.tbd_libs.rapids_and_rivers.JsonMessage
 import kotliquery.TransactionalSession
-import no.nav.helse.sykepenger.forsikring.shared.logging.MdcKey
-import no.nav.helse.sykepenger.forsikring.shared.logging.loggError
-import no.nav.helse.sykepenger.forsikring.shared.logging.loggInfo
 import no.nav.helse.sykepenger.forsikring.shared.util.inTransaction
-import org.slf4j.MDC
+import no.nav.sykepenger.libs.logging.MdcKey
+import no.nav.sykepenger.libs.logging.loggError
+import no.nav.sykepenger.libs.logging.loggInfo
+import no.nav.sykepenger.libs.logging.medMdc
 import tools.jackson.databind.DeserializationFeature
 import tools.jackson.databind.introspect.DefaultAccessorNamingStrategy
 import tools.jackson.databind.json.JsonMapper
@@ -28,7 +28,7 @@ inline fun <reified M> JsonMessage.medParsetMeldingOgTransaksjon(
 
 inline fun <reified M> JsonMessage.medParsetMelding(
     mdcMapping: Map<MdcKey, M.() -> Any?>,
-    block: (M) -> Unit,
+    crossinline block: (M) -> Unit,
 ) {
     val meldingJson = toJson()
     val parsetMelding =
@@ -42,23 +42,14 @@ inline fun <reified M> JsonMessage.medParsetMelding(
                 throw throwable
             }
 
-    val contextMap = MDC.getCopyOfContextMap() ?: emptyMap()
-    try {
-        val mappedKeyValues = mdcMapping.map { it.key.value to it.value(parsetMelding)?.toString() }
+    val mdcKeyValues =
+        mdcMapping
+            .map { (mdcKey, hentVerdi) -> mdcKey to hentVerdi(parsetMelding)?.toString() }
+            .toTypedArray()
 
-        val removedKeys = mappedKeyValues.filter { it.second == null }.toMap().keys
-        val changedKeyValues = mappedKeyValues.filter { it.second != null }
-
-        val newContextMap =
-            contextMap
-                .filterNot { (key, _) -> key in removedKeys }
-                .plus(changedKeyValues)
-
-        MDC.setContextMap(newContextMap)
+    medMdc(*mdcKeyValues) {
         loggInfo("Mottok og tolket ${M::class.simpleName}", "melding" to meldingJson)
         block(parsetMelding)
-    } finally {
-        MDC.setContextMap(contextMap)
     }
 }
 

@@ -1,6 +1,6 @@
 package no.nav.helse.sykepenger.forsikring.domain
 
-import no.nav.helse.sykepenger.forsikring.shared.logging.loggInfo
+import no.nav.sykepenger.libs.logging.loggInfo
 
 class KollektivForsikringService {
     fun utledKollektiveForsikringer(spesielleYrkesgrupper: Set<SpesiellYrkesgruppe>): Set<KollektivForsikring> =
@@ -11,7 +11,7 @@ class KollektivForsikringService {
                 loggInfo(
                     "Utledet ${kollektiveForsikringer.size} kollektiv(e) forsikring(er) for bruker basert på spesielle yrkesgrupper",
                     "spesielleYrkesgrupper" to spesielleYrkesgrupper.toString(),
-                    "kollektiveForsikringer" to kollektiveForsikringer,
+                    "kollektiveForsikringer" to kollektiveForsikringer.toString(),
                 )
             }
 }

@@ -22,8 +22,7 @@ import io.ktor.server.request.uri
 import io.ktor.server.response.respond
 import io.ktor.server.routing.routing
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.ForsikringsvurderingService
-import no.nav.helse.sykepenger.forsikring.shared.logging.teamLogs
-import org.slf4j.event.Level
+import no.nav.sykepenger.libs.logging.loggError
 import java.net.URI
 import java.util.*
 import javax.sql.DataSource
@@ -41,8 +40,6 @@ fun Application.forsikringsvurderingApi(
     }
     install(CallLogging) {
         disableDefaultColors()
-        logger = teamLogs
-        level = Level.INFO
         callIdMdc("callId")
         filter { call -> call.request.path() !in setOf("/metrics", "/isalive", "/isready") }
     }
@@ -65,7 +62,7 @@ fun Application.forsikringsvurderingApi(
             )
         }
         exception<Throwable> { call, cause ->
-            teamLogs.error("Uventet feil ved kall til ${call.request.uri}", cause)
+            loggError("Uventet feil ved kall til ${call.request.uri}", cause)
             call.respond(
                 HttpStatusCode.InternalServerError,
                 ProblemResponse(

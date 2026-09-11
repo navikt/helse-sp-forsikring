@@ -8,14 +8,14 @@ import no.nav.helse.sykepenger.forsikring.domain.Identitetsnummer
 import no.nav.helse.sykepenger.forsikring.domain.SpesiellYrkesgruppe
 import no.nav.helse.sykepenger.forsikring.domain.Yrkesaktivitetstype
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.ForsikringsvurderingService
-import no.nav.helse.sykepenger.forsikring.shared.logging.loggInfo
+import no.nav.sykepenger.libs.logging.loggInfo
 import java.time.LocalDate
 
 fun Route.flexApi(forsikringsvurderingService: ForsikringsvurderingService) {
     post("/api/forsikringsvurdering") {
         val request = call.receive<ForsikringsvurderingRequest>()
         val identitetsnummer = Identitetsnummer.fraString(request.identitetsnummer)
-        loggInfo("Mottok kall til POST /api/forsikringsvurdering", "request" to request)
+        loggInfo("Mottok kall til POST /api/forsikringsvurdering", "request" to request.toString())
 
         val (_, forsikringsvurdering) =
             forsikringsvurderingService.gjørForsikringsvurdering(
@@ -44,7 +44,7 @@ fun Route.flexApi(forsikringsvurderingService: ForsikringsvurderingService) {
                 harForsikringMedDekningIVentetid = forsikringsvurdering.harDekningIVentetidUavhengigAvBetaling(),
             )
 
-        loggInfo("Svarer på POST /api/forsikringsvurdering", "response" to response)
+        loggInfo("Svarer på POST /api/forsikringsvurdering", "response" to response.toString())
 
         call.respond(response)
     }

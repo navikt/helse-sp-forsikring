@@ -11,8 +11,8 @@ import no.nav.helse.sykepenger.forsikring.domain.Forsikringsvurdering
 import no.nav.helse.sykepenger.forsikring.domain.KollektivForsikring
 import no.nav.helse.sykepenger.forsikring.domain.VurdertIndividuellForsikring
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.ForsikringsvurderingRepository
-import no.nav.helse.sykepenger.forsikring.shared.logging.loggInfo
 import no.nav.helse.sykepenger.forsikring.shared.util.inTransaction
+import no.nav.sykepenger.libs.logging.loggInfo
 import java.time.Instant
 import java.time.LocalDate
 import javax.sql.DataSource
@@ -84,7 +84,7 @@ fun Route.spesialistApi(spForsikringDataSource: DataSource) {
                 vurdertTidspunkt = forsikringsvurdering.vurdertTidspunkt,
             )
 
-        loggInfo("Svarer på GET /forsikringsvurderinger/$id", "response" to response)
+        loggInfo("Svarer på GET /forsikringsvurderinger/$id", "response" to response.toString())
 
         call.respond(response)
     }

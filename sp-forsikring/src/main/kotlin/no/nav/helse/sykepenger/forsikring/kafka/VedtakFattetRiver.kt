@@ -14,10 +14,10 @@ import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.Forsikringsvurder
 import no.nav.helse.sykepenger.forsikring.gosys.GosysOppgaveClient
 import no.nav.helse.sykepenger.forsikring.kafka.VedtakFattetMelding.Utbetalingsdag.Type
 import no.nav.helse.sykepenger.forsikring.kafka.lib.medParsetMeldingOgTransaksjon
-import no.nav.helse.sykepenger.forsikring.shared.logging.MdcKey
-import no.nav.helse.sykepenger.forsikring.shared.logging.loggInfo
 import no.nav.helse.sykepenger.forsikring.tellingutbetaling.UtbetalingPerForsikringstypeDao
 import no.nav.helse.sykepenger.forsikring.tellingutbetaling.VedtakFattetMeldingDao
+import no.nav.sykepenger.libs.logging.MdcKey
+import no.nav.sykepenger.libs.logging.loggInfo
 import java.math.BigDecimal
 import java.math.RoundingMode
 import java.text.NumberFormat

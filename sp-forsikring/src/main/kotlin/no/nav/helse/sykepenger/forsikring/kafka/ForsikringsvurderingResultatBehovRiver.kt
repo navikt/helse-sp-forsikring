@@ -10,9 +10,9 @@ import io.micrometer.core.instrument.MeterRegistry
 import no.nav.helse.sykepenger.forsikring.domain.Forsikringsvurdering
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.ForsikringsvurderingRepository
 import no.nav.helse.sykepenger.forsikring.kafka.lib.medParsetMeldingOgTransaksjon
-import no.nav.helse.sykepenger.forsikring.shared.logging.MdcKey
-import no.nav.helse.sykepenger.forsikring.shared.logging.loggError
-import no.nav.helse.sykepenger.forsikring.shared.logging.loggInfo
+import no.nav.sykepenger.libs.logging.MdcKey
+import no.nav.sykepenger.libs.logging.loggError
+import no.nav.sykepenger.libs.logging.loggInfo
 import javax.sql.DataSource
 
 class ForsikringsvurderingResultatBehovRiver(

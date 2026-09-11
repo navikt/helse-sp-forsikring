@@ -2,8 +2,8 @@ package no.nav.helse.sykepenger.forsikring.råkopi
 
 import kotliquery.TransactionalSession
 import kotliquery.queryOf
-import no.nav.helse.sykepenger.forsikring.shared.logging.loggInfo
 import no.nav.helse.sykepenger.forsikring.shared.util.generateUuidV7
+import no.nav.sykepenger.libs.logging.loggInfo
 import org.intellij.lang.annotations.Language
 import java.sql.Timestamp
 

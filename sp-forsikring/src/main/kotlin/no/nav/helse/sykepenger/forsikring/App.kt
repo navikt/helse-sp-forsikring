@@ -17,7 +17,7 @@ import no.nav.helse.sykepenger.forsikring.kafka.ForsikringsvurderingResultatBeho
 import no.nav.helse.sykepenger.forsikring.kafka.SelvstendigIngenDagerIgjenRiver
 import no.nav.helse.sykepenger.forsikring.kafka.SelvstendigUtbetaltEtterVentetidRiver
 import no.nav.helse.sykepenger.forsikring.kafka.VedtakFattetRiver
-import no.nav.helse.sykepenger.forsikring.shared.logging.loggInfo
+import no.nav.sykepenger.libs.logging.loggInfo
 import org.flywaydb.core.Flyway
 import java.net.URI
 import java.time.Duration

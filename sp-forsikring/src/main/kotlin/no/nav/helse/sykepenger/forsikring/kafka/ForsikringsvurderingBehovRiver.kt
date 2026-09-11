@@ -14,11 +14,11 @@ import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.Forsikringsvurder
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.ForsikringsvurderingService
 import no.nav.helse.sykepenger.forsikring.kafka.lib.medParsetMeldingOgTransaksjon
 import no.nav.helse.sykepenger.forsikring.råkopi.RåkopiRepository
-import no.nav.helse.sykepenger.forsikring.shared.logging.MdcKey
-import no.nav.helse.sykepenger.forsikring.shared.logging.loggError
-import no.nav.helse.sykepenger.forsikring.shared.logging.loggInfo
 import no.nav.helse.sykepenger.forsikring.subsumsjon.Subsumsjonsmelding
 import no.nav.helse.sykepenger.forsikring.subsumsjon.tilSubsumsjonsmeldinger
+import no.nav.sykepenger.libs.logging.MdcKey
+import no.nav.sykepenger.libs.logging.loggError
+import no.nav.sykepenger.libs.logging.loggInfo
 import javax.sql.DataSource
 
 class ForsikringsvurderingBehovRiver(

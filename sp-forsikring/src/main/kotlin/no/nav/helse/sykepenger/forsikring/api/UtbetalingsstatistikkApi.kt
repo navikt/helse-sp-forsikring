@@ -8,11 +8,11 @@ import io.ktor.server.routing.get
 import no.nav.helse.sykepenger.forsikring.domain.Forsikringstype
 import no.nav.helse.sykepenger.forsikring.domain.IndividuellForsikringType
 import no.nav.helse.sykepenger.forsikring.domain.KollektivForsikring
-import no.nav.helse.sykepenger.forsikring.shared.logging.loggInfo
 import no.nav.helse.sykepenger.forsikring.shared.util.inTransaction
 import no.nav.helse.sykepenger.forsikring.tellingutbetaling.BELØPSSKALA
 import no.nav.helse.sykepenger.forsikring.tellingutbetaling.SumPerForsikringstype
 import no.nav.helse.sykepenger.forsikring.tellingutbetaling.UtbetalingPerForsikringstypeDao
+import no.nav.sykepenger.libs.logging.loggInfo
 import java.math.BigDecimal
 import java.time.LocalDate
 import java.time.format.DateTimeParseException
@@ -27,7 +27,7 @@ fun Route.utbetalingsstatistikkApi(spForsikringDataSource: DataSource) {
             call.parameters["tom"].tilDato()
                 ?: return@get call.respond(HttpStatusCode.BadRequest, ugyldigDatoProblem("tom", call.request.uri))
 
-        loggInfo("Mottok kall til GET /api/utbetalinger/utbetaltesummer", "fom" to fom, "tom" to tom)
+        loggInfo("Mottok kall til GET /api/utbetalinger/utbetaltesummer", "fom" to fom.toString(), "tom" to tom.toString())
 
         if (fom.isAfter(tom)) {
             return@get call.respond(
@@ -58,7 +58,7 @@ fun Route.utbetalingsstatistikkApi(spForsikringDataSource: DataSource) {
                         }.sortedBy { it.navn },
             )
 
-        loggInfo("Svarer på GET /api/utbetalinger/utbetaltesummer", "response" to response)
+        loggInfo("Svarer på GET /api/utbetalinger/utbetaltesummer", "response" to response.toString())
 
         call.respond(response)
     }

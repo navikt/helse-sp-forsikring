@@ -3,7 +3,7 @@ package no.nav.helse.sykepenger.forsikring.domain
 import no.nav.helse.sykepenger.forsikring.råkopi.Råkopi
 import no.nav.helse.sykepenger.forsikring.råkopi.RåkopiIfFkonto12
 import no.nav.helse.sykepenger.forsikring.råkopi.RåkopiIfVedfrivt10
-import no.nav.helse.sykepenger.forsikring.shared.logging.loggInfo
+import no.nav.sykepenger.libs.logging.loggInfo
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter.ofPattern
 
