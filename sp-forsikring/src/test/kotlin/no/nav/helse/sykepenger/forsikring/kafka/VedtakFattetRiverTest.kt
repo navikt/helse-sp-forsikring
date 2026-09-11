@@ -77,8 +77,10 @@ class VedtakFattetRiverTest {
         val oppgave = gosysWiremock.sisteOppgave
         assertNotNull(oppgave)
         assertEquals(
-            "Årsak: For stort avvik mellom sykepengegrunnlag, 400 000 kr, og premiegrunnlag, 200 000 kr. " +
-                "Avviket er 200 000 kr. Skjæringstidspunkt: 01.01.2026.",
+            "Sykepenger er utbetalt med sykepengegrunnlag 400 000 kr, " +
+                "med forsikring med premiegrunnlag 200 000 kr. " +
+                "Avviket er på 200 000 kr, som er høyere enn ønsket (<100 kr). " +
+                "Utbetalingen skjedde for sykefravær med skjæringstidspunkt 01.01.2026.",
             oppgave["beskrivelse"].asString(),
         )
         assertEquals(identitetsnummer.value, oppgave["personident"].asString())
@@ -140,8 +142,10 @@ class VedtakFattetRiverTest {
         val oppgave = gosysWiremock.sisteOppgave
         assertNotNull(oppgave)
         assertEquals(
-            "Årsak: For stort avvik mellom sykepengegrunnlag, 8 100 kr, og premiegrunnlag, 8 000 kr. " +
-                "Avviket er 100 kr. Skjæringstidspunkt: 01.01.2026.",
+            "Sykepenger er utbetalt med sykepengegrunnlag 8 100 kr, " +
+                "med forsikring med premiegrunnlag 8 000 kr. " +
+                "Avviket er på 100 kr, som er høyere enn ønsket (<100 kr). " +
+                "Utbetalingen skjedde for sykefravær med skjæringstidspunkt 01.01.2026.",
             oppgave["beskrivelse"].asString(),
         )
     }
@@ -164,8 +168,10 @@ class VedtakFattetRiverTest {
         val oppgave = gosysWiremock.sisteOppgave
         assertNotNull(oppgave)
         assertEquals(
-            "Årsak: For stort avvik mellom sykepengegrunnlag, 8 000 kr, og premiegrunnlag, 8 100 kr. " +
-                "Avviket er 100 kr. Skjæringstidspunkt: 01.01.2026.",
+            "Sykepenger er utbetalt med sykepengegrunnlag 8 000 kr, " +
+                "med forsikring med premiegrunnlag 8 100 kr. " +
+                "Avviket er på 100 kr, som er høyere enn ønsket (<100 kr). " +
+                "Utbetalingen skjedde for sykefravær med skjæringstidspunkt 01.01.2026.",
             oppgave["beskrivelse"].asString(),
         )
     }

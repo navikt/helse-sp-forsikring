@@ -105,8 +105,10 @@ class SelvstendigHundreProsentFraDagEnE2ETest :
         detBlirOpprettetEnGosysoppgave(
             uuid = førsteVedtakFattetMelding["@id"].stringValue(),
             forventetBeskrivelse =
-                "Årsak: For stort avvik mellom sykepengegrunnlag, 12 345 kr, og premiegrunnlag, 11 000 kr. " +
-                    "Avviket er 1 345 kr. Skjæringstidspunkt: 01.09.2026.",
+                "Sykepenger er utbetalt med sykepengegrunnlag 12 345 kr, " +
+                    "med forsikring med premiegrunnlag 11 000 kr. " +
+                    "Avviket er på 1 345 kr, som er høyere enn ønsket (<100 kr). " +
+                    "Utbetalingen skjedde for sykefravær med skjæringstidspunkt 01.09.2026.",
         )
 
         utbetalingsstatistikkenForIÅrErTomBortsettFra(

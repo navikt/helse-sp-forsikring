@@ -16,14 +16,16 @@ import no.nav.helse.sykepenger.forsikring.kafka.VedtakFattetMelding.Utbetalingsd
 import no.nav.helse.sykepenger.forsikring.kafka.lib.medParsetMeldingOgTransaksjon
 import no.nav.helse.sykepenger.forsikring.shared.logging.MdcKey
 import no.nav.helse.sykepenger.forsikring.shared.logging.loggInfo
-import no.nav.helse.sykepenger.forsikring.shared.util.somBeløpstekst
 import no.nav.helse.sykepenger.forsikring.tellingutbetaling.UtbetalingPerForsikringstypeDao
 import no.nav.helse.sykepenger.forsikring.tellingutbetaling.VedtakFattetMeldingDao
 import java.math.BigDecimal
+import java.math.RoundingMode
+import java.text.NumberFormat
 import java.time.Instant
 import java.time.LocalDateTime
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
+import java.util.*
 import javax.sql.DataSource
 
 class VedtakFattetRiver(
@@ -129,28 +131,21 @@ class VedtakFattetRiver(
 
             if ("Førstegangsbehandling" in vedtakFattetMelding.tags && individuellForsikring != null) {
                 val premiegrunnlag = individuellForsikring.premiegrunnlag
-                val avviksbeløp = beregnAvviksbeløp(vedtakFattetMelding.sykepengegrunnlag, premiegrunnlag)
+                val avviksbeløp = vedtakFattetMelding.sykepengegrunnlag.subtract(BigDecimal(premiegrunnlag)).abs()
+                loggInfo("Beregnet avvik: ${avviksbeløp.iBeløpsFormat()}")
 
-                if (avviksbeløp >= AVVIKSGRENSE) {
-                    loggInfo(
-                        """
-                        Avvik mellom sykepengegrunnlag og premiegrunnlag. Oppretter oppgave.
-                        Sykepengegrunnlag: ${vedtakFattetMelding.sykepengegrunnlag.somBeløpstekst()} kr
-                        Premiegrunnlag: ${premiegrunnlag.somBeløpstekst()} kr
-                        Avviksbeløp: ${avviksbeløp.somBeløpstekst()} kr
-                        """.trimIndent(),
-                        "fødselsnummer" to vedtakFattetMelding.fødselsnummer,
-                    )
-
+                val avviksgrense = 100
+                if (avviksbeløp >= BigDecimal(avviksgrense)) {
                     gosysOppgaveClient.opprettOppgave(
                         personident = vedtakFattetMelding.fødselsnummer,
                         uuid = vedtakFattetMelding.id.toString(),
                         beskrivelse =
-                            "Årsak: For stort avvik mellom sykepengegrunnlag," +
-                                " ${vedtakFattetMelding.sykepengegrunnlag.somBeløpstekst()} kr," +
-                                " og premiegrunnlag, ${premiegrunnlag.somBeløpstekst()} kr." +
-                                " Avviket er ${avviksbeløp.somBeløpstekst()} kr." +
-                                " Skjæringstidspunkt: " +
+                            "Sykepenger er utbetalt med sykepengegrunnlag" +
+                                " ${vedtakFattetMelding.sykepengegrunnlag.iBeløpsFormat()}," +
+                                " med forsikring med premiegrunnlag ${premiegrunnlag.iBeløpsFormat()}." +
+                                " Avviket er på ${avviksbeløp.iBeløpsFormat()}," +
+                                " som er høyere enn ønsket (<${avviksgrense.iBeløpsFormat()})." +
+                                " Utbetalingen skjedde for sykefravær med skjæringstidspunkt " +
                                 "${vedtakFattetMelding.skjæringstidspunkt.format(DateTimeFormatter.ofPattern("dd.MM.yyyy"))}.",
                     )
                 }
@@ -158,10 +153,18 @@ class VedtakFattetRiver(
         }
     }
 
-    private fun beregnAvviksbeløp(
-        sykepengegrunnlag: BigDecimal,
-        premiegrunnlag: Int,
-    ): BigDecimal = sykepengegrunnlag.subtract(BigDecimal(premiegrunnlag)).abs()
+    private fun Number.iBeløpsFormat(): String =
+        NumberFormat
+            .getInstance(Locale.of("no", "NO"))
+            .apply {
+                minimumFractionDigits = 2
+                maximumFractionDigits = 2
+                roundingMode = RoundingMode.HALF_UP
+            }.format(this)
+            .replace('\u00A0', ' ')
+            .replace('\u2212', '-')
+            .replace(",00", "")
+            .plus(" kr")
 
     /**
      * Summerer beløpene med full mellomregningspresisjon. Avrunding til to desimaler skjer først når summen
@@ -170,9 +173,4 @@ class VedtakFattetRiver(
     private fun List<FordelingAvBeløpPåUtbetalingsdag>.summer(beløp: (FordelingAvBeløpPåUtbetalingsdag) -> BigDecimal): BigDecimal = fold(BigDecimal.ZERO) { sum, fordeling -> sum + beløp(fordeling) }
 
     private fun LocalDateTime.tilInstantIOslo(): Instant = atZone(ZoneId.of("Europe/Oslo")).toInstant()
-
-    private companion object {
-        /** Avvik på 100 kroner eller mer mellom sykepengegrunnlag og premiegrunnlag gir oppgave. */
-        private val AVVIKSGRENSE = BigDecimal("100")
-    }
 }
