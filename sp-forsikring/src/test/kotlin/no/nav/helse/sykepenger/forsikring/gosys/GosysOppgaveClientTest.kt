@@ -1,259 +1,102 @@
 package no.nav.helse.sykepenger.forsikring.gosys
 
-import com.fasterxml.jackson.databind.SerializationFeature
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
-import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
-import com.github.navikt.tbd_libs.access_token.AccessTokenProvider
-import io.ktor.client.HttpClient
-import io.ktor.client.engine.mock.MockEngine
-import io.ktor.client.engine.mock.respond
-import io.ktor.client.engine.mock.toByteArray
-import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
-import io.ktor.client.request.HttpRequestData
-import io.ktor.http.ContentType
-import io.ktor.http.HttpHeaders
-import io.ktor.http.HttpMethod
-import io.ktor.http.HttpStatusCode
-import io.ktor.http.headersOf
-import io.ktor.serialization.jackson.jackson
-import io.mockk.every
-import io.mockk.mockk
 import kotlinx.coroutines.runBlocking
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertTrue
-import java.math.BigDecimal
+import no.nav.sykepenger.libs.testing.assertions.assertJsonEquals
+import no.nav.sykepenger.libs.testing.testdata.lagIdentitetsnummer
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.assertDoesNotThrow
+import org.junit.jupiter.api.assertThrows
 import java.time.LocalDate
 import java.util.*
 import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 
 class GosysOppgaveClientTest {
-    private val objectMapper =
-        jacksonObjectMapper()
-            .registerModule(JavaTimeModule())
-            .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
+    private val gosysWiremock = GosysWiremock()
+    private val client = gosysWiremock.oppgaveClient
 
-    @Test
-    fun `oppretter oppgave med riktig payload for utbetalt fra dag én med 80 prosent dekningsgrad`() {
-        val capturedRequests = mutableListOf<HttpRequestData>()
-        val mockEngine = createMockEngine(capturedRequests, HttpStatusCode.Created)
-        val client = createGosysOppgaveClient(mockEngine)
-
-        val duplikatkontrollId = UUID.randomUUID()
-        val fødselsnummer = "12345678901"
-        val skjæringstidspunkt = LocalDate.of(2024, 1, 15)
-
-        runBlocking {
-            client.lagOppgave(
-                duplikatkontrollId = duplikatkontrollId,
-                fødselsnummer = fødselsnummer,
-                årsak = Årsak.UtbetaltFraDagÉnOgDekningsgrad80Prosent,
-                skjæringstidspunkt = skjæringstidspunkt,
-            )
-        }
-
-        assertEquals(1, capturedRequests.size)
-        val request = capturedRequests.first()
-
-        assertEquals("http://test.no/api/v1/oppgaver", request.url.toString())
-        assertEquals(HttpMethod.Post, request.method)
-        assertEquals(ContentType.Application.Json, request.body.contentType)
-
-        val requestBody = parseRequestBody(request)
-        assertEquals(duplikatkontrollId.toString(), requestBody.uuid)
-        assertEquals(LocalDate.now(), requestBody.aktivDato)
-        assertEquals(Prioritet.NORM, requestBody.prioritet)
-        assertEquals("VURD_HENV", requestBody.oppgavetype)
-        assertEquals("FOS", requestBody.tema)
-        assertEquals("ae0221", requestBody.behandlingstype)
-        assertEquals(fødselsnummer, requestBody.personident)
-        assertEquals("Årsak: Det er utbetalt sykepenger fra dag én og vedkommende har 80% dekningsgrad. Skjæringstidspunkt: 15.01.2024.", requestBody.beskrivelse)
+    @BeforeEach
+    fun beforeEach() {
+        gosysWiremock.reset()
     }
 
     @Test
-    fun `oppretter oppgave for sykepengerett opphørt`() {
-        val capturedRequests = mutableListOf<HttpRequestData>()
-        val mockEngine = createMockEngine(capturedRequests, HttpStatusCode.Created)
-        val client = createGosysOppgaveClient(mockEngine)
+    fun `utfører kall med riktig payload`() {
+        // Given:
+        val identitetsnummer = lagIdentitetsnummer()
+        val uuid = UUID.randomUUID().toString()
 
-        val duplikatkontrollId = UUID.randomUUID()
-        val fødselsnummer = "98765432109"
-        val skjæringstidspunkt = LocalDate.of(2024, 6, 1)
-
+        // When:
         runBlocking {
-            client.lagOppgave(
-                duplikatkontrollId = duplikatkontrollId,
-                fødselsnummer = fødselsnummer,
-                årsak = Årsak.SykepengerettOpphørtPåGrunnAvMaksdatoAlderEllerDød,
-                skjæringstidspunkt = skjæringstidspunkt,
+            client.opprettOppgave(
+                personident = identitetsnummer,
+                uuid = uuid,
+                beskrivelse = "Dette er en test-tekst.",
             )
         }
 
-        assertEquals(1, capturedRequests.size)
-        val requestBody = parseRequestBody(capturedRequests.first())
+        // Then:
+        val gosysRequests = gosysWiremock.loggedPostOppgaverRequests()
+        assertEquals(1, gosysRequests.size)
 
-        assertEquals("Årsak: Sykepengerett har opphørt som følge av ingen gjenstående dager. Skjæringstidspunkt: 01.06.2024.", requestBody.beskrivelse)
-    }
-
-    @Test
-    fun `oppretter oppgave for stort avvik mellom sykepengegrunnlag og premiegrunnlag`() {
-        val capturedRequests = mutableListOf<HttpRequestData>()
-        val mockEngine = createMockEngine(capturedRequests, HttpStatusCode.Created)
-        val client = createGosysOppgaveClient(mockEngine)
-
-        val duplikatkontrollId = UUID.randomUUID()
-        val fødselsnummer = "11111111111"
-        val skjæringstidspunkt = LocalDate.of(2024, 3, 15)
-        val sykepengegrunnlag = BigDecimal("500000")
-        val premiegrunnlag = 300000
-
-        runBlocking {
-            client.lagOppgave(
-                duplikatkontrollId = duplikatkontrollId,
-                fødselsnummer = fødselsnummer,
-                årsak =
-                    Årsak.ForStortAvvikMellomSykepengegrunnlagOgPremiegrunnlag(
-                        sykepengegrunnlag = sykepengegrunnlag,
-                        premiegrunnlag = premiegrunnlag,
-                        avviksbeløp = BigDecimal("200000"),
-                    ),
-                skjæringstidspunkt = skjæringstidspunkt,
-            )
-        }
-
-        assertEquals(1, capturedRequests.size)
-        val requestBody = parseRequestBody(capturedRequests.first())
-
-        assertEquals("Årsak: For stort avvik mellom sykepengegrunnlag, 500 000 kr, og premiegrunnlag, 300 000 kr. Avviket er 200 000 kr. Skjæringstidspunkt: 15.03.2024.", requestBody.beskrivelse)
-    }
-
-    @Test
-    fun `viser øre i oppgaveteksten når sykepengegrunnlaget ikke er et helt kronebeløp`() {
-        val capturedRequests = mutableListOf<HttpRequestData>()
-        val mockEngine = createMockEngine(capturedRequests, HttpStatusCode.Created)
-        val client = createGosysOppgaveClient(mockEngine)
-
-        runBlocking {
-            client.lagOppgave(
-                duplikatkontrollId = UUID.randomUUID(),
-                fødselsnummer = "11111111111",
-                årsak =
-                    Årsak.ForStortAvvikMellomSykepengegrunnlagOgPremiegrunnlag(
-                        sykepengegrunnlag = BigDecimal("500000.50"),
-                        premiegrunnlag = 300000,
-                        avviksbeløp = BigDecimal("200000.50"),
-                    ),
-                skjæringstidspunkt = LocalDate.of(2024, 3, 15),
-            )
-        }
-
-        val requestBody = parseRequestBody(capturedRequests.first())
-
-        assertEquals("Årsak: For stort avvik mellom sykepengegrunnlag, 500 000,50 kr, og premiegrunnlag, 300 000 kr. Avviket er 200 000,50 kr. Skjæringstidspunkt: 15.03.2024.", requestBody.beskrivelse)
+        val gosysRequest = gosysRequests.single()
+        assertTrue(gosysRequest.url.startsWith("/api/v1/oppgaver"))
+        assertTrue(gosysRequest.getHeader("Content-Type").orEmpty().startsWith("application/json"))
+        assertEquals("Bearer ${GosysWiremock.ACCESS_TOKEN}", gosysRequest.getHeader("Authorization"))
+        // Kaster hvis headeren mangler eller ikke er en gyldig UUID
+        UUID.fromString(gosysRequest.getHeader("X-Correlation-ID"))
+        assertJsonEquals(
+            expectedJson =
+                """
+                {
+                  "personident": "$identitetsnummer",
+                  "uuid": "$uuid",
+                  "aktivDato": "${LocalDate.now()}",
+                  "prioritet": "NORM",
+                  "oppgavetype": "VURD_HENV",
+                  "tema": "FOS",
+                  "behandlingstype": "ae0221",
+                  "beskrivelse": "Dette er en test-tekst."
+                }
+                """.trimIndent(),
+            actualJson = gosysRequest.bodyAsString,
+        )
     }
 
     @Test
     fun `håndterer Conflict status kode`() {
-        val capturedRequests = mutableListOf<HttpRequestData>()
-        val mockEngine = createMockEngine(capturedRequests, HttpStatusCode.Conflict)
-        val client = createGosysOppgaveClient(mockEngine)
+        // Given:
+        gosysWiremock.stubOppgaverRespons(409)
 
-        val duplikatkontrollId = UUID.randomUUID()
-
-        // Should not throw exception for Conflict status
-        runBlocking {
-            client.lagOppgave(
-                duplikatkontrollId = duplikatkontrollId,
-                fødselsnummer = "12345678901",
-                årsak = Årsak.UtbetaltFraDagÉnOgDekningsgrad80Prosent,
-                skjæringstidspunkt = LocalDate.of(2024, 1, 1),
-            )
+        // Then:
+        assertDoesNotThrow {
+            // When:
+            runBlocking {
+                client.opprettOppgave(
+                    personident = lagIdentitetsnummer(),
+                    uuid = UUID.randomUUID().toString(),
+                    beskrivelse = "Dette er en test-tekst.",
+                )
+            }
         }
-
-        assertEquals(1, capturedRequests.size)
     }
 
     @Test
-    fun `request inneholder Authorization header med bearer token`() {
-        val capturedRequests = mutableListOf<HttpRequestData>()
-        val mockEngine = createMockEngine(capturedRequests, HttpStatusCode.Created)
-        val client = createGosysOppgaveClient(mockEngine)
+    fun `kaster exception når Gosys svarer med feil`() {
+        // Given:
+        gosysWiremock.stubOppgaverRespons(500)
 
-        runBlocking {
-            client.lagOppgave(
-                duplikatkontrollId = UUID.randomUUID(),
-                fødselsnummer = "12345678901",
-                årsak = Årsak.UtbetaltFraDagÉnOgDekningsgrad80Prosent,
-                skjæringstidspunkt = LocalDate.of(2024, 1, 1),
-            )
-        }
-
-        val request = capturedRequests.first()
-        val authHeader = request.headers["Authorization"]
-        assertEquals("Bearer test-token-123", authHeader)
-    }
-
-    @Test
-    fun `request inneholder X-Correlation-ID header`() {
-        val capturedRequests = mutableListOf<HttpRequestData>()
-        val mockEngine = createMockEngine(capturedRequests, HttpStatusCode.Created)
-        val client = createGosysOppgaveClient(mockEngine)
-
-        runBlocking {
-            client.lagOppgave(
-                duplikatkontrollId = UUID.randomUUID(),
-                fødselsnummer = "12345678901",
-                årsak = Årsak.UtbetaltFraDagÉnOgDekningsgrad80Prosent,
-                skjæringstidspunkt = LocalDate.of(2024, 1, 1),
-            )
-        }
-
-        val request = capturedRequests.first()
-        val correlationId = request.headers["X-Correlation-ID"]
-        assertTrue(correlationId != null)
-        // Verify it's a valid UUID
-        UUID.fromString(correlationId)
-    }
-
-    private fun createMockEngine(
-        capturedRequests: MutableList<HttpRequestData>,
-        responseStatus: HttpStatusCode,
-    ): MockEngine =
-        MockEngine { request ->
-            capturedRequests.add(request)
-            respond(
-                content = """{"id": 12345}""",
-                status = responseStatus,
-                headers = headersOf(HttpHeaders.ContentType, ContentType.Application.Json.toString()),
-            )
-        }
-
-    private fun createGosysOppgaveClient(mockEngine: MockEngine): GosysOppgaveClient {
-        val httpClient =
-            HttpClient(mockEngine) {
-                install(ContentNegotiation) {
-                    jackson {
-                        registerModule(JavaTimeModule())
-                        disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
-                    }
-                }
+        // Then:
+        assertThrows<IllegalStateException> {
+            // When:
+            runBlocking {
+                client.opprettOppgave(
+                    personident = lagIdentitetsnummer(),
+                    uuid = UUID.randomUUID().toString(),
+                    beskrivelse = "Dette er en test-tekst.",
+                )
             }
-
-        val accessTokenProvider: AccessTokenProvider =
-            mockk {
-                every { machineToken(any()) } returns "test-token-123"
-            }
-
-        return GosysOppgaveClient(
-            baseUrl = "http://test.no",
-            tokenClient = accessTokenProvider,
-            httpClient = httpClient,
-            gosysScope = "test-scope",
-        )
-    }
-
-    private fun parseRequestBody(request: HttpRequestData): OpprettOppgaveRequest =
-        runBlocking {
-            val bodyBytes = request.body.toByteArray()
-            objectMapper.readValue(bodyBytes, OpprettOppgaveRequest::class.java)
         }
+    }
 }

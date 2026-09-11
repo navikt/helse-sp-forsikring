@@ -65,9 +65,9 @@ class SelvstendigUtbetaltEtterVentetidRiverTest {
         assertNotNull(oppgave)
         assertEquals(
             "Årsak: Det er utbetalt sykepenger fra dag én og vedkommende har 80% dekningsgrad. Skjæringstidspunkt: 01.01.2026.",
-            oppgave.beskrivelse,
+            oppgave["beskrivelse"].asString(),
         )
-        assertEquals(identitetsnummer.value, oppgave.personident)
+        assertEquals(identitetsnummer.value, oppgave["personident"].asString())
     }
 
     @Test
@@ -98,9 +98,9 @@ class SelvstendigUtbetaltEtterVentetidRiverTest {
         assertEquals(
             "Årsak: Det er utbetalt sykepenger for en Jordbruker fra dag en og vedkommende har 100% dekningsgrad. " +
                 "Skjæringstidspunkt: 01.01.2026.",
-            oppgave.beskrivelse,
+            oppgave["beskrivelse"].asString(),
         )
-        assertEquals(identitetsnummer.value, oppgave.personident)
+        assertEquals(identitetsnummer.value, oppgave["personident"].asString())
     }
 
     @Test

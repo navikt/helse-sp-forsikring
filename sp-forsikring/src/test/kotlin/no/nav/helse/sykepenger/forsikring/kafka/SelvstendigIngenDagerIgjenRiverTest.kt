@@ -54,9 +54,9 @@ class SelvstendigIngenDagerIgjenRiverTest {
         assertNotNull(oppgave)
         assertEquals(
             "Årsak: Sykepengerett har opphørt som følge av ingen gjenstående dager. Skjæringstidspunkt: 01.01.2026.",
-            oppgave.beskrivelse,
+            oppgave["beskrivelse"].asString(),
         )
-        assertEquals(identitetsnummer.value, oppgave.personident)
+        assertEquals(identitetsnummer.value, oppgave["personident"].asString())
     }
 
     @Test

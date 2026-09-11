@@ -16,11 +16,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import no.nav.helse.sykepenger.forsikring.shared.logging.loggError
 import no.nav.helse.sykepenger.forsikring.shared.logging.loggInfo
-import no.nav.helse.sykepenger.forsikring.shared.util.somBeløpstekst
 import java.time.LocalDate
-import java.time.format.DateTimeFormatter
 import java.util.*
-import java.util.UUID.randomUUID
 
 class GosysOppgaveClient(
     private val baseUrl: String,
@@ -28,48 +25,43 @@ class GosysOppgaveClient(
     private val httpClient: HttpClient,
     private val gosysScope: String,
 ) {
-    suspend fun lagOppgave(
-        duplikatkontrollId: UUID,
-        fødselsnummer: String,
-        årsak: Årsak,
-        skjæringstidspunkt: LocalDate,
+    suspend fun opprettOppgave(
+        personident: String,
+        uuid: String,
+        beskrivelse: String,
     ) {
-        val årsakTekst =
-            when (årsak) {
-                Årsak.UtbetaltFraDagÉnOgDekningsgrad80Prosent -> "Det er utbetalt sykepenger fra dag én og vedkommende har 80% dekningsgrad"
-                Årsak.SykepengerettOpphørtPåGrunnAvMaksdatoAlderEllerDød -> "Sykepengerett har opphørt som følge av ingen gjenstående dager"
-                is Årsak.ForStortAvvikMellomSykepengegrunnlagOgPremiegrunnlag -> "For stort avvik mellom sykepengegrunnlag, ${årsak.sykepengegrunnlag.somBeløpstekst()} kr, og premiegrunnlag, ${årsak.premiegrunnlag.somBeløpstekst()} kr. Avviket er ${årsak.avviksbeløp.somBeløpstekst()} kr"
-                Årsak.UtbetaltFraDagÉnOgDekningsgrad100ProsentJordbruker -> "Det er utbetalt sykepenger for en Jordbruker fra dag en og vedkommende har 100% dekningsgrad"
-            }
         retry {
-            loggInfo("Forsøker å opprette oppgave i Gosys.")
+            val url = "$baseUrl/api/v1/oppgaver"
+            val request =
+                OpprettOppgaveRequest(
+                    personident = personident,
+                    uuid = uuid,
+                    aktivDato = LocalDate.now(),
+                    prioritet = "NORM",
+                    oppgavetype = "VURD_HENV",
+                    tema = "FOS",
+                    behandlingstype = "ae0221",
+                    beskrivelse = beskrivelse,
+                )
+            val xCorrelationId = UUID.randomUUID().toString()
+            loggInfo("Gjør HTTP POST $url", "request" to request.toString(), "X-Correlation-ID" to xCorrelationId)
             val response =
-                httpClient.post("$baseUrl/api/v1/oppgaver") {
+                httpClient.post(url) {
                     contentType(ContentType.Application.Json)
                     accept(ContentType.Application.Json)
                     val bearerToken = withContext(Dispatchers.IO) { tokenClient.machineToken(gosysScope) }
                     bearerAuth(bearerToken)
-                    setBody(
-                        OpprettOppgaveRequest(
-                            personident = fødselsnummer,
-                            uuid = duplikatkontrollId.toString(),
-                            aktivDato = LocalDate.now(),
-                            prioritet = Prioritet.NORM,
-                            oppgavetype = "VURD_HENV",
-                            tema = "FOS",
-                            behandlingstype = "ae0221",
-                            beskrivelse = "Årsak: $årsakTekst. Skjæringstidspunkt: ${skjæringstidspunkt.format(DateTimeFormatter.ofPattern("dd.MM.yyyy"))}.",
-                        ),
-                    )
-                    header("X-Correlation-ID", randomUUID().toString())
+                    setBody(request)
+                    header("X-Correlation-ID", xCorrelationId)
                 }
 
+            val message = "Fikk HTTP ${response.status} i svar fra Gosys"
             if (response.status !in listOf(HttpStatusCode.Created, HttpStatusCode.Conflict)) {
-                loggError("Fikk status code ${response.status} ved oppretting av oppgave.", "Response body" to response.bodyAsText())
-                throw IllegalStateException("Feil ved forsøk på å opprette oppgave")
+                loggError(message, "response" to response.bodyAsText())
+                error(message)
+            } else {
+                loggInfo(message, "response" to response.bodyAsText())
             }
-
-            loggInfo("Har opprettet oppgave i Gosys med respons status: ${response.status}")
         }
     }
 }

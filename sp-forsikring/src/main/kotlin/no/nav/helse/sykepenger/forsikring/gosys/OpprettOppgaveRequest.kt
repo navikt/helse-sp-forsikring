@@ -8,7 +8,7 @@ data class OpprettOppgaveRequest(
     val personident: String,
     val uuid: String,
     val aktivDato: LocalDate,
-    val prioritet: Prioritet,
+    val prioritet: String,
     val oppgavetype: String,
     val tema: String,
     val behandlingstype: String,

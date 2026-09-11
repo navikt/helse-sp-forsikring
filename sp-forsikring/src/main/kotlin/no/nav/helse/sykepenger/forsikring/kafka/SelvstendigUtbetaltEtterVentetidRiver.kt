@@ -12,11 +12,11 @@ import no.nav.helse.sykepenger.forsikring.domain.Forsikringsvurdering
 import no.nav.helse.sykepenger.forsikring.domain.IndividuellForsikringType
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.ForsikringsvurderingRepository
 import no.nav.helse.sykepenger.forsikring.gosys.GosysOppgaveClient
-import no.nav.helse.sykepenger.forsikring.gosys.Årsak
 import no.nav.helse.sykepenger.forsikring.shared.logging.MdcKey
 import no.nav.helse.sykepenger.forsikring.shared.logging.loggInfo
 import no.nav.helse.sykepenger.forsikring.shared.logging.medMdc
 import no.nav.helse.sykepenger.forsikring.shared.util.inTransaction
+import java.time.format.DateTimeFormatter
 import java.util.*
 import javax.sql.DataSource
 
@@ -49,7 +49,10 @@ class SelvstendigUtbetaltEtterVentetidRiver(
         val forsikringsvurderingId = Forsikringsvurdering.Id.fromString(packet["forsikringsvurderingId"].asString())
         val meldingId = UUID.fromString(packet["@id"].asString())
 
-        medMdc(MdcKey.MELDING_ID to meldingId.toString(), MdcKey.FORSIKRINGSVURDERING_ID to forsikringsvurderingId.toString()) {
+        medMdc(
+            MdcKey.MELDING_ID to meldingId.toString(),
+            MdcKey.FORSIKRINGSVURDERING_ID to forsikringsvurderingId.toString(),
+        ) {
             loggInfo("Mottok SelvstendigUtbetaltEtterVentetid-melding", "behov" to packet.toJson())
 
             val forsikringsvurdering =
@@ -59,20 +62,22 @@ class SelvstendigUtbetaltEtterVentetidRiver(
 
             if (!forsikringsvurdering.harIndividuellForsikring()) return@medMdc
 
-            val individuellForsikring = forsikringsvurdering.gjeldendeIndividuellForsikring()!!
-            val årsak =
-                when (individuellForsikring.type) {
-                    IndividuellForsikringType.SELVSTENDIG_80_PROSENT_FRA_DAG_1 -> Årsak.UtbetaltFraDagÉnOgDekningsgrad80Prosent
-                    IndividuellForsikringType.SELVSTENDIG_JORDBRUKER_100_PROSENT_FRA_DAG_1 -> Årsak.UtbetaltFraDagÉnOgDekningsgrad100ProsentJordbruker
+            val årsakTekst =
+                when (forsikringsvurdering.gjeldendeIndividuellForsikring()!!.type) {
+                    IndividuellForsikringType.SELVSTENDIG_80_PROSENT_FRA_DAG_1 -> "Det er utbetalt sykepenger fra dag én og vedkommende har 80% dekningsgrad"
+                    IndividuellForsikringType.SELVSTENDIG_JORDBRUKER_100_PROSENT_FRA_DAG_1 -> "Det er utbetalt sykepenger for en Jordbruker fra dag en og vedkommende har 100% dekningsgrad"
                     else -> return@medMdc
                 }
 
             runBlocking {
-                gosysOppgaveClient.lagOppgave(
-                    duplikatkontrollId = meldingId,
-                    fødselsnummer = fødselsnummer,
-                    årsak = årsak,
-                    skjæringstidspunkt = skjæringstidspunkt,
+                gosysOppgaveClient.opprettOppgave(
+                    personident = fødselsnummer,
+                    uuid = meldingId.toString(),
+                    beskrivelse =
+                        "Årsak: " +
+                            "$årsakTekst." +
+                            " Skjæringstidspunkt: " +
+                            "${skjæringstidspunkt.format(DateTimeFormatter.ofPattern("dd.MM.yyyy"))}.",
                 )
             }
         }

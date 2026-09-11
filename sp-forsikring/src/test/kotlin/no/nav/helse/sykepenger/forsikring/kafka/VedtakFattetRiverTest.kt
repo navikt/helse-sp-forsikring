@@ -79,9 +79,9 @@ class VedtakFattetRiverTest {
         assertEquals(
             "Årsak: For stort avvik mellom sykepengegrunnlag, 400 000 kr, og premiegrunnlag, 200 000 kr. " +
                 "Avviket er 200 000 kr. Skjæringstidspunkt: 01.01.2026.",
-            oppgave.beskrivelse,
+            oppgave["beskrivelse"].asString(),
         )
-        assertEquals(identitetsnummer.value, oppgave.personident)
+        assertEquals(identitetsnummer.value, oppgave["personident"].asString())
     }
 
     @Test
@@ -142,7 +142,7 @@ class VedtakFattetRiverTest {
         assertEquals(
             "Årsak: For stort avvik mellom sykepengegrunnlag, 8 100 kr, og premiegrunnlag, 8 000 kr. " +
                 "Avviket er 100 kr. Skjæringstidspunkt: 01.01.2026.",
-            oppgave.beskrivelse,
+            oppgave["beskrivelse"].asString(),
         )
     }
 
@@ -166,7 +166,7 @@ class VedtakFattetRiverTest {
         assertEquals(
             "Årsak: For stort avvik mellom sykepengegrunnlag, 8 000 kr, og premiegrunnlag, 8 100 kr. " +
                 "Avviket er 100 kr. Skjæringstidspunkt: 01.01.2026.",
-            oppgave.beskrivelse,
+            oppgave["beskrivelse"].asString(),
         )
     }
 

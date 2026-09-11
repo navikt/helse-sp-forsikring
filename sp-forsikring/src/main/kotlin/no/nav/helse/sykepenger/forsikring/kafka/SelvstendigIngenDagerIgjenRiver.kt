@@ -11,11 +11,11 @@ import kotlinx.coroutines.runBlocking
 import no.nav.helse.sykepenger.forsikring.domain.Forsikringsvurdering
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.ForsikringsvurderingRepository
 import no.nav.helse.sykepenger.forsikring.gosys.GosysOppgaveClient
-import no.nav.helse.sykepenger.forsikring.gosys.Årsak
 import no.nav.helse.sykepenger.forsikring.shared.logging.MdcKey
 import no.nav.helse.sykepenger.forsikring.shared.logging.loggInfo
 import no.nav.helse.sykepenger.forsikring.shared.logging.medMdc
 import no.nav.helse.sykepenger.forsikring.shared.util.inTransaction
+import java.time.format.DateTimeFormatter
 import java.util.*
 import javax.sql.DataSource
 
@@ -65,11 +65,13 @@ class SelvstendigIngenDagerIgjenRiver(
             if (!forsikringsvurdering.harForsikring()) return@medMdc
 
             runBlocking {
-                gosysOppgaveClient.lagOppgave(
-                    duplikatkontrollId = meldingId,
-                    fødselsnummer = fødselsnummer,
-                    årsak = Årsak.SykepengerettOpphørtPåGrunnAvMaksdatoAlderEllerDød,
-                    skjæringstidspunkt = skjæringstidspunkt,
+                gosysOppgaveClient.opprettOppgave(
+                    personident = fødselsnummer,
+                    uuid = meldingId.toString(),
+                    beskrivelse =
+                        "Årsak: Sykepengerett har opphørt som følge av ingen gjenstående dager." +
+                            " Skjæringstidspunkt:" +
+                            " ${skjæringstidspunkt.format(DateTimeFormatter.ofPattern("dd.MM.yyyy"))}.",
                 )
             }
         }
