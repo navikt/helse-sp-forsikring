@@ -2,8 +2,7 @@ package no.nav.helse.sykepenger.forsikring.kafka
 
 import com.github.navikt.tbd_libs.rapids_and_rivers.test_support.TestRapid
 import no.nav.helse.sykepenger.forsikring.domain.Forsikringsvurdering
-import no.nav.helse.sykepenger.forsikring.gosys.Årsak
-import no.nav.helse.sykepenger.forsikring.shared.testsupport.OppgaveOppsamler
+import no.nav.helse.sykepenger.forsikring.gosys.GosysWiremock
 import no.nav.helse.sykepenger.forsikring.shared.testsupport.TestcontainersSpForsikringDatabase
 import no.nav.helse.sykepenger.forsikring.shared.testsupport.lagForsikringsvurdering
 import no.nav.helse.sykepenger.forsikring.shared.testsupport.lagIdentitetsnummer
@@ -21,12 +20,12 @@ import kotlin.test.assertNull
 
 class SelvstendigIngenDagerIgjenRiverTest {
     private val testRapid = TestRapid()
-    private val oppgaveOppsamler = OppgaveOppsamler()
+    private val gosysWiremock = GosysWiremock()
 
     init {
         SelvstendigIngenDagerIgjenRiver(
             rapidsConnection = testRapid,
-            gosysOppgaveClient = oppgaveOppsamler.client,
+            gosysOppgaveClient = gosysWiremock.oppgaveClient,
             spForsikringDataSource = TestcontainersSpForsikringDatabase.dataSource,
         )
     }
@@ -35,6 +34,7 @@ class SelvstendigIngenDagerIgjenRiverTest {
     fun beforeEach() {
         TestcontainersSpForsikringDatabase.reset()
         testRapid.reset()
+        gosysWiremock.reset()
     }
 
     @Test
@@ -50,10 +50,13 @@ class SelvstendigIngenDagerIgjenRiverTest {
 
         testRapid.sendTestMessage(selvstendigIngenDagerIgjenMelding(forsikringsvurdering.id, identitetsnummer.value))
 
-        val oppgave = oppgaveOppsamler.sisteOppgave
+        val oppgave = gosysWiremock.sisteOppgave
         assertNotNull(oppgave)
-        assertEquals(Årsak.SykepengerettOpphørtPåGrunnAvMaksdatoAlderEllerDød, oppgave.årsak)
-        assertEquals(identitetsnummer.value, oppgave.fødselsnummer)
+        assertEquals(
+            "Årsak: Sykepengerett har opphørt som følge av ingen gjenstående dager. Skjæringstidspunkt: 01.01.2026.",
+            oppgave.beskrivelse,
+        )
+        assertEquals(identitetsnummer.value, oppgave.personident)
     }
 
     @Test
@@ -63,7 +66,7 @@ class SelvstendigIngenDagerIgjenRiverTest {
 
         testRapid.sendTestMessage(selvstendigIngenDagerIgjenMelding(forsikringsvurdering.id))
 
-        assertNull(oppgaveOppsamler.sisteOppgave)
+        assertNull(gosysWiremock.sisteOppgave)
     }
 
     @Test
@@ -80,7 +83,7 @@ class SelvstendigIngenDagerIgjenRiverTest {
             """.trimIndent(),
         )
 
-        assertNull(oppgaveOppsamler.sisteOppgave)
+        assertNull(gosysWiremock.sisteOppgave)
     }
 
     @Test
@@ -89,7 +92,7 @@ class SelvstendigIngenDagerIgjenRiverTest {
             testRapid.sendTestMessage(selvstendigIngenDagerIgjenMelding(Forsikringsvurdering.Id.ny()))
         }
 
-        assertNull(oppgaveOppsamler.sisteOppgave)
+        assertNull(gosysWiremock.sisteOppgave)
     }
 
     @Language("JSON")

@@ -5,8 +5,7 @@ import no.nav.helse.sykepenger.forsikring.domain.Forsikringsvurdering
 import no.nav.helse.sykepenger.forsikring.domain.IndividuellForsikringType
 import no.nav.helse.sykepenger.forsikring.domain.KollektivForsikring
 import no.nav.helse.sykepenger.forsikring.domain.SpesiellYrkesgruppe
-import no.nav.helse.sykepenger.forsikring.gosys.Årsak
-import no.nav.helse.sykepenger.forsikring.shared.testsupport.OppgaveOppsamler
+import no.nav.helse.sykepenger.forsikring.gosys.GosysWiremock
 import no.nav.helse.sykepenger.forsikring.shared.testsupport.TestcontainersSpForsikringDatabase
 import no.nav.helse.sykepenger.forsikring.shared.testsupport.lagForsikringsvurdering
 import no.nav.helse.sykepenger.forsikring.shared.testsupport.lagIdentitetsnummer
@@ -24,12 +23,12 @@ import kotlin.test.assertNull
 
 class SelvstendigUtbetaltEtterVentetidRiverTest {
     private val testRapid = TestRapid()
-    private val oppgaveOppsamler = OppgaveOppsamler()
+    private val gosysWiremock = GosysWiremock()
 
     init {
         SelvstendigUtbetaltEtterVentetidRiver(
             rapidsConnection = testRapid,
-            gosysOppgaveClient = oppgaveOppsamler.client,
+            gosysOppgaveClient = gosysWiremock.oppgaveClient,
             spForsikringDataSource = TestcontainersSpForsikringDatabase.dataSource,
         )
     }
@@ -38,6 +37,7 @@ class SelvstendigUtbetaltEtterVentetidRiverTest {
     fun beforeEach() {
         TestcontainersSpForsikringDatabase.reset()
         testRapid.reset()
+        gosysWiremock.reset()
     }
 
     @Test
@@ -61,10 +61,13 @@ class SelvstendigUtbetaltEtterVentetidRiverTest {
 
         testRapid.sendTestMessage(event(forsikringsvurderingId, identitetsnummer.value))
 
-        val oppgave = oppgaveOppsamler.sisteOppgave
+        val oppgave = gosysWiremock.sisteOppgave
         assertNotNull(oppgave)
-        assertEquals(Årsak.UtbetaltFraDagÉnOgDekningsgrad80Prosent, oppgave.årsak)
-        assertEquals(identitetsnummer.value, oppgave.fødselsnummer)
+        assertEquals(
+            "Årsak: Det er utbetalt sykepenger fra dag én og vedkommende har 80% dekningsgrad. Skjæringstidspunkt: 01.01.2026.",
+            oppgave.beskrivelse,
+        )
+        assertEquals(identitetsnummer.value, oppgave.personident)
     }
 
     @Test
@@ -90,10 +93,14 @@ class SelvstendigUtbetaltEtterVentetidRiverTest {
 
         testRapid.sendTestMessage(event(forsikringsvurderingId, identitetsnummer.value))
 
-        val oppgave = oppgaveOppsamler.sisteOppgave
+        val oppgave = gosysWiremock.sisteOppgave
         assertNotNull(oppgave)
-        assertEquals(Årsak.UtbetaltFraDagÉnOgDekningsgrad100ProsentJordbruker, oppgave.årsak)
-        assertEquals(identitetsnummer.value, oppgave.fødselsnummer)
+        assertEquals(
+            "Årsak: Det er utbetalt sykepenger for en Jordbruker fra dag en og vedkommende har 100% dekningsgrad. " +
+                "Skjæringstidspunkt: 01.01.2026.",
+            oppgave.beskrivelse,
+        )
+        assertEquals(identitetsnummer.value, oppgave.personident)
     }
 
     @Test
@@ -115,7 +122,7 @@ class SelvstendigUtbetaltEtterVentetidRiverTest {
 
         testRapid.sendTestMessage(event(forsikringsvurderingId))
 
-        assertNull(oppgaveOppsamler.sisteOppgave)
+        assertNull(gosysWiremock.sisteOppgave)
     }
 
     @Test
@@ -137,7 +144,7 @@ class SelvstendigUtbetaltEtterVentetidRiverTest {
 
         testRapid.sendTestMessage(event(forsikringsvurderingId))
 
-        assertNull(oppgaveOppsamler.sisteOppgave)
+        assertNull(gosysWiremock.sisteOppgave)
     }
 
     @Test
@@ -154,14 +161,14 @@ class SelvstendigUtbetaltEtterVentetidRiverTest {
 
         testRapid.sendTestMessage(event(forsikringsvurderingId))
 
-        assertNull(oppgaveOppsamler.sisteOppgave)
+        assertNull(gosysWiremock.sisteOppgave)
     }
 
     @Test
     fun `kaster error om det ikke finnes vurdering for forsikringsvurderingId`() {
         assertThrows<IllegalStateException> { testRapid.sendTestMessage(event(Forsikringsvurdering.Id.ny())) }
 
-        assertNull(oppgaveOppsamler.sisteOppgave)
+        assertNull(gosysWiremock.sisteOppgave)
     }
 
     @Language("JSON")

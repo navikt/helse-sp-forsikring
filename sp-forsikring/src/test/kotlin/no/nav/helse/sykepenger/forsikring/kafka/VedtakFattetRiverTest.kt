@@ -6,8 +6,7 @@ import kotliquery.sessionOf
 import no.nav.helse.sykepenger.forsikring.domain.Forsikringsvurdering
 import no.nav.helse.sykepenger.forsikring.domain.IndividuellForsikringType
 import no.nav.helse.sykepenger.forsikring.domain.KollektivForsikring
-import no.nav.helse.sykepenger.forsikring.gosys.Årsak
-import no.nav.helse.sykepenger.forsikring.shared.testsupport.OppgaveOppsamler
+import no.nav.helse.sykepenger.forsikring.gosys.GosysWiremock
 import no.nav.helse.sykepenger.forsikring.shared.testsupport.TestcontainersSpForsikringDatabase
 import no.nav.helse.sykepenger.forsikring.shared.testsupport.lagForsikringsvurdering
 import no.nav.helse.sykepenger.forsikring.shared.testsupport.lagIdentitetsnummer
@@ -26,13 +25,12 @@ import java.util.*
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFails
-import kotlin.test.assertIs
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 
 class VedtakFattetRiverTest {
     private val testRapid = TestRapid()
-    private val oppgaveOppsamler = OppgaveOppsamler()
+    private val gosysWiremock = GosysWiremock()
     private val identitetsnummer = lagIdentitetsnummer()
 
     private val skjæringstidspunkt = 1 jan 2026
@@ -47,7 +45,7 @@ class VedtakFattetRiverTest {
     init {
         VedtakFattetRiver(
             rapidsConnection = testRapid,
-            gosysOppgaveClient = oppgaveOppsamler.client,
+            gosysOppgaveClient = gosysWiremock.oppgaveClient,
             spForsikringDataSource = TestcontainersSpForsikringDatabase.dataSource,
         )
     }
@@ -56,6 +54,7 @@ class VedtakFattetRiverTest {
     fun beforeEach() {
         TestcontainersSpForsikringDatabase.reset()
         testRapid.reset()
+        gosysWiremock.reset()
     }
 
     @Test
@@ -75,13 +74,14 @@ class VedtakFattetRiverTest {
             utbetalingIVentetid = true,
         )
 
-        val oppgave = oppgaveOppsamler.sisteOppgave
+        val oppgave = gosysWiremock.sisteOppgave
         assertNotNull(oppgave)
-        val årsak = assertIs<Årsak.ForStortAvvikMellomSykepengegrunnlagOgPremiegrunnlag>(oppgave.årsak)
-        assertEquals(0, årsak.sykepengegrunnlag.compareTo(BigDecimal(sykepengegrunnlag)))
-        assertEquals(premiegrunnlag, årsak.premiegrunnlag)
-        assertEquals(0, årsak.avviksbeløp.compareTo(BigDecimal("200000")))
-        assertEquals(identitetsnummer.value, oppgave.fødselsnummer)
+        assertEquals(
+            "Årsak: For stort avvik mellom sykepengegrunnlag, 400 000 kr, og premiegrunnlag, 200 000 kr. " +
+                "Avviket er 200 000 kr. Skjæringstidspunkt: 01.01.2026.",
+            oppgave.beskrivelse,
+        )
+        assertEquals(identitetsnummer.value, oppgave.personident)
     }
 
     @Test
@@ -101,7 +101,7 @@ class VedtakFattetRiverTest {
             utbetalingIVentetid = true,
         )
 
-        assertNull(oppgaveOppsamler.sisteOppgave)
+        assertNull(gosysWiremock.sisteOppgave)
     }
 
     @Test
@@ -119,7 +119,7 @@ class VedtakFattetRiverTest {
             utbetalingIVentetid = true,
         )
 
-        assertNull(oppgaveOppsamler.sisteOppgave)
+        assertNull(gosysWiremock.sisteOppgave)
     }
 
     @Test
@@ -137,12 +137,13 @@ class VedtakFattetRiverTest {
             utbetalingIVentetid = true,
         )
 
-        val oppgave = oppgaveOppsamler.sisteOppgave
+        val oppgave = gosysWiremock.sisteOppgave
         assertNotNull(oppgave)
-        val årsak = assertIs<Årsak.ForStortAvvikMellomSykepengegrunnlagOgPremiegrunnlag>(oppgave.årsak)
-        assertEquals(0, årsak.sykepengegrunnlag.compareTo(BigDecimal(8100)))
-        assertEquals(8000, årsak.premiegrunnlag)
-        assertEquals(0, årsak.avviksbeløp.compareTo(BigDecimal("100")))
+        assertEquals(
+            "Årsak: For stort avvik mellom sykepengegrunnlag, 8 100 kr, og premiegrunnlag, 8 000 kr. " +
+                "Avviket er 100 kr. Skjæringstidspunkt: 01.01.2026.",
+            oppgave.beskrivelse,
+        )
     }
 
     @Test
@@ -160,10 +161,13 @@ class VedtakFattetRiverTest {
             utbetalingIVentetid = true,
         )
 
-        val oppgave = oppgaveOppsamler.sisteOppgave
+        val oppgave = gosysWiremock.sisteOppgave
         assertNotNull(oppgave)
-        val årsak = assertIs<Årsak.ForStortAvvikMellomSykepengegrunnlagOgPremiegrunnlag>(oppgave.årsak)
-        assertEquals(0, årsak.avviksbeløp.compareTo(BigDecimal("100")))
+        assertEquals(
+            "Årsak: For stort avvik mellom sykepengegrunnlag, 8 000 kr, og premiegrunnlag, 8 100 kr. " +
+                "Avviket er 100 kr. Skjæringstidspunkt: 01.01.2026.",
+            oppgave.beskrivelse,
+        )
     }
 
     @Test
@@ -179,7 +183,7 @@ class VedtakFattetRiverTest {
             utbetalingIVentetid = true,
         )
 
-        assertNull(oppgaveOppsamler.sisteOppgave)
+        assertNull(gosysWiremock.sisteOppgave)
     }
 
     @Test
@@ -188,7 +192,7 @@ class VedtakFattetRiverTest {
 
         sendVedtakFattet(forsikringsvurderingId = forsikringsvurderingId)
 
-        assertNull(oppgaveOppsamler.sisteOppgave)
+        assertNull(gosysWiremock.sisteOppgave)
     }
 
     @Test
@@ -441,7 +445,7 @@ class VedtakFattetRiverTest {
 
         assertNull(hentVedtakFattetMelding(meldingId))
         assertEquals(0, antallLagredeVedtakFattetMelding())
-        assertNull(oppgaveOppsamler.sisteOppgave)
+        assertNull(gosysWiremock.sisteOppgave)
     }
 
     @Test

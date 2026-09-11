@@ -1,9 +1,6 @@
 package no.nav.helse.sykepenger.forsikring.e2e
 
 import com.github.navikt.tbd_libs.rapids_and_rivers.asInstant
-import com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor
-import com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo
-import com.github.tomakehurst.wiremock.verification.LoggedRequest
 import no.nav.helse.sykepenger.forsikring.api.FlexApiClient
 import no.nav.helse.sykepenger.forsikring.api.SpesialistApiClient
 import no.nav.helse.sykepenger.forsikring.api.UtbetalingsstatistikkApiClient
@@ -301,7 +298,7 @@ abstract class AbstractE2ETest(
         uuid: String,
         forventetBeskrivelse: String,
     ) {
-        val oppgaveforespørsler = gosysoppgaveforespørsler()
+        val oppgaveforespørsler = E2ETestApplication.gosysWiremock.loggedPostOppgaverRequests()
         assertEquals(
             1,
             oppgaveforespørsler.size,
@@ -341,7 +338,7 @@ abstract class AbstractE2ETest(
     }
 
     protected fun detBlirIkkeOpprettetFlereGosysoppgaver(antallOppgaverTotalt: Int) {
-        val oppgaveforespørsler = gosysoppgaveforespørsler()
+        val oppgaveforespørsler = E2ETestApplication.gosysWiremock.loggedPostOppgaverRequests()
         assertEquals(
             antallOppgaverTotalt,
             oppgaveforespørsler.size,
@@ -350,11 +347,6 @@ abstract class AbstractE2ETest(
                 oppgaveforespørsler.joinToString(separator = "\n") { it.bodyAsString },
         )
     }
-
-    private fun gosysoppgaveforespørsler(): List<LoggedRequest> =
-        E2ETestApplication.gosysWiremock.findAll(
-            postRequestedFor(urlPathEqualTo(E2ETestApplication.GOSYS_OPPGAVER_PATH)),
-        )
 
     private fun lagVedtakFattetMelding(
         vedtaksperiode: Sykefraværstilfelle.Vedtaksperiode,

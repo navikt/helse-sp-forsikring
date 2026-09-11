@@ -1,11 +1,11 @@
 package no.nav.helse.sykepenger.forsikring.e2e
 
 import com.github.tomakehurst.wiremock.WireMockServer
-import com.github.tomakehurst.wiremock.client.WireMock.aResponse
 import com.github.tomakehurst.wiremock.client.WireMock.okJson
 import com.github.tomakehurst.wiremock.client.WireMock.post
 import com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig
+import no.nav.helse.sykepenger.forsikring.gosys.GosysWiremock
 import no.nav.helse.sykepenger.forsikring.launchApplication
 import no.nav.helse.sykepenger.forsikring.shared.testsupport.TestcontainersRapid
 import no.nav.helse.sykepenger.forsikring.shared.testsupport.TestcontainersReplikadatabase
@@ -22,17 +22,7 @@ object E2ETestApplication {
     const val CLIENT_ID = "sp-forsikring-e2e"
     val mockOAuth2Server = MockOAuth2Server().also(MockOAuth2Server::start)
 
-    const val GOSYS_OPPGAVER_PATH = "/api/v1/oppgaver"
-
-    val gosysWiremock =
-        WireMockServer(wireMockConfig().dynamicPort())
-            .also(WireMockServer::start)
-            .also { wireMockServer ->
-                wireMockServer.stubFor(
-                    post(urlPathEqualTo(GOSYS_OPPGAVER_PATH))
-                        .willReturn(aResponse().withStatus(201)),
-                )
-            }
+    val gosysWiremock = GosysWiremock()
 
     private val texasWiremock =
         WireMockServer(wireMockConfig().dynamicPort())
@@ -97,7 +87,7 @@ object E2ETestApplication {
         sjekkAtApplikasjonenLever()
         TestcontainersReplikadatabase.reset()
         TestcontainersSpForsikringDatabase.reset()
-        gosysWiremock.resetRequests()
+        gosysWiremock.reset()
     }
 
     private val applikasjonstråd by lazy {
