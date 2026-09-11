@@ -117,8 +117,9 @@ class JordbrukerMedTilleggsforsikringE2ETest :
         detBlirOpprettetEnGosysoppgave(
             uuid = utbetaltEtterVentetidMelding["@id"].stringValue(),
             forventetBeskrivelse =
-                "Årsak: Det er utbetalt sykepenger for en Jordbruker fra dag en og vedkommende har 100% dekningsgrad. " +
-                    "Skjæringstidspunkt: 01.09.2026.",
+                "Bruker har forsikring som kun gir tilleggsykepenger i ventetid," +
+                    " og har fått utbetalt sykepenger utover ventetid." +
+                    " Utbetalingen skjedde for sykefravær med skjæringstidspunkt 01.09.2026.",
         )
 
         spesialistSenderVedtakFattet(

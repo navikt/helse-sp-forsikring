@@ -53,22 +53,22 @@ class SelvstendigUtbetaltEtterVentetidRiver(
                 ForsikringsvurderingRepository(transaction).hent(forsikringsvurderingId)
                     ?: error("Fant ikke vurdering for forsikringsvurderingId=$forsikringsvurderingId")
 
-            if (!forsikringsvurdering.harIndividuellForsikring()) return@medParsetMeldingOgTransaksjon
-
-            val årsakTekst =
-                when (forsikringsvurdering.gjeldendeIndividuellForsikring()!!.type) {
-                    IndividuellForsikringType.SELVSTENDIG_80_PROSENT_FRA_DAG_1 -> "Det er utbetalt sykepenger fra dag én og vedkommende har 80% dekningsgrad"
-                    IndividuellForsikringType.SELVSTENDIG_JORDBRUKER_100_PROSENT_FRA_DAG_1 -> "Det er utbetalt sykepenger for en Jordbruker fra dag en og vedkommende har 100% dekningsgrad"
-                    else -> return@medParsetMeldingOgTransaksjon
-                }
+            if (forsikringsvurdering.gjeldendeIndividuellForsikring()?.type !in
+                setOf(
+                    IndividuellForsikringType.SELVSTENDIG_80_PROSENT_FRA_DAG_1,
+                    IndividuellForsikringType.SELVSTENDIG_JORDBRUKER_100_PROSENT_FRA_DAG_1,
+                )
+            ) {
+                return@medParsetMeldingOgTransaksjon
+            }
 
             gosysOppgaveClient.opprettOppgave(
                 personident = melding.fødselsnummer,
                 uuid = melding.id.toString(),
                 beskrivelse =
-                    "Årsak: " +
-                        "$årsakTekst." +
-                        " Skjæringstidspunkt: " +
+                    "Bruker har forsikring som kun gir tilleggsykepenger i ventetid," +
+                        " og har fått utbetalt sykepenger utover ventetid." +
+                        " Utbetalingen skjedde for sykefravær med skjæringstidspunkt " +
                         "${melding.skjæringstidspunkt.format(DateTimeFormatter.ofPattern("dd.MM.yyyy"))}.",
             )
         }

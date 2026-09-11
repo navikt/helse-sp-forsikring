@@ -93,8 +93,9 @@ class SelvstendigÅttiProsentFraDagEnE2ETest :
         detBlirOpprettetEnGosysoppgave(
             uuid = selvstendigUtbetaltEtterVentetidMelding["@id"].stringValue(),
             forventetBeskrivelse =
-                "Årsak: Det er utbetalt sykepenger fra dag én og vedkommende har 80% dekningsgrad. " +
-                    "Skjæringstidspunkt: 01.09.2026.",
+                "Bruker har forsikring som kun gir tilleggsykepenger i ventetid," +
+                    " og har fått utbetalt sykepenger utover ventetid." +
+                    " Utbetalingen skjedde for sykefravær med skjæringstidspunkt 01.09.2026.",
         )
 
         spesialistSenderVedtakFattet(

@@ -135,8 +135,11 @@ class SelvstendigHundreProsentFraDagSyttenIngenDagerIgjenE2ETest :
         detBlirOpprettetEnGosysoppgave(
             uuid = ingenDagerIgjenMelding["@id"].stringValue(),
             forventetBeskrivelse =
-                "Årsak: Sykepengerett har opphørt som følge av ingen gjenstående dager. " +
-                    "Skjæringstidspunkt: 01.09.2026.",
+                "Brukers rett til sykepenger har opphørt som en følge av" +
+                    " at maks antall sykepengedager er nådd," +
+                    " brukeren har fylt 70," +
+                    " eller brukeren er død." +
+                    " Inntraff i forbindelse med sykefravær med skjæringstidspunkt 01.09.2026.",
         )
 
         spesialistSenderVedtakFattet(

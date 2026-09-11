@@ -64,7 +64,9 @@ class SelvstendigUtbetaltEtterVentetidRiverTest {
         val oppgave = gosysWiremock.sisteOppgave
         assertNotNull(oppgave)
         assertEquals(
-            "Årsak: Det er utbetalt sykepenger fra dag én og vedkommende har 80% dekningsgrad. Skjæringstidspunkt: 01.01.2026.",
+            "Bruker har forsikring som kun gir tilleggsykepenger i ventetid," +
+                " og har fått utbetalt sykepenger utover ventetid." +
+                " Utbetalingen skjedde for sykefravær med skjæringstidspunkt 01.01.2026.",
             oppgave["beskrivelse"].asString(),
         )
         assertEquals(identitetsnummer.value, oppgave["personident"].asString())
@@ -96,8 +98,9 @@ class SelvstendigUtbetaltEtterVentetidRiverTest {
         val oppgave = gosysWiremock.sisteOppgave
         assertNotNull(oppgave)
         assertEquals(
-            "Årsak: Det er utbetalt sykepenger for en Jordbruker fra dag en og vedkommende har 100% dekningsgrad. " +
-                "Skjæringstidspunkt: 01.01.2026.",
+            "Bruker har forsikring som kun gir tilleggsykepenger i ventetid," +
+                " og har fått utbetalt sykepenger utover ventetid." +
+                " Utbetalingen skjedde for sykefravær med skjæringstidspunkt 01.01.2026.",
             oppgave["beskrivelse"].asString(),
         )
         assertEquals(identitetsnummer.value, oppgave["personident"].asString())

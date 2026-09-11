@@ -61,9 +61,12 @@ class SelvstendigIngenDagerIgjenRiver(
                 personident = melding.fødselsnummer,
                 uuid = melding.id.toString(),
                 beskrivelse =
-                    "Årsak: Sykepengerett har opphørt som følge av ingen gjenstående dager." +
-                        " Skjæringstidspunkt:" +
-                        " ${melding.skjæringstidspunkt.format(DateTimeFormatter.ofPattern("dd.MM.yyyy"))}.",
+                    "Brukers rett til sykepenger har opphørt som en følge av" +
+                        " at maks antall sykepengedager er nådd," +
+                        " brukeren har fylt 70," +
+                        " eller brukeren er død." +
+                        " Inntraff i forbindelse med sykefravær med skjæringstidspunkt " +
+                        "${melding.skjæringstidspunkt.format(DateTimeFormatter.ofPattern("dd.MM.yyyy"))}.",
             )
         }
     }
