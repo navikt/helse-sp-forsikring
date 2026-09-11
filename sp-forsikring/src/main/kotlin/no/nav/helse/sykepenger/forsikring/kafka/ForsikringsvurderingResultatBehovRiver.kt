@@ -9,11 +9,10 @@ import com.github.navikt.tbd_libs.rapids_and_rivers_api.RapidsConnection
 import io.micrometer.core.instrument.MeterRegistry
 import no.nav.helse.sykepenger.forsikring.domain.Forsikringsvurdering
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.ForsikringsvurderingRepository
+import no.nav.helse.sykepenger.forsikring.kafka.lib.medParsetMeldingOgTransaksjon
 import no.nav.helse.sykepenger.forsikring.shared.logging.MdcKey
 import no.nav.helse.sykepenger.forsikring.shared.logging.loggError
 import no.nav.helse.sykepenger.forsikring.shared.logging.loggInfo
-import no.nav.helse.sykepenger.forsikring.shared.logging.medMdc
-import no.nav.helse.sykepenger.forsikring.shared.util.inTransaction
 import javax.sql.DataSource
 
 class ForsikringsvurderingResultatBehovRiver(
@@ -43,15 +42,19 @@ class ForsikringsvurderingResultatBehovRiver(
         meterRegistry: MeterRegistry,
     ) {
         try {
-            medMdc(MdcKey.MELDING_ID to packet["@id"].asString()) {
-                loggInfo("Mottok ForsikringsvurderingResultat-behov", "behov" to packet.toJson())
-                val forsikringsvurderingId =
-                    Forsikringsvurdering.Id.fromString(packet["ForsikringsvurderingResultat.forsikringsvurderingId"].asString())
+            packet.medParsetMeldingOgTransaksjon<ForsikringsvurderingResultatBehovMelding>(
+                mdcMapping =
+                    mapOf(
+                        MdcKey.MELDING_ID to ForsikringsvurderingResultatBehovMelding::id,
+                        MdcKey.FORSIKRINGSVURDERING_ID to { forsikringsvurderingResultat.forsikringsvurderingId },
+                    ),
+                dataSource = spForsikringDataSource,
+            ) { melding, transaction ->
+                val forsikringsvurderingId = Forsikringsvurdering.Id(melding.forsikringsvurderingResultat.forsikringsvurderingId)
 
                 val forsikringsvurdering =
-                    spForsikringDataSource.inTransaction { transaction ->
-                        ForsikringsvurderingRepository(transaction).hent(forsikringsvurderingId)
-                    } ?: error("Fant ikke forsikringsvurdering med id ${forsikringsvurderingId.value}")
+                    ForsikringsvurderingRepository(transaction).hent(forsikringsvurderingId)
+                        ?: error("Fant ikke forsikringsvurdering med id ${forsikringsvurderingId.value}")
 
                 packet["@løsning"] =
                     mapOf(

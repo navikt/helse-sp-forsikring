@@ -2,7 +2,6 @@ package no.nav.helse.sykepenger.forsikring.kafka
 
 import com.github.navikt.tbd_libs.rapids_and_rivers.JsonMessage
 import com.github.navikt.tbd_libs.rapids_and_rivers.River
-import com.github.navikt.tbd_libs.rapids_and_rivers.asLocalDate
 import com.github.navikt.tbd_libs.rapids_and_rivers_api.MessageContext
 import com.github.navikt.tbd_libs.rapids_and_rivers_api.MessageMetadata
 import com.github.navikt.tbd_libs.rapids_and_rivers_api.RapidsConnection
@@ -11,12 +10,9 @@ import kotlinx.coroutines.runBlocking
 import no.nav.helse.sykepenger.forsikring.domain.Forsikringsvurdering
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.ForsikringsvurderingRepository
 import no.nav.helse.sykepenger.forsikring.gosys.GosysOppgaveClient
+import no.nav.helse.sykepenger.forsikring.kafka.lib.medParsetMeldingOgTransaksjon
 import no.nav.helse.sykepenger.forsikring.shared.logging.MdcKey
-import no.nav.helse.sykepenger.forsikring.shared.logging.loggInfo
-import no.nav.helse.sykepenger.forsikring.shared.logging.medMdc
-import no.nav.helse.sykepenger.forsikring.shared.util.inTransaction
 import java.time.format.DateTimeFormatter
-import java.util.*
 import javax.sql.DataSource
 
 class SelvstendigIngenDagerIgjenRiver(
@@ -47,31 +43,29 @@ class SelvstendigIngenDagerIgjenRiver(
         metadata: MessageMetadata,
         meterRegistry: MeterRegistry,
     ) {
-        val fødselsnummer = packet["fødselsnummer"].asString()
-        val skjæringstidspunkt = packet["skjæringstidspunkt"].asLocalDate()
-        val forsikringsvurderingId = Forsikringsvurdering.Id.fromString(packet["forsikringsvurderingId"].asString())
-        val meldingId = UUID.fromString(packet["@id"].asString())
-
-        medMdc(
-            MdcKey.MELDING_ID to meldingId.toString(),
-            MdcKey.FORSIKRINGSVURDERING_ID to forsikringsvurderingId.toString(),
-        ) {
-            loggInfo("Mottok SelvstendigIngenDagerIgjen-melding", "behov" to packet.toJson())
+        packet.medParsetMeldingOgTransaksjon<SelvstendigIngenDagerIgjenMelding>(
+            mdcMapping =
+                mapOf(
+                    MdcKey.MELDING_ID to SelvstendigIngenDagerIgjenMelding::id,
+                    MdcKey.FORSIKRINGSVURDERING_ID to SelvstendigIngenDagerIgjenMelding::forsikringsvurderingId,
+                ),
+            dataSource = spForsikringDataSource,
+        ) { melding, transaction ->
+            val forsikringsvurderingId = Forsikringsvurdering.Id(melding.forsikringsvurderingId)
 
             val forsikringsvurdering =
-                spForsikringDataSource.inTransaction { transaction ->
-                    ForsikringsvurderingRepository(transaction).hent(forsikringsvurderingId)
-                } ?: error("Fant ikke vurdering for forsikringsvurderingId=$forsikringsvurderingId")
-            if (!forsikringsvurdering.harForsikring()) return@medMdc
+                ForsikringsvurderingRepository(transaction).hent(forsikringsvurderingId)
+                    ?: error("Fant ikke vurdering for forsikringsvurderingId=$forsikringsvurderingId")
+            if (!forsikringsvurdering.harForsikring()) return@medParsetMeldingOgTransaksjon
 
             runBlocking {
                 gosysOppgaveClient.opprettOppgave(
-                    personident = fødselsnummer,
-                    uuid = meldingId.toString(),
+                    personident = melding.fødselsnummer,
+                    uuid = melding.id.toString(),
                     beskrivelse =
                         "Årsak: Sykepengerett har opphørt som følge av ingen gjenstående dager." +
                             " Skjæringstidspunkt:" +
-                            " ${skjæringstidspunkt.format(DateTimeFormatter.ofPattern("dd.MM.yyyy"))}.",
+                            " ${melding.skjæringstidspunkt.format(DateTimeFormatter.ofPattern("dd.MM.yyyy"))}.",
                 )
             }
         }
