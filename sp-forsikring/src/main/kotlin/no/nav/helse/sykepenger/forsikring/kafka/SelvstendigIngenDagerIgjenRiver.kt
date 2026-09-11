@@ -6,7 +6,6 @@ import com.github.navikt.tbd_libs.rapids_and_rivers_api.MessageContext
 import com.github.navikt.tbd_libs.rapids_and_rivers_api.MessageMetadata
 import com.github.navikt.tbd_libs.rapids_and_rivers_api.RapidsConnection
 import io.micrometer.core.instrument.MeterRegistry
-import kotlinx.coroutines.runBlocking
 import no.nav.helse.sykepenger.forsikring.domain.Forsikringsvurdering
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.ForsikringsvurderingRepository
 import no.nav.helse.sykepenger.forsikring.gosys.GosysOppgaveClient
@@ -58,16 +57,14 @@ class SelvstendigIngenDagerIgjenRiver(
                     ?: error("Fant ikke vurdering for forsikringsvurderingId=$forsikringsvurderingId")
             if (!forsikringsvurdering.harForsikring()) return@medParsetMeldingOgTransaksjon
 
-            runBlocking {
-                gosysOppgaveClient.opprettOppgave(
-                    personident = melding.fødselsnummer,
-                    uuid = melding.id.toString(),
-                    beskrivelse =
-                        "Årsak: Sykepengerett har opphørt som følge av ingen gjenstående dager." +
-                            " Skjæringstidspunkt:" +
-                            " ${melding.skjæringstidspunkt.format(DateTimeFormatter.ofPattern("dd.MM.yyyy"))}.",
-                )
-            }
+            gosysOppgaveClient.opprettOppgave(
+                personident = melding.fødselsnummer,
+                uuid = melding.id.toString(),
+                beskrivelse =
+                    "Årsak: Sykepengerett har opphørt som følge av ingen gjenstående dager." +
+                        " Skjæringstidspunkt:" +
+                        " ${melding.skjæringstidspunkt.format(DateTimeFormatter.ofPattern("dd.MM.yyyy"))}.",
+            )
         }
     }
 }

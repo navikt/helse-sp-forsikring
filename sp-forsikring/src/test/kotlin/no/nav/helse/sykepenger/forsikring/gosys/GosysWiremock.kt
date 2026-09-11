@@ -1,7 +1,5 @@
 package no.nav.helse.sykepenger.forsikring.gosys
 
-import com.fasterxml.jackson.databind.SerializationFeature
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
 import com.github.navikt.tbd_libs.access_token.AccessTokenProvider
 import com.github.tomakehurst.wiremock.WireMockServer
 import com.github.tomakehurst.wiremock.client.WireMock.aResponse
@@ -10,10 +8,6 @@ import com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor
 import com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig
 import com.github.tomakehurst.wiremock.verification.LoggedRequest
-import io.ktor.client.HttpClient
-import io.ktor.client.engine.cio.CIO
-import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
-import io.ktor.serialization.jackson.jackson
 import io.mockk.every
 import io.mockk.mockk
 import tools.jackson.databind.JsonNode
@@ -39,15 +33,6 @@ class GosysWiremock {
         GosysOppgaveClient(
             baseUrl = baseUrl(),
             tokenClient = mockk<AccessTokenProvider> { every { machineToken(any()) } returns ACCESS_TOKEN },
-            httpClient =
-                HttpClient(CIO) {
-                    install(ContentNegotiation) {
-                        jackson {
-                            registerModule(JavaTimeModule())
-                            disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
-                        }
-                    }
-                },
             gosysScope = GOSYS_SCOPE,
         )
     }

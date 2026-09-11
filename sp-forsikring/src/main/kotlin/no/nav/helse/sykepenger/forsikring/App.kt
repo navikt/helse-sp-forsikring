@@ -1,17 +1,11 @@
 package no.nav.helse.sykepenger.forsikring
 
-import com.fasterxml.jackson.databind.SerializationFeature
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
 import com.github.navikt.tbd_libs.access_token.TexasClient
 import com.github.navikt.tbd_libs.kafka.AivenConfig
 import com.github.navikt.tbd_libs.kafka.Config
 import com.github.navikt.tbd_libs.kafka.ConsumerProducerFactory
 import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
-import io.ktor.client.HttpClient
-import io.ktor.client.engine.cio.CIO
-import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
-import io.ktor.serialization.jackson.jackson
 import io.ktor.server.application.ApplicationStarted
 import io.ktor.server.application.ApplicationStopped
 import no.nav.helse.rapids_rivers.RapidApplication
@@ -69,16 +63,6 @@ fun launchApplication(
 
     val forsikringsvurderingService = ForsikringsvurderingService(replikabaseDataSource = replikabaseDataSource)
 
-    val httpClient =
-        HttpClient(CIO) {
-            install(ContentNegotiation) {
-                jackson {
-                    registerModule(JavaTimeModule())
-                    disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
-                }
-            }
-        }
-
     val accessTokenProvider =
         TexasClient(
             tokenEndpoint = URI(env.getValue("NAIS_TOKEN_ENDPOINT")),
@@ -89,7 +73,6 @@ fun launchApplication(
         GosysOppgaveClient(
             baseUrl = env.getValue("GOSYS_BASE_URL"),
             tokenClient = accessTokenProvider,
-            httpClient = httpClient,
             gosysScope = env.getValue("GOSYS_SCOPE"),
         )
 

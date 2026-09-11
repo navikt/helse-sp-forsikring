@@ -6,7 +6,6 @@ import com.github.navikt.tbd_libs.rapids_and_rivers_api.MessageContext
 import com.github.navikt.tbd_libs.rapids_and_rivers_api.MessageMetadata
 import com.github.navikt.tbd_libs.rapids_and_rivers_api.RapidsConnection
 import io.micrometer.core.instrument.MeterRegistry
-import kotlinx.coroutines.runBlocking
 import no.nav.helse.sykepenger.forsikring.domain.Forsikringsvurdering
 import no.nav.helse.sykepenger.forsikring.domain.IndividuellForsikringType
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.ForsikringsvurderingRepository
@@ -63,17 +62,15 @@ class SelvstendigUtbetaltEtterVentetidRiver(
                     else -> return@medParsetMeldingOgTransaksjon
                 }
 
-            runBlocking {
-                gosysOppgaveClient.opprettOppgave(
-                    personident = melding.fødselsnummer,
-                    uuid = melding.id.toString(),
-                    beskrivelse =
-                        "Årsak: " +
-                            "$årsakTekst." +
-                            " Skjæringstidspunkt: " +
-                            "${melding.skjæringstidspunkt.format(DateTimeFormatter.ofPattern("dd.MM.yyyy"))}.",
-                )
-            }
+            gosysOppgaveClient.opprettOppgave(
+                personident = melding.fødselsnummer,
+                uuid = melding.id.toString(),
+                beskrivelse =
+                    "Årsak: " +
+                        "$årsakTekst." +
+                        " Skjæringstidspunkt: " +
+                        "${melding.skjæringstidspunkt.format(DateTimeFormatter.ofPattern("dd.MM.yyyy"))}.",
+            )
         }
     }
 }

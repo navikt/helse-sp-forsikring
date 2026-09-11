@@ -6,7 +6,6 @@ import com.github.navikt.tbd_libs.rapids_and_rivers_api.MessageContext
 import com.github.navikt.tbd_libs.rapids_and_rivers_api.MessageMetadata
 import com.github.navikt.tbd_libs.rapids_and_rivers_api.RapidsConnection
 import io.micrometer.core.instrument.MeterRegistry
-import kotlinx.coroutines.runBlocking
 import no.nav.helse.sykepenger.forsikring.domain.FordelingAvBeløpPåUtbetalingsdag
 import no.nav.helse.sykepenger.forsikring.domain.Forsikringsvurdering
 import no.nav.helse.sykepenger.forsikring.domain.Identitetsnummer
@@ -143,19 +142,17 @@ class VedtakFattetRiver(
                         "fødselsnummer" to vedtakFattetMelding.fødselsnummer,
                     )
 
-                    runBlocking {
-                        gosysOppgaveClient.opprettOppgave(
-                            personident = vedtakFattetMelding.fødselsnummer,
-                            uuid = vedtakFattetMelding.id.toString(),
-                            beskrivelse =
-                                "Årsak: For stort avvik mellom sykepengegrunnlag," +
-                                    " ${vedtakFattetMelding.sykepengegrunnlag.somBeløpstekst()} kr," +
-                                    " og premiegrunnlag, ${premiegrunnlag.somBeløpstekst()} kr." +
-                                    " Avviket er ${avviksbeløp.somBeløpstekst()} kr." +
-                                    " Skjæringstidspunkt: " +
-                                    "${vedtakFattetMelding.skjæringstidspunkt.format(DateTimeFormatter.ofPattern("dd.MM.yyyy"))}.",
-                        )
-                    }
+                    gosysOppgaveClient.opprettOppgave(
+                        personident = vedtakFattetMelding.fødselsnummer,
+                        uuid = vedtakFattetMelding.id.toString(),
+                        beskrivelse =
+                            "Årsak: For stort avvik mellom sykepengegrunnlag," +
+                                " ${vedtakFattetMelding.sykepengegrunnlag.somBeløpstekst()} kr," +
+                                " og premiegrunnlag, ${premiegrunnlag.somBeløpstekst()} kr." +
+                                " Avviket er ${avviksbeløp.somBeløpstekst()} kr." +
+                                " Skjæringstidspunkt: " +
+                                "${vedtakFattetMelding.skjæringstidspunkt.format(DateTimeFormatter.ofPattern("dd.MM.yyyy"))}.",
+                    )
                 }
             }
         }

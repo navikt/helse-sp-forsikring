@@ -1,6 +1,5 @@
 package no.nav.helse.sykepenger.forsikring.gosys
 
-import kotlinx.coroutines.runBlocking
 import no.nav.sykepenger.libs.testing.assertions.assertJsonEquals
 import no.nav.sykepenger.libs.testing.testdata.lagIdentitetsnummer
 import org.junit.jupiter.api.BeforeEach
@@ -28,13 +27,11 @@ class GosysOppgaveClientTest {
         val uuid = UUID.randomUUID().toString()
 
         // When:
-        runBlocking {
-            client.opprettOppgave(
-                personident = identitetsnummer,
-                uuid = uuid,
-                beskrivelse = "Dette er en test-tekst.",
-            )
-        }
+        client.opprettOppgave(
+            personident = identitetsnummer,
+            uuid = uuid,
+            beskrivelse = "Dette er en test-tekst.",
+        )
 
         // Then:
         val gosysRequests = gosysWiremock.loggedPostOppgaverRequests()
@@ -72,13 +69,11 @@ class GosysOppgaveClientTest {
         // Then:
         assertDoesNotThrow {
             // When:
-            runBlocking {
-                client.opprettOppgave(
-                    personident = lagIdentitetsnummer(),
-                    uuid = UUID.randomUUID().toString(),
-                    beskrivelse = "Dette er en test-tekst.",
-                )
-            }
+            client.opprettOppgave(
+                personident = lagIdentitetsnummer(),
+                uuid = UUID.randomUUID().toString(),
+                beskrivelse = "Dette er en test-tekst.",
+            )
         }
     }
 
@@ -90,13 +85,11 @@ class GosysOppgaveClientTest {
         // Then:
         assertThrows<IllegalStateException> {
             // When:
-            runBlocking {
-                client.opprettOppgave(
-                    personident = lagIdentitetsnummer(),
-                    uuid = UUID.randomUUID().toString(),
-                    beskrivelse = "Dette er en test-tekst.",
-                )
-            }
+            client.opprettOppgave(
+                personident = lagIdentitetsnummer(),
+                uuid = UUID.randomUUID().toString(),
+                beskrivelse = "Dette er en test-tekst.",
+            )
         }
     }
 }

@@ -24,8 +24,6 @@ ktor-server-content-negotiation = { module = "io.ktor:ktor-server-content-negoti
 ktor-server-core = { module = "io.ktor:ktor-server-core", version.ref = "ktor" }
 ktor-server-metrics-micrometer = { module = "io.ktor:ktor-server-metrics-micrometer", version.ref = "ktor" }
 ktor-server-status-pages = { module = "io.ktor:ktor-server-status-pages", version.ref = "ktor" }
-ktor-client-cio = { module="io.ktor:ktor-client-cio", version.ref = "ktor"}
-ktor-client-contentnegotiation = { module="io.ktor:ktor-client-content-negotiation", version.ref = "ktor"}
 kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "coroutines" }
 tbd-libs-access-token-provider-api = {module = "com.github.navikt.tbd-libs:access-token-provider-api", version.ref = "tbd-libs"}
 tbd-libs-access-token-provider-texas = {module = "com.github.navikt.tbd-libs:access-token-provider-texas", version.ref = "tbd-libs"}
@@ -34,7 +32,6 @@ postgresql = "org.postgresql:postgresql:42.7.13"
 rapids-and-rivers = "com.github.navikt:rapids-and-rivers:2026071513121784113927"
 ojdbc11 = "com.oracle.database.jdbc:ojdbc11:23.26.3.0.0"
 
-ktor-client-mock = {module = "io.ktor:ktor-client-mock-jvm", version.ref = "ktor"}
 mock-oauth2-server = "no.nav.security:mock-oauth2-server:6.0.2"
 sykepengerLibs-logging = "no.nav.sykepenger.libs:logging:20260829.1737"
 sykepengerLibs-testing = "no.nav.sykepenger.libs:testing:20260829.1737"
@@ -58,10 +55,6 @@ ktor-server = [
     "jackson-datatype-jsr310",
     "ktor-server-metrics-micrometer",
     "ktor-server-status-pages"
-]
-ktor-client = [
-    "ktor-client-cio",
-    "ktor-client-contentnegotiation"
 ]
 
 [plugins]
