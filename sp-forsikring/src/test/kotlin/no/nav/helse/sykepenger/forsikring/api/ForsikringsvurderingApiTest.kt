@@ -3,29 +3,17 @@ package no.nav.helse.sykepenger.forsikring.api
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
-import io.ktor.server.cio.CIO
-import io.ktor.server.engine.embeddedServer
+import io.ktor.server.cio.*
+import io.ktor.server.engine.*
 import no.nav.helse.sykepenger.forsikring.domain.IndividuellForsikringType
 import no.nav.helse.sykepenger.forsikring.domain.KollektivForsikring
 import no.nav.helse.sykepenger.forsikring.domain.SpesiellYrkesgruppe
 import no.nav.helse.sykepenger.forsikring.domain.VurdertIndividuellForsikring
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.ForsikringsvurderingService
-import no.nav.helse.sykepenger.forsikring.shared.testsupport.TestcontainersReplikadatabase
-import no.nav.helse.sykepenger.forsikring.shared.testsupport.TestcontainersSpForsikringDatabase
-import no.nav.helse.sykepenger.forsikring.shared.testsupport.lagForsikringsvurdering
-import no.nav.helse.sykepenger.forsikring.shared.testsupport.lagIdentitetsnummer
-import no.nav.helse.sykepenger.forsikring.shared.testsupport.lagVurdertIndividuellForsikring
-import no.nav.helse.sykepenger.forsikring.shared.testsupport.lagreRåkopiOgForsikringsvurdering
-import no.nav.helse.sykepenger.forsikring.shared.testsupport.tilInfotrygdFødselsnummer
+import no.nav.helse.sykepenger.forsikring.shared.testsupport.*
 import no.nav.security.mock.oauth2.MockOAuth2Server
-import org.apache.hc.client5.http.fluent.Request
-import org.apache.hc.core5.http.io.entity.EntityUtils
 import org.junit.jupiter.api.AfterAll
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertFalse
-import org.junit.jupiter.api.Assertions.assertNotNull
-import org.junit.jupiter.api.Assertions.assertNull
-import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
@@ -36,27 +24,6 @@ import java.time.LocalDate
 import java.util.*
 
 private const val CLIENT_ID = "sp-forsikring-junit"
-
-private val testJsonMapper = ObjectMapper().registerModule(JavaTimeModule())
-
-private fun String.somJson(): JsonNode = testJsonMapper.readTree(this)
-
-private fun JsonNode.asTextOrNull(feltnavn: String): String? = this[feltnavn]?.takeUnless { it.isNull }?.asText()
-
-private fun assertFolketrygdlovenreferanse(
-    forventetKapittel: Int,
-    forventetParagrafIKapittel: Int,
-    forventetLedd: Int?,
-    forventetBokstav: String?,
-    faktisk: JsonNode?,
-) {
-    assertNotNull(faktisk) { "Forventet folketrygdlovenreferanse, fikk null" }
-    requireNotNull(faktisk)
-    assertEquals(forventetKapittel, faktisk["kapittel"].asInt())
-    assertEquals(forventetParagrafIKapittel, faktisk["paragrafIKapittel"].asInt())
-    assertEquals(forventetLedd, faktisk["ledd"].takeUnless { it.isNull }?.asInt())
-    assertEquals(forventetBokstav, faktisk["bokstav"].takeUnless { it.isNull }?.asText())
-}
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class ForsikringsvurderingApiTest {
@@ -269,7 +236,10 @@ class ForsikringsvurderingApiTest {
         val json = body.somJson()
         assertEquals(100, json["samletDekning"]["grad"].asInt())
         assertEquals(17, json["samletDekning"]["fraDag"].asInt())
-        assertEquals(IndividuellForsikringType.SELVSTENDIG_100_PROSENT_FRA_DAG_17.navn, json["individuelleForsikringer"].single()["navn"].asText())
+        assertEquals(
+            IndividuellForsikringType.SELVSTENDIG_100_PROSENT_FRA_DAG_17.navn,
+            json["individuelleForsikringer"].single()["navn"].asText(),
+        )
         assertFolketrygdlovenreferanse(
             forventetKapittel = 8,
             forventetParagrafIKapittel = 36,
@@ -613,11 +583,11 @@ class ForsikringsvurderingApiTest {
         forsikringsvurderingId: String,
         token: String?,
     ): Pair<Int, String> =
-        Request
-            .get("$serverUrl/forsikringsvurderinger/$forsikringsvurderingId")
-            .apply { token?.let { addHeader("Authorization", "Bearer $it") } }
-            .execute()
-            .handleResponse { response -> response.code to (EntityUtils.toString(response.entity) ?: "") }
+        SpesialistApiClient.getForsikringsvurdering(
+            baseUrl = serverUrl,
+            forsikringsvurderingId = forsikringsvurderingId,
+            token = token,
+        )
 
     private fun postForsikringsvurdering(
         identitetsnummer: String = lagIdentitetsnummer().value,
@@ -634,4 +604,25 @@ class ForsikringsvurderingApiTest {
             skjæringstidspunkt = skjæringstidspunkt,
             token = token,
         )
+}
+
+private val testJsonMapper = ObjectMapper().registerModule(JavaTimeModule())
+
+private fun String.somJson(): JsonNode = testJsonMapper.readTree(this)
+
+private fun JsonNode.asTextOrNull(feltnavn: String): String? = this[feltnavn]?.takeUnless { it.isNull }?.asText()
+
+private fun assertFolketrygdlovenreferanse(
+    forventetKapittel: Int,
+    forventetParagrafIKapittel: Int,
+    forventetLedd: Int?,
+    forventetBokstav: String?,
+    faktisk: JsonNode?,
+) {
+    assertNotNull(faktisk) { "Forventet folketrygdlovenreferanse, fikk null" }
+    requireNotNull(faktisk)
+    assertEquals(forventetKapittel, faktisk["kapittel"].asInt())
+    assertEquals(forventetParagrafIKapittel, faktisk["paragrafIKapittel"].asInt())
+    assertEquals(forventetLedd, faktisk["ledd"].takeUnless { it.isNull }?.asInt())
+    assertEquals(forventetBokstav, faktisk["bokstav"].takeUnless { it.isNull }?.asText())
 }

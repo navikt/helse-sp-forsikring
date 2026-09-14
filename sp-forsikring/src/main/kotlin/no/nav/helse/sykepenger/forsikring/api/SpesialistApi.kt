@@ -1,10 +1,9 @@
 package no.nav.helse.sykepenger.forsikring.api
 
-import io.ktor.http.HttpStatusCode
-import io.ktor.server.request.uri
-import io.ktor.server.response.respond
-import io.ktor.server.routing.Route
-import io.ktor.server.routing.get
+import io.ktor.http.*
+import io.ktor.server.request.*
+import io.ktor.server.response.*
+import io.ktor.server.routing.*
 import no.nav.helse.sykepenger.forsikring.api.SpesialistForsikringsvurderingResponse.IndividuellForsikring
 import no.nav.helse.sykepenger.forsikring.api.SpesialistForsikringsvurderingResponse.IndividuellForsikring.Konklusjon
 import no.nav.helse.sykepenger.forsikring.domain.Forsikringsvurdering
@@ -92,23 +91,29 @@ fun Route.spesialistApi(spForsikringDataSource: DataSource) {
 
 private fun VurdertIndividuellForsikring.Konklusjon.forklaring(): String =
     when (this) {
-        VurdertIndividuellForsikring.Konklusjon.SKJÆRINGSTIDSPUNKT_INNEN_28_DAGER_FØR_VIRKNINGSDATO ->
+        VurdertIndividuellForsikring.Konklusjon.SKJÆRINGSTIDSPUNKT_INNEN_28_DAGER_FØR_VIRKNINGSDATO -> {
             "Forsikringen var ikke ennå gyldig på skjæringstidspunktet"
+        }
 
-        VurdertIndividuellForsikring.Konklusjon.SKJÆRINGSTIDSPUNKT_MER_ENN_28_DAGER_FØR_VIRKNINGSDATO ->
+        VurdertIndividuellForsikring.Konklusjon.SKJÆRINGSTIDSPUNKT_MER_ENN_28_DAGER_FØR_VIRKNINGSDATO -> {
             "Forsikringen var ikke ennå gyldig på skjæringstidspunktet"
+        }
 
-        VurdertIndividuellForsikring.Konklusjon.OPPHØRT_PÅ_SKJÆRINGSTIDSPUNKT ->
+        VurdertIndividuellForsikring.Konklusjon.OPPHØRT_PÅ_SKJÆRINGSTIDSPUNKT -> {
             "Forsikringen opphørte før skjæringstidspunktet"
+        }
 
-        VurdertIndividuellForsikring.Konklusjon.ALDRI_BETALT ->
+        VurdertIndividuellForsikring.Konklusjon.ALDRI_BETALT -> {
             "Forsikringen er innvilget, men ikke betalt ennå"
+        }
 
-        VurdertIndividuellForsikring.Konklusjon.PASSER_IKKE_MED_SØKNADSTYPE ->
+        VurdertIndividuellForsikring.Konklusjon.PASSER_IKKE_MED_SØKNADSTYPE -> {
             "Forsikringen passer ikke med søknadstypen"
+        }
 
-        VurdertIndividuellForsikring.Konklusjon.GYLDIG ->
+        VurdertIndividuellForsikring.Konklusjon.GYLDIG -> {
             "Lagt til grunn"
+        }
     }
 
 private fun no.nav.helse.sykepenger.forsikring.domain.Folketrygdlovenreferanse.tilApiFolketrygdlovenReferanse(): Folketrygdlovenreferanse =
