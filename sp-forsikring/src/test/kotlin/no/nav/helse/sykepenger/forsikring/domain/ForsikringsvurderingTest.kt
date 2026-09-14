@@ -298,6 +298,78 @@ internal class ForsikringsvurderingTest {
         assertFalse(vurdering.harDekningIVentetidUavhengigAvBetaling())
     }
 
+    @Test
+    fun `to vurderinger av samme grunnlag har samme utfall selv om ID-er og vurdert tidspunkt er ulike`() {
+        val en = vurdering(individuelleForsikringer = listOf(individuellForsikring()))
+        val to = vurdering(individuelleForsikringer = listOf(individuellForsikring()))
+
+        assertTrue(en.harSammeUtfallSom(to))
+    }
+
+    @Test
+    fun `endret premiegrunnlag endrer ikke utfallet`() {
+        val en = vurdering(individuelleForsikringer = listOf(individuellForsikring(premiegrunnlag = 200000)))
+        val to = vurdering(individuelleForsikringer = listOf(individuellForsikring(premiegrunnlag = 350000)))
+
+        assertTrue(en.harSammeUtfallSom(to))
+    }
+
+    @Test
+    fun `rekkefølgen på de individuelle forsikringene påvirker ikke utfallet`() {
+        val gyldig = individuellForsikring(type = IndividuellForsikringType.SELVSTENDIG_80_PROSENT_FRA_DAG_1)
+        val opphørt =
+            individuellForsikring(
+                type = IndividuellForsikringType.SELVSTENDIG_100_PROSENT_FRA_DAG_17,
+                opphørsdato = SKJÆRINGSTIDSPUNKT.minusDays(1),
+            )
+
+        val en = vurdering(individuelleForsikringer = listOf(gyldig, opphørt))
+        val to = vurdering(individuelleForsikringer = listOf(opphørt, gyldig))
+
+        assertTrue(en.harSammeUtfallSom(to))
+    }
+
+    @Test
+    fun `endret opphørsdato endrer utfallet selv om dekningen er den samme`() {
+        val uten = vurdering(individuelleForsikringer = listOf(individuellForsikring()))
+        val med =
+            vurdering(
+                individuelleForsikringer = listOf(individuellForsikring(opphørsdato = SKJÆRINGSTIDSPUNKT.plusMonths(6))),
+            )
+
+        assertEquals(uten.dekning(), med.dekning())
+        assertFalse(uten.harSammeUtfallSom(med))
+    }
+
+    @Test
+    fun `endret konklusjon endrer utfallet selv om ingen av vurderingene gir dekning`() {
+        val aldriBetalt = vurdering(individuelleForsikringer = listOf(individuellForsikring(erBetaltNoenGang = false)))
+        val opphørt =
+            vurdering(
+                individuelleForsikringer = listOf(individuellForsikring(opphørsdato = SKJÆRINGSTIDSPUNKT.minusDays(1))),
+            )
+
+        assertNull(aldriBetalt.dekning())
+        assertNull(opphørt.dekning())
+        assertFalse(aldriBetalt.harSammeUtfallSom(opphørt))
+    }
+
+    @Test
+    fun `bytte fra individuell til kollektiv forsikring endrer utfallet selv om dekningen er den samme`() {
+        val individuell =
+            vurdering(
+                individuelleForsikringer = listOf(individuellForsikring(type = IndividuellForsikringType.SELVSTENDIG_100_PROSENT_FRA_DAG_17)),
+            )
+        val kollektiv =
+            vurdering(
+                spesielleYrkesgrupper = setOf(SpesiellYrkesgruppe.JORDBRUKER),
+                kollektiveForsikringer = setOf(KollektivForsikring.JORDBRUKER),
+            )
+
+        assertEquals(individuell.dekning(), kollektiv.dekning())
+        assertFalse(individuell.harSammeUtfallSom(kollektiv))
+    }
+
     private fun vurdering(
         yrkesaktivitetstype: Yrkesaktivitetstype = Yrkesaktivitetstype.SELVSTENDIG,
         spesielleYrkesgrupper: Set<SpesiellYrkesgruppe> = emptySet(),

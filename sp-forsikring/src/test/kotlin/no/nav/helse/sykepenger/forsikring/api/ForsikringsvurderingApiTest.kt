@@ -555,6 +555,205 @@ class ForsikringsvurderingApiTest {
         )
     }
 
+    @Test
+    fun `POST revurdering returnerer 404 om det ikke finnes en forsikringsvurdering for fødselsnummer på skjæringstidspunkt`() {
+        val (statusCode, body) = postRevurdering(token = m2mToken())
+
+        assertEquals(404, statusCode) { "Body was: $body" }
+    }
+
+    @Test
+    fun `POST revurdering returnerer 200 uten body og lagrer ingen ny vurdering når utfallet er uendret`() {
+        val identitetsnummer = lagIdentitetsnummer()
+        val skjæringstidspunkt = "2026-01-01"
+        val forsikringsvurdering =
+            lagForsikringsvurdering(
+                skjæringstidspunkt = LocalDate.parse(skjæringstidspunkt),
+                identitetsnummer = identitetsnummer,
+                individuelleForsikringer =
+                    listOf(
+                        lagVurdertIndividuellForsikring(
+                            type = IndividuellForsikringType.SELVSTENDIG_80_PROSENT_FRA_DAG_1,
+                            virkningsdato = LocalDate.parse("2025-06-01"),
+                        ),
+                    ),
+            )
+        lagreRåkopiOgForsikringsvurdering(forsikringsvurdering)
+
+        // Replikabasen inneholder den samme forsikringen som vurderingen over bygger på
+        TestcontainersReplikadatabase.insertVedfrivt(
+            IF01_AGNR_FNR = identitetsnummer.tilInfotrygdFødselsnummer(),
+            IF10_TYPE = '1',
+            IF10_VIRKDATO = 20250601,
+        )
+        TestcontainersReplikadatabase.insertFkonto12(
+            IF01_AGNR_FNR = identitetsnummer.tilInfotrygdFødselsnummer(),
+            IF10_FORSFOM_SEQ = 0,
+            IF12_BETDATO_SEQ = 1,
+            IF12_BETDATO = 20250601,
+        )
+
+        val (statusCode, body) =
+            postRevurdering(
+                identitetsnummer = identitetsnummer.value,
+                skjæringstidspunkt = skjæringstidspunkt,
+                token = m2mToken(),
+            )
+
+        assertEquals(200, statusCode) { "Body was: $body" }
+        assertEquals("", body)
+        assertEquals(1, TestcontainersSpForsikringDatabase.countAlleForsikringsvurderinger()) {
+            "Forventet at ingen ny forsikringsvurdering ble lagret"
+        }
+        assertEquals(1, TestcontainersSpForsikringDatabase.countAlleRåkopier()) {
+            "Forventet at ingen ny råkopi ble lagret"
+        }
+    }
+
+    @Test
+    fun `POST revurdering oppdager endret opphørsdato selv om dekningen er den samme`() {
+        val identitetsnummer = lagIdentitetsnummer()
+        val skjæringstidspunkt = "2026-01-01"
+        val forsikringsvurdering =
+            lagForsikringsvurdering(
+                skjæringstidspunkt = LocalDate.parse(skjæringstidspunkt),
+                identitetsnummer = identitetsnummer,
+                individuelleForsikringer =
+                    listOf(
+                        lagVurdertIndividuellForsikring(
+                            type = IndividuellForsikringType.SELVSTENDIG_80_PROSENT_FRA_DAG_1,
+                            virkningsdato = LocalDate.parse("2025-06-01"),
+                        ),
+                    ),
+            )
+        lagreRåkopiOgForsikringsvurdering(forsikringsvurdering)
+
+        // Samme forsikring, men den har fått en opphørsdato etter skjæringstidspunktet.
+        // Forsikringen er fortsatt gyldig med samme dekning, så dekningen alene avslører ikke endringen.
+        TestcontainersReplikadatabase.insertVedfrivt(
+            IF01_AGNR_FNR = identitetsnummer.tilInfotrygdFødselsnummer(),
+            IF10_TYPE = '1',
+            IF10_VIRKDATO = 20250601,
+            IF10_FORSTOM = 20260630,
+        )
+        TestcontainersReplikadatabase.insertFkonto12(
+            IF01_AGNR_FNR = identitetsnummer.tilInfotrygdFødselsnummer(),
+            IF10_FORSFOM_SEQ = 0,
+            IF12_BETDATO_SEQ = 1,
+            IF12_BETDATO = 20250601,
+        )
+
+        val (statusCode, body) =
+            postRevurdering(
+                identitetsnummer = identitetsnummer.value,
+                skjæringstidspunkt = skjæringstidspunkt,
+                token = m2mToken(),
+            )
+
+        assertEquals(200, statusCode) { "Body was: $body" }
+        val json = body.somJson()
+        assertEquals(80, json["samletDekning"]["grad"].asInt()) { "Body was: $body" }
+        assertEquals(1, json["samletDekning"]["fraDag"].asInt()) { "Body was: $body" }
+        assertEquals("2026-06-30", json["individuelleForsikringer"].single()["opphørsdato"].asText())
+
+        val nyId = json["id"].asText()
+        assertTrue(nyId != forsikringsvurdering.id.value.toString()) { "Forventet en ny forsikringsvurdering-id" }
+
+        assertEquals(2, TestcontainersSpForsikringDatabase.countAlleForsikringsvurderinger()) {
+            "Forventet at den nye forsikringsvurderingen ble lagret"
+        }
+        assertEquals(2, TestcontainersSpForsikringDatabase.countAlleRåkopier()) {
+            "Forventet at råkopien den nye vurderingen bygger på ble lagret"
+        }
+
+        // Den nye vurderingen skal kunne hentes opp igjen av Spesialist
+        val (getStatusCode, getBody) = getForsikringsvurdering(nyId, m2mToken())
+        assertEquals(200, getStatusCode) { "Body was: $getBody" }
+    }
+
+    @Test
+    fun `POST revurdering returnerer ny vurdering når forsikringen har falt bort`() {
+        val identitetsnummer = lagIdentitetsnummer()
+        val skjæringstidspunkt = "2026-01-01"
+        val forsikringsvurdering =
+            lagForsikringsvurdering(
+                skjæringstidspunkt = LocalDate.parse(skjæringstidspunkt),
+                identitetsnummer = identitetsnummer,
+                individuelleForsikringer =
+                    listOf(
+                        lagVurdertIndividuellForsikring(
+                            type = IndividuellForsikringType.SELVSTENDIG_80_PROSENT_FRA_DAG_1,
+                            virkningsdato = LocalDate.parse("2025-06-01"),
+                        ),
+                    ),
+            )
+        lagreRåkopiOgForsikringsvurdering(forsikringsvurdering)
+
+        // Replikabasen er tom, altså har brukeren ingen forsikring lenger
+        val (statusCode, body) =
+            postRevurdering(
+                identitetsnummer = identitetsnummer.value,
+                skjæringstidspunkt = skjæringstidspunkt,
+                token = m2mToken(),
+            )
+
+        assertEquals(200, statusCode) { "Body was: $body" }
+        val json = body.somJson()
+        assertTrue(json["samletDekning"].isNull) { "Forventet ingen dekning, fikk: $body" }
+        assertTrue(json["individuelleForsikringer"].isEmpty) { "Forventet ingen individuelle forsikringer, fikk: $body" }
+        assertEquals(2, TestcontainersSpForsikringDatabase.countAlleForsikringsvurderinger())
+    }
+
+    @Test
+    fun `POST revurdering lagrer behovet som utløste revurderingen`() {
+        val identitetsnummer = lagIdentitetsnummer()
+        val skjæringstidspunkt = "2026-01-01"
+        val forrigeVurdering =
+            lagForsikringsvurdering(
+                skjæringstidspunkt = LocalDate.parse(skjæringstidspunkt),
+                identitetsnummer = identitetsnummer,
+                spesielleYrkesgrupper = setOf(SpesiellYrkesgruppe.FISKER_BLAD_B),
+                individuelleForsikringer =
+                    listOf(
+                        lagVurdertIndividuellForsikring(
+                            type = IndividuellForsikringType.SELVSTENDIG_80_PROSENT_FRA_DAG_1,
+                            virkningsdato = LocalDate.parse("2025-06-01"),
+                        ),
+                    ),
+            )
+        lagreRåkopiOgForsikringsvurdering(forrigeVurdering)
+
+        // Replikabasen er tom, altså har brukeren ingen forsikring lenger, og vi får en ny vurdering
+        val (statusCode, body) =
+            postRevurdering(
+                identitetsnummer = identitetsnummer.value,
+                skjæringstidspunkt = skjæringstidspunkt,
+                token = m2mToken(),
+            )
+
+        assertEquals(200, statusCode) { "Body was: $body" }
+        val nyId = body.somJson()["id"].asText()
+
+        // Behovet lagres på samme form som behovmeldingene fra Kafka, slik at grunnlaget er sporbart
+        val behov = TestcontainersSpForsikringDatabase.hentBehov(nyId).somJson()
+        assertEquals("POST /revurdering", behov["kilde"].asText())
+        assertEquals(identitetsnummer.value, behov["fødselsnummer"].asText())
+        assertEquals(forrigeVurdering.yrkesaktivitetstype.name, behov["yrkesaktivitetstype"].asText())
+        assertEquals(forrigeVurdering.id.value.toString(), behov["forrigeForsikringsvurderingId"].asText())
+        assertEquals(skjæringstidspunkt, behov["Forsikringsvurdering"]["skjæringstidspunkt"].asText())
+        assertEquals(
+            listOf(SpesiellYrkesgruppe.FISKER_BLAD_B.name),
+            behov["Forsikringsvurdering"]["spesielleYrkesgrupper"].map { it.asText() },
+        )
+    }
+
+    @Test
+    fun `POST revurdering returnerer 400 når identitetsnummer er ugyldig`() {
+        val (statusCode, body) = postRevurdering(identitetsnummer = "123", token = m2mToken())
+
+        assertEquals(400, statusCode) { "Body was: $body" }
+    }
+
     private fun m2mToken(
         issuerId: String = "default",
         audience: String = CLIENT_ID,
@@ -563,6 +762,18 @@ class ForsikringsvurderingApiTest {
             issuerId = issuerId,
             audience = audience,
             claims = mapOf("idtyp" to "app"),
+        )
+
+    private fun postRevurdering(
+        identitetsnummer: String = lagIdentitetsnummer().value,
+        skjæringstidspunkt: String = "2026-01-01",
+        token: String?,
+    ): Pair<Int, String> =
+        SpesialistApiClient.postRevurdering(
+            baseUrl = serverUrl,
+            identitetsnummer = identitetsnummer,
+            skjæringstidspunkt = skjæringstidspunkt,
+            token = token,
         )
 
     private fun bearerToken(

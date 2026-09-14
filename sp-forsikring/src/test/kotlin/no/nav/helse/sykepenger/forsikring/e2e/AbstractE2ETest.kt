@@ -21,11 +21,7 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.parallel.Isolated
 import tools.jackson.databind.JsonNode
 import tools.jackson.module.kotlin.jacksonObjectMapper
-import java.time.Instant
-import java.time.LocalDate
-import java.time.LocalDateTime
-import java.time.YearMonth
-import java.time.ZoneId
+import java.time.*
 import java.util.*
 import kotlin.test.fail
 
@@ -87,11 +83,12 @@ abstract class AbstractE2ETest(
         @Language("JSON") forventetResponse: String,
     ) {
         val forsikringsvurderingApiSvar = getForsikringsvurdering(forsikringsvurderingId)
+        assertEquals(forsikringsvurderingId, forsikringsvurderingApiSvar["id"].asString())
         assertJsonEquals(
             expectedJson =
             forventetResponse,
             actualJsonNode = forsikringsvurderingApiSvar,
-            bortsettFraStier = setOf("vurdertTidspunkt"),
+            bortsettFraStier = setOf("vurdertTidspunkt", "id"),
         )
         assertMindreEnnNSekunderSiden(
             sekunder = 30,

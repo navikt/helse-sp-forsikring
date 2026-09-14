@@ -144,6 +144,19 @@ object TestcontainersSpForsikringDatabase {
         }
     }
 
+    fun hentBehov(forsikringsvurderingId: String): String {
+        @Language("PostgreSQL")
+        val statement = "SELECT behov FROM forsikringsvurdering WHERE id = :forsikringsvurderingId::uuid"
+        return sessionOf(dataSource).use { session ->
+            session.run(
+                queryOf(
+                    statement,
+                    mapOf("forsikringsvurderingId" to forsikringsvurderingId),
+                ).map { it.string("behov") }.asSingle,
+            )!!
+        }
+    }
+
     private fun countRows(tableName: String): Int {
         @Language("PostgreSQL")
         val statement = "SELECT COUNT(*) FROM $tableName"

@@ -2,15 +2,11 @@ package no.nav.helse.sykepenger.forsikring.forsikringsvurdering
 
 import kotliquery.TransactionalSession
 import kotliquery.queryOf
-import no.nav.helse.sykepenger.forsikring.domain.Forsikringsvurdering
-import no.nav.helse.sykepenger.forsikring.domain.Identitetsnummer
-import no.nav.helse.sykepenger.forsikring.domain.KollektivForsikring
-import no.nav.helse.sykepenger.forsikring.domain.SpesiellYrkesgruppe
-import no.nav.helse.sykepenger.forsikring.domain.VurdertIndividuellForsikring
-import no.nav.helse.sykepenger.forsikring.domain.Yrkesaktivitetstype
+import no.nav.helse.sykepenger.forsikring.domain.*
 import no.nav.helse.sykepenger.forsikring.råkopi.Råkopi.Id
 import no.nav.helse.sykepenger.forsikring.råkopi.RåkopiIfVedfrivt10
 import org.intellij.lang.annotations.Language
+import java.time.LocalDate
 
 class ForsikringsvurderingRepository(
     private val spForsikringTransactionalSession: TransactionalSession,
@@ -61,6 +57,55 @@ class ForsikringsvurderingRepository(
                         vurdertTidspunkt = row.instant("vurdert_tidspunkt"),
                     )
                 }.asSingle,
+        )
+    }
+
+    fun finn(
+        identitetsnummer: Identitetsnummer,
+        skjæringstidspunkt: LocalDate,
+    ): Forsikringsvurdering? {
+        @Language("PostgreSQL")
+        val statement =
+            """
+            SELECT id,
+                   råkopi_id,
+                   identitetsnummer,
+                   yrkesaktivitetstype,
+                   skjæringstidspunkt,
+                   kollektiv_forsikring,
+                   vurdert_tidspunkt
+            FROM forsikringsvurdering
+            WHERE identitetsnummer = :identitetsnummer 
+                AND skjæringstidspunkt = :skjaringstidspunkt
+            ORDER BY vurdert_tidspunkt DESC, id DESC 
+            LIMIT 1
+            """.trimIndent()
+        return spForsikringTransactionalSession.run(
+            queryOf(
+                statement,
+                mapOf(
+                    "identitetsnummer" to identitetsnummer.value,
+                    "skjaringstidspunkt" to skjæringstidspunkt,
+                ),
+            ).map { row ->
+                val forsikringsvurderingId = Forsikringsvurdering.Id.fromString(row.string("id"))
+                val spesielleYrkesgrupper = hentSpesielleYrkesgrupper(forsikringsvurderingId)
+                val individuelleForsikringer = hentIndividuelleForsikringer(forsikringsvurderingId)
+                Forsikringsvurdering.fraLagring(
+                    id = forsikringsvurderingId,
+                    identitetsnummer = Identitetsnummer.fraString(row.string("identitetsnummer")),
+                    yrkesaktivitetstype = enumValueOf<Yrkesaktivitetstype>(row.string("yrkesaktivitetstype")),
+                    spesielleYrkesgrupper = spesielleYrkesgrupper,
+                    skjæringstidspunkt = row.localDate("skjæringstidspunkt"),
+                    råkopiId = Id(row.uuid("råkopi_id")),
+                    individuelleForsikringer = individuelleForsikringer,
+                    kollektivForsikring =
+                        row
+                            .stringOrNull("kollektiv_forsikring")
+                            ?.let<String, KollektivForsikring?> { enumValueOf<KollektivForsikring>(it) },
+                    vurdertTidspunkt = row.instant("vurdert_tidspunkt"),
+                )
+            }.asSingle,
         )
     }
 

@@ -68,6 +68,49 @@ class Forsikringsvurdering private constructor(
 
     fun harKollektivForsikring() = kollektivForsikring != null
 
+    /**
+     * Sammenligner utfallet av to vurderinger av samme person og skjæringstidspunkt, for å avgjøre om en ny
+     * vurdering gir et annet resultat enn en tidligere lagret vurdering.
+     *
+     * Identifikatorer ([id], [råkopiId], [VurdertIndividuellForsikring.råkopiIfVedfrivt10Id]) og [vurdertTidspunkt]
+     * inngår ikke, siden de alltid er nye for hver vurdering. Det samme gjelder felter som ikke påvirker utfallet
+     * (premiegrunnlag og betalingsstatus), som endrer seg i Infotrygd uten at vurderingen endrer seg.
+     */
+    fun harSammeUtfallSom(annen: Forsikringsvurdering): Boolean = utfall() == annen.utfall()
+
+    private fun utfall(): Utfall =
+        Utfall(
+            harForsikring = harForsikring(),
+            dekning = dekning(),
+            opphørsdato = opphørsdato(),
+            kollektivForsikring = kollektivForsikring,
+            individuelleForsikringer =
+                individuelleForsikringer
+                    .map { forsikring ->
+                        IndividuellForsikringUtfall(
+                            type = forsikring.type,
+                            virkningsdato = forsikring.virkningsdato,
+                            opphørsdato = forsikring.opphørsdato,
+                            konklusjon = forsikring.konklusjon,
+                        )
+                    }.toSet(),
+        )
+
+    private data class Utfall(
+        val harForsikring: Boolean,
+        val dekning: Forsikringsdekning?,
+        val opphørsdato: LocalDate?,
+        val kollektivForsikring: KollektivForsikring?,
+        val individuelleForsikringer: Set<IndividuellForsikringUtfall>,
+    )
+
+    private data class IndividuellForsikringUtfall(
+        val type: IndividuellForsikringType,
+        val virkningsdato: LocalDate,
+        val opphørsdato: LocalDate?,
+        val konklusjon: VurdertIndividuellForsikring.Konklusjon,
+    )
+
     fun harDekningIVentetidUavhengigAvBetaling(): Boolean =
         kollektivForsikring?.dekning?.fraDag == 1 ||
             individuelleForsikringer
