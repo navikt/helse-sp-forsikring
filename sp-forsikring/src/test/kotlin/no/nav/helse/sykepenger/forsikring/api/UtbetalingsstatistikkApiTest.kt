@@ -3,13 +3,15 @@ package no.nav.helse.sykepenger.forsikring.api
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
-import io.ktor.server.cio.CIO
-import io.ktor.server.engine.embeddedServer
+import com.github.navikt.tbd_libs.rapids_and_rivers.test_support.TestRapid
+import io.ktor.server.cio.*
+import io.ktor.server.engine.*
 import kotliquery.TransactionalSession
 import no.nav.helse.sykepenger.forsikring.domain.Forsikringstype
 import no.nav.helse.sykepenger.forsikring.domain.IndividuellForsikringType
 import no.nav.helse.sykepenger.forsikring.domain.KollektivForsikring
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.ForsikringsvurderingService
+import no.nav.helse.sykepenger.forsikring.kafka.RapidSubsumsjonspubliserer
 import no.nav.helse.sykepenger.forsikring.shared.testsupport.TestcontainersReplikadatabase
 import no.nav.helse.sykepenger.forsikring.shared.testsupport.TestcontainersSpForsikringDatabase
 import no.nav.helse.sykepenger.forsikring.shared.testsupport.lagIdentitetsnummer
@@ -41,6 +43,8 @@ class UtbetalingsstatistikkApiTest {
     private val port = ServerSocket(0).use { it.localPort }
     private val serverUrl = "http://localhost:$port"
 
+    private val testRapid = TestRapid()
+
     private val embeddedServer =
         embeddedServer(CIO, port = port) {
             api(
@@ -49,6 +53,7 @@ class UtbetalingsstatistikkApiTest {
                 clientId = CLIENT_ID,
                 issuerUrl = mockOAuth2Server.issuerUrl("default").toString(),
                 jwkProviderUri = mockOAuth2Server.jwksUrl("default").toString(),
+                subsumsjonspubliserer = RapidSubsumsjonspubliserer(testRapid, versjonAvKode = "test"),
             )
         }.start(wait = false)
 

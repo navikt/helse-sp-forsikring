@@ -11,11 +11,15 @@ import no.nav.helse.sykepenger.forsikring.domain.Forsikringsvurdering
 import no.nav.helse.sykepenger.forsikring.domain.Identitetsnummer
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.RevurderingService
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.Revurderingsresultat
+import no.nav.helse.sykepenger.forsikring.subsumsjon.Subsumsjonspubliserer
 import no.nav.sykepenger.libs.logging.loggInfo
 import java.time.LocalDate
 import java.util.*
 
-internal fun Route.revurderingApi(revurderingService: RevurderingService) {
+internal fun Route.revurderingApi(
+    revurderingService: RevurderingService,
+    subsumsjonspubliserer: Subsumsjonspubliserer,
+) {
     post("/revurdering") {
         val request = call.receive<RevurderingRequest>()
         loggInfo(
@@ -53,6 +57,11 @@ internal fun Route.revurderingApi(revurderingService: RevurderingService) {
             }
 
             is Revurderingsresultat.EndretVurdering -> {
+                subsumsjonspubliserer.publiser(
+                    forsikringsvurdering = revurderingsresultat.forsikringsvurdering,
+                    vedtaksperiodeId = request.vedtaksperiodeId,
+                    behandlingId = request.behandlingId,
+                )
                 val response = revurderingsresultat.forsikringsvurdering.tilSpesialistResponse()
                 loggInfo("Svarer på POST /revurdering med ny vurdering", "response" to response.toString())
                 call.respond(response)

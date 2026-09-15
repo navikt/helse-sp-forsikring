@@ -6,17 +6,12 @@ import com.github.navikt.tbd_libs.kafka.Config
 import com.github.navikt.tbd_libs.kafka.ConsumerProducerFactory
 import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
-import io.ktor.server.application.ApplicationStarted
-import io.ktor.server.application.ApplicationStopped
+import io.ktor.server.application.*
 import no.nav.helse.rapids_rivers.RapidApplication
 import no.nav.helse.sykepenger.forsikring.api.api
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.ForsikringsvurderingService
 import no.nav.helse.sykepenger.forsikring.gosys.GosysOppgaveClient
-import no.nav.helse.sykepenger.forsikring.kafka.ForsikringsvurderingBehovRiver
-import no.nav.helse.sykepenger.forsikring.kafka.ForsikringsvurderingResultatBehovRiver
-import no.nav.helse.sykepenger.forsikring.kafka.SelvstendigIngenDagerIgjenRiver
-import no.nav.helse.sykepenger.forsikring.kafka.SelvstendigUtbetaltEtterVentetidRiver
-import no.nav.helse.sykepenger.forsikring.kafka.VedtakFattetRiver
+import no.nav.helse.sykepenger.forsikring.kafka.*
 import no.nav.sykepenger.libs.logging.loggInfo
 import org.flywaydb.core.Flyway
 import java.net.URI
@@ -76,46 +71,62 @@ fun launchApplication(
             gosysScope = env.getValue("GOSYS_SCOPE"),
         )
 
+    val versjonAvKode = env.getValue("NAIS_APP_IMAGE")
+
+    // Det er en sirkulær avhengighet mellom RapidApplication og Ktor-oppsettet: API-et trenger rapiden for å
+    // publisere subsumsjoner, men rapiden bygger Ktor-modulen. Vi utsetter derfor hele Ktor-oppsettet til
+    // applikasjonen starter, og da har vi en ferdig RapidsConnection å koble inn.
+    lateinit var ktorOppsett: Application.() -> Unit
+
     RapidApplication
         .create(
             env = env,
             consumerProducerFactory = ConsumerProducerFactory(kafkaConfig),
             builder = {
                 env["HTTP_PORT"]?.toInt()?.let(::withHttpPort)
-                withKtorModule {
-                    api(
-                        spForsikringDataSource = spForsikringDataSource,
-                        forsikringsvurderingService = forsikringsvurderingService,
-                        clientId = env.getValue("AZURE_APP_CLIENT_ID"),
-                        issuerUrl = env.getValue("AZURE_OPENID_CONFIG_ISSUER"),
-                        jwkProviderUri = env.getValue("AZURE_OPENID_CONFIG_JWKS_URI"),
-                    )
-
-                    monitor.subscribe(ApplicationStarted) {
-                        loggInfo("Migrerer database")
-                        Flyway
-                            .configure()
-                            .dataSource(spForsikringDataSource)
-                            .cleanDisabled(true)
-                            .lockRetryCount(-1)
-                            .load()
-                            .migrate()
-                        loggInfo("Migrering ferdig!")
-                    }
-                    monitor.subscribe(ApplicationStopped) {
-                        loggInfo("Forsøker å lukke datasourcer...")
-                        spForsikringDataSource.close()
-                        replikabaseDataSource.close()
-                        loggInfo("Lukket datasourcer")
-                    }
-                }
+                withKtorModule { ktorOppsett() }
             },
         ).apply {
+            val subsumsjonspubliserer =
+                RapidSubsumsjonspubliserer(
+                    messageContext = this,
+                    versjonAvKode = versjonAvKode,
+                )
+
+            ktorOppsett = {
+                api(
+                    spForsikringDataSource = spForsikringDataSource,
+                    forsikringsvurderingService = forsikringsvurderingService,
+                    clientId = env.getValue("AZURE_APP_CLIENT_ID"),
+                    issuerUrl = env.getValue("AZURE_OPENID_CONFIG_ISSUER"),
+                    jwkProviderUri = env.getValue("AZURE_OPENID_CONFIG_JWKS_URI"),
+                    subsumsjonspubliserer = subsumsjonspubliserer,
+                )
+
+                monitor.subscribe(ApplicationStarted) {
+                    loggInfo("Migrerer database")
+                    Flyway
+                        .configure()
+                        .dataSource(spForsikringDataSource)
+                        .cleanDisabled(true)
+                        .lockRetryCount(-1)
+                        .load()
+                        .migrate()
+                    loggInfo("Migrering ferdig!")
+                }
+                monitor.subscribe(ApplicationStopped) {
+                    loggInfo("Forsøker å lukke datasourcer...")
+                    spForsikringDataSource.close()
+                    replikabaseDataSource.close()
+                    loggInfo("Lukket datasourcer")
+                }
+            }
+
             ForsikringsvurderingBehovRiver(
                 rapidsConnection = this,
                 replikabaseDataSource = replikabaseDataSource,
                 spForsikringDataSource = spForsikringDataSource,
-                versjonAvKode = env.getValue("NAIS_APP_IMAGE"),
+                versjonAvKode = versjonAvKode,
             )
             ForsikringsvurderingResultatBehovRiver(
                 rapidsConnection = this,

@@ -3,6 +3,7 @@ package no.nav.helse.sykepenger.forsikring.api
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
+import com.github.navikt.tbd_libs.rapids_and_rivers.test_support.TestRapid
 import io.ktor.server.cio.*
 import io.ktor.server.engine.*
 import no.nav.helse.sykepenger.forsikring.domain.IndividuellForsikringType
@@ -10,6 +11,7 @@ import no.nav.helse.sykepenger.forsikring.domain.KollektivForsikring
 import no.nav.helse.sykepenger.forsikring.domain.SpesiellYrkesgruppe
 import no.nav.helse.sykepenger.forsikring.domain.VurdertIndividuellForsikring
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.ForsikringsvurderingService
+import no.nav.helse.sykepenger.forsikring.kafka.RapidSubsumsjonspubliserer
 import no.nav.helse.sykepenger.forsikring.shared.testsupport.*
 import no.nav.security.mock.oauth2.MockOAuth2Server
 import org.junit.jupiter.api.AfterAll
@@ -32,6 +34,8 @@ class ForsikringsvurderingApiTest {
     private val port = ServerSocket(0).use { it.localPort }
     private val serverUrl = "http://localhost:$port"
 
+    private val testRapid = TestRapid()
+
     private val embeddedServer =
         embeddedServer(CIO, port = port) {
             api(
@@ -40,6 +44,7 @@ class ForsikringsvurderingApiTest {
                 clientId = CLIENT_ID,
                 issuerUrl = mockOAuth2Server.issuerUrl("default").toString(),
                 jwkProviderUri = mockOAuth2Server.jwksUrl("default").toString(),
+                subsumsjonspubliserer = RapidSubsumsjonspubliserer(testRapid, versjonAvKode = "test"),
             )
         }.start(wait = false)
 
@@ -47,6 +52,7 @@ class ForsikringsvurderingApiTest {
     fun reset() {
         TestcontainersReplikadatabase.reset()
         TestcontainersSpForsikringDatabase.reset()
+        testRapid.reset()
     }
 
     @AfterAll
@@ -748,6 +754,108 @@ class ForsikringsvurderingApiTest {
     }
 
     @Test
+    fun `POST revurdering publiserer subsumsjoner for den nye vurderingen`() {
+        val identitetsnummer = lagIdentitetsnummer()
+        val skjæringstidspunkt = "2026-01-01"
+        val vedtaksperiodeId = UUID.randomUUID()
+        val behandlingId = UUID.randomUUID()
+        lagreRåkopiOgForsikringsvurdering(
+            lagForsikringsvurdering(
+                skjæringstidspunkt = LocalDate.parse(skjæringstidspunkt),
+                identitetsnummer = identitetsnummer,
+                individuelleForsikringer =
+                    listOf(
+                        lagVurdertIndividuellForsikring(
+                            type = IndividuellForsikringType.SELVSTENDIG_80_PROSENT_FRA_DAG_1,
+                            virkningsdato = LocalDate.parse("2025-06-01"),
+                        ),
+                    ),
+            ),
+        )
+
+        // Samme forsikring, men med ny opphørsdato, slik at vi får en endret vurdering
+        TestcontainersReplikadatabase.insertVedfrivt(
+            IF01_AGNR_FNR = identitetsnummer.tilInfotrygdFødselsnummer(),
+            IF10_TYPE = '1',
+            IF10_VIRKDATO = 20250601,
+            IF10_FORSTOM = 20260630,
+        )
+        TestcontainersReplikadatabase.insertFkonto12(
+            IF01_AGNR_FNR = identitetsnummer.tilInfotrygdFødselsnummer(),
+            IF10_FORSFOM_SEQ = 0,
+            IF12_BETDATO_SEQ = 1,
+            IF12_BETDATO = 20250601,
+        )
+
+        val (statusCode, body) =
+            postRevurdering(
+                identitetsnummer = identitetsnummer.value,
+                skjæringstidspunkt = skjæringstidspunkt,
+                token = m2mToken(),
+                vedtaksperiodeId = vedtaksperiodeId,
+                behandlingId = behandlingId,
+            )
+
+        assertEquals(200, statusCode) { "Body was: $body" }
+        assertEquals(1, testRapid.inspektør.size) { "Forventet én publisert subsumsjonsmelding" }
+
+        val subsumsjonsmelding = testRapid.inspektør.message(0)
+        assertEquals("subsumsjon", subsumsjonsmelding["@event_name"].asString())
+        assertEquals(identitetsnummer.value, subsumsjonsmelding["fødselsnummer"].asString())
+
+        val subsumsjon = subsumsjonsmelding["subsumsjon"]
+        assertEquals("test", subsumsjon["versjonAvKode"].asString())
+        assertEquals(vedtaksperiodeId.toString(), subsumsjon["vedtaksperiodeId"].asString())
+        assertEquals(behandlingId.toString(), subsumsjon["behandlingId"].asString())
+        assertEquals(
+            body.somJson()["id"].asText(),
+            subsumsjon["output"]["forsikringsvurderingId"].asString(),
+        ) { "Subsumsjonen skal peke på den nye vurderingen" }
+    }
+
+    @Test
+    fun `POST revurdering publiserer ingen subsumsjoner når utfallet er uendret`() {
+        val identitetsnummer = lagIdentitetsnummer()
+        val skjæringstidspunkt = "2026-01-01"
+        lagreRåkopiOgForsikringsvurdering(
+            lagForsikringsvurdering(
+                skjæringstidspunkt = LocalDate.parse(skjæringstidspunkt),
+                identitetsnummer = identitetsnummer,
+                individuelleForsikringer =
+                    listOf(
+                        lagVurdertIndividuellForsikring(
+                            type = IndividuellForsikringType.SELVSTENDIG_80_PROSENT_FRA_DAG_1,
+                            virkningsdato = LocalDate.parse("2025-06-01"),
+                        ),
+                    ),
+            ),
+        )
+
+        // Replikabasen inneholder den samme forsikringen som vurderingen over bygger på
+        TestcontainersReplikadatabase.insertVedfrivt(
+            IF01_AGNR_FNR = identitetsnummer.tilInfotrygdFødselsnummer(),
+            IF10_TYPE = '1',
+            IF10_VIRKDATO = 20250601,
+        )
+        TestcontainersReplikadatabase.insertFkonto12(
+            IF01_AGNR_FNR = identitetsnummer.tilInfotrygdFødselsnummer(),
+            IF10_FORSFOM_SEQ = 0,
+            IF12_BETDATO_SEQ = 1,
+            IF12_BETDATO = 20250601,
+        )
+
+        val (statusCode, body) =
+            postRevurdering(
+                identitetsnummer = identitetsnummer.value,
+                skjæringstidspunkt = skjæringstidspunkt,
+                token = m2mToken(),
+            )
+
+        assertEquals(200, statusCode) { "Body was: $body" }
+        assertEquals(0, testRapid.inspektør.size) { "Forventet ingen publiserte meldinger" }
+    }
+
+    @Test
     fun `POST revurdering returnerer 400 når identitetsnummer er ugyldig`() {
         val (statusCode, body) = postRevurdering(identitetsnummer = "123", token = m2mToken())
 
@@ -768,12 +876,16 @@ class ForsikringsvurderingApiTest {
         identitetsnummer: String = lagIdentitetsnummer().value,
         skjæringstidspunkt: String = "2026-01-01",
         token: String?,
+        vedtaksperiodeId: UUID = UUID.randomUUID(),
+        behandlingId: UUID = UUID.randomUUID(),
     ): Pair<Int, String> =
         SpesialistApiClient.postRevurdering(
             baseUrl = serverUrl,
             identitetsnummer = identitetsnummer,
             skjæringstidspunkt = skjæringstidspunkt,
             token = token,
+            vedtaksperiodeId = vedtaksperiodeId,
+            behandlingId = behandlingId,
         )
 
     private fun bearerToken(
