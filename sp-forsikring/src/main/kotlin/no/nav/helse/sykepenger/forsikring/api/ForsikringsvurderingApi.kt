@@ -16,6 +16,7 @@ import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.ForsikringsvurderingService
+import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.RevurderingService
 import no.nav.sykepenger.libs.logging.loggError
 import java.net.URI
 import java.util.*
@@ -98,7 +99,10 @@ fun Application.forsikringsvurderingApi(
     routing {
         authenticate("oidc-m2m") {
             flexApi(forsikringsvurderingService)
-            spesialistApi(spForsikringDataSource, forsikringsvurderingService)
+            spesialistApi(
+                spForsikringDataSource = spForsikringDataSource,
+                revurderingService = RevurderingService(spForsikringDataSource, forsikringsvurderingService),
+            )
         }
         authenticate("oidc") {
             utbetalingsstatistikkApi(spForsikringDataSource)

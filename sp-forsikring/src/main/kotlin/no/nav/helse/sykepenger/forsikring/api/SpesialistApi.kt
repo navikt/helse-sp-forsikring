@@ -14,7 +14,6 @@ import no.nav.helse.sykepenger.forsikring.domain.Identitetsnummer
 import no.nav.helse.sykepenger.forsikring.domain.KollektivForsikring
 import no.nav.helse.sykepenger.forsikring.domain.VurdertIndividuellForsikring
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.ForsikringsvurderingRepository
-import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.ForsikringsvurderingService
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.RevurderingService
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.Revurderingsresultat
 import no.nav.helse.sykepenger.forsikring.shared.util.inTransaction
@@ -23,12 +22,10 @@ import java.time.Instant
 import java.time.LocalDate
 import javax.sql.DataSource
 
-fun Route.spesialistApi(
+internal fun Route.spesialistApi(
     spForsikringDataSource: DataSource,
-    forsikringsvurderingService: ForsikringsvurderingService,
+    revurderingService: RevurderingService,
 ) {
-    val revurderingService = RevurderingService(spForsikringDataSource, forsikringsvurderingService)
-
     get("/forsikringsvurderinger/{forsikringsvurderingId}") {
         val rawId = call.parameters["forsikringsvurderingId"]
         val id =
@@ -66,10 +63,14 @@ fun Route.spesialistApi(
 
     post("/revurdering") {
         val request = call.receive<RevurderingRequest>()
+        val vedtaksperiodeId = request.vedtaksperiodeId.tilUUID("vedtaksperiodeId")
+        val behandlingId = request.behandlingId.tilUUID("behandlingId")
         loggInfo(
             "Mottok kall til POST /revurdering",
             "identitetsnummer" to request.identitetsnummer,
             "skjæringstidspunkt" to request.skjæringstidspunkt.toString(),
+            "vedtaksperiodeId" to vedtaksperiodeId.toString(),
+            "behandlingId" to behandlingId.toString(),
         )
 
         val identitetsnummer = Identitetsnummer.fraString(request.identitetsnummer)
