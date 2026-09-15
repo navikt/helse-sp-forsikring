@@ -9,7 +9,7 @@ import com.zaxxer.hikari.HikariDataSource
 import io.ktor.server.application.ApplicationStarted
 import io.ktor.server.application.ApplicationStopped
 import no.nav.helse.rapids_rivers.RapidApplication
-import no.nav.helse.sykepenger.forsikring.api.forsikringsvurderingApi
+import no.nav.helse.sykepenger.forsikring.api.api
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.ForsikringsvurderingService
 import no.nav.helse.sykepenger.forsikring.gosys.GosysOppgaveClient
 import no.nav.helse.sykepenger.forsikring.kafka.ForsikringsvurderingBehovRiver
@@ -83,7 +83,7 @@ fun launchApplication(
             builder = {
                 env["HTTP_PORT"]?.toInt()?.let(::withHttpPort)
                 withKtorModule {
-                    forsikringsvurderingApi(
+                    api(
                         spForsikringDataSource = spForsikringDataSource,
                         forsikringsvurderingService = forsikringsvurderingService,
                         clientId = env.getValue("AZURE_APP_CLIENT_ID"),

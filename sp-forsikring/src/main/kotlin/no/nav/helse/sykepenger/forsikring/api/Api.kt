@@ -22,7 +22,7 @@ import java.net.URI
 import java.util.*
 import javax.sql.DataSource
 
-fun Application.forsikringsvurderingApi(
+fun Application.api(
     spForsikringDataSource: DataSource,
     forsikringsvurderingService: ForsikringsvurderingService,
     clientId: String,

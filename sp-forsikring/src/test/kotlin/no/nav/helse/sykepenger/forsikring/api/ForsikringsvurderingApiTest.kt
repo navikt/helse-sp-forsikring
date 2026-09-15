@@ -34,7 +34,7 @@ class ForsikringsvurderingApiTest {
 
     private val embeddedServer =
         embeddedServer(CIO, port = port) {
-            forsikringsvurderingApi(
+            api(
                 spForsikringDataSource = TestcontainersSpForsikringDatabase.dataSource,
                 forsikringsvurderingService = ForsikringsvurderingService(TestcontainersReplikadatabase.dataSource),
                 clientId = CLIENT_ID,
