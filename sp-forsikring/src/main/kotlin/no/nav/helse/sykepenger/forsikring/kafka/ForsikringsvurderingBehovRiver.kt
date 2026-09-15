@@ -14,8 +14,6 @@ import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.Forsikringsvurder
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.ForsikringsvurderingService
 import no.nav.helse.sykepenger.forsikring.kafka.lib.medParsetMeldingOgTransaction
 import no.nav.helse.sykepenger.forsikring.råkopi.RåkopiRepository
-import no.nav.helse.sykepenger.forsikring.subsumsjon.Subsumsjonsmelding
-import no.nav.helse.sykepenger.forsikring.subsumsjon.tilSubsumsjonsmeldinger
 import no.nav.sykepenger.libs.logging.loggError
 import no.nav.sykepenger.libs.logging.loggInfo
 import javax.sql.DataSource
@@ -75,14 +73,6 @@ class ForsikringsvurderingBehovRiver(
                 RåkopiRepository(transaction).lagre(råkopi)
                 ForsikringsvurderingRepository(transaction).lagre(forsikringsvurdering, packet.toJson())
 
-                val subsumsjonsMeldinger =
-                    forsikringsvurdering
-                        .tilSubsumsjonsmeldinger(
-                            vedtaksperiodeId = melding.vedtaksperiodeId,
-                            behandlingId = melding.behandlingId,
-                            versjonAvKode = versjonAvKode,
-                        ).map(Subsumsjonsmelding::tilJson)
-
                 packet["@løsning"] =
                     mapOf(
                         "Forsikringsvurdering" to
@@ -93,10 +83,14 @@ class ForsikringsvurderingBehovRiver(
 
                 val løsningJson = packet.toJson()
 
-                subsumsjonsMeldinger.forEach { subsumsjonsmelding ->
-                    loggInfo("Sender subsumsjonsmelding", "subsumsjonsmelding" to subsumsjonsmelding)
-                    context.publish(subsumsjonsmelding)
-                }
+                RapidSubsumsjonspubliserer(
+                    messageContext = context,
+                    versjonAvKode = versjonAvKode,
+                ).publiser(
+                    forsikringsvurdering = forsikringsvurdering,
+                    vedtaksperiodeId = melding.vedtaksperiodeId,
+                    behandlingId = melding.behandlingId,
+                )
 
                 loggInfo("Svarer på Forsikringsvurdering-behov med løsning", "løsning" to løsningJson)
                 context.publish(løsningJson)
