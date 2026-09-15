@@ -7,6 +7,7 @@ import org.apache.hc.client5.http.fluent.Request
 import org.apache.hc.core5.http.ContentType
 import org.apache.hc.core5.http.io.entity.EntityUtils
 import java.time.LocalDate
+import java.util.*
 
 object SpesialistApiClient {
     private val objectMapper =
@@ -39,6 +40,8 @@ object SpesialistApiClient {
                     RevurderingRequest(
                         identitetsnummer = identitetsnummer,
                         skjæringstidspunkt = LocalDate.parse(skjæringstidspunkt),
+                        vedtaksperiodeId = UUID.randomUUID(),
+                        behandlingId = UUID.randomUUID(),
                     ),
                 ),
                 ContentType.APPLICATION_JSON,

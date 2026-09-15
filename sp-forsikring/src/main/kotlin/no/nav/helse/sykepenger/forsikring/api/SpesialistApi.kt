@@ -20,6 +20,7 @@ import no.nav.helse.sykepenger.forsikring.shared.util.inTransaction
 import no.nav.sykepenger.libs.logging.loggInfo
 import java.time.Instant
 import java.time.LocalDate
+import java.util.*
 import javax.sql.DataSource
 
 internal fun Route.spesialistApi(
@@ -63,14 +64,12 @@ internal fun Route.spesialistApi(
 
     post("/revurdering") {
         val request = call.receive<RevurderingRequest>()
-        val vedtaksperiodeId = request.vedtaksperiodeId.tilUUID("vedtaksperiodeId")
-        val behandlingId = request.behandlingId.tilUUID("behandlingId")
         loggInfo(
             "Mottok kall til POST /revurdering",
             "identitetsnummer" to request.identitetsnummer,
             "skjæringstidspunkt" to request.skjæringstidspunkt.toString(),
-            "vedtaksperiodeId" to vedtaksperiodeId.toString(),
-            "behandlingId" to behandlingId.toString(),
+            "vedtaksperiodeId" to request.vedtaksperiodeId.toString(),
+            "behandlingId" to request.behandlingId.toString(),
         )
 
         val identitetsnummer = Identitetsnummer.fraString(request.identitetsnummer)
@@ -167,7 +166,13 @@ private fun RevurderingRequest.tilBehovJson(forrigeVurdering: Forsikringsvurderi
 
 private val behovJsonMapper = ObjectMapper()
 
-@JsonPropertyOrder("kilde", "fødselsnummer", "yrkesaktivitetstype", "forrigeForsikringsvurderingId", "Forsikringsvurdering")
+@JsonPropertyOrder(
+    "kilde",
+    "fødselsnummer",
+    "yrkesaktivitetstype",
+    "forrigeForsikringsvurderingId",
+    "Forsikringsvurdering",
+)
 private data class RevurderingBehov(
     val kilde: String = "POST /revurdering",
     val fødselsnummer: String,
@@ -184,6 +189,8 @@ private data class RevurderingBehov(
 data class RevurderingRequest(
     val identitetsnummer: String,
     val skjæringstidspunkt: LocalDate,
+    val vedtaksperiodeId: UUID,
+    val behandlingId: UUID,
 )
 
 private fun VurdertIndividuellForsikring.Konklusjon.forklaring(): String =
