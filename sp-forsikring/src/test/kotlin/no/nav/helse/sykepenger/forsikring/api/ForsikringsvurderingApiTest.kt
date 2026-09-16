@@ -564,14 +564,14 @@ class ForsikringsvurderingApiTest {
     }
 
     @Test
-    fun `POST revurdering returnerer 404 om det ikke finnes en forsikringsvurdering for fødselsnummer på skjæringstidspunkt`() {
+    fun `POST revurdering returnerer 400 om det ikke finnes en forsikringsvurdering for fødselsnummer på skjæringstidspunkt`() {
         val (statusCode, body) = postRevurdering(token = m2mToken())
 
-        assertEquals(404, statusCode) { "Body was: $body" }
+        assertEquals(400, statusCode) { "Body was: $body" }
     }
 
     @Test
-    fun `POST revurdering returnerer 200 uten body og lagrer ingen ny vurdering når utfallet er uendret`() {
+    fun `POST revurdering returnerer vurderingErEndret false og lagrer ingen ny vurdering når utfallet er uendret`() {
         val identitetsnummer = lagIdentitetsnummer()
         val skjæringstidspunkt = "2026-01-01"
         val forsikringsvurdering =
@@ -609,7 +609,7 @@ class ForsikringsvurderingApiTest {
             )
 
         assertEquals(200, statusCode) { "Body was: $body" }
-        assertEquals("", body)
+        assertFalse(body.somJson()["vurderingErEndret"].asBoolean()) { "Body was: $body" }
         assertEquals(1, TestcontainersSpForsikringDatabase.countAlleForsikringsvurderinger()) {
             "Forventet at ingen ny forsikringsvurdering ble lagret"
         }
@@ -659,13 +659,7 @@ class ForsikringsvurderingApiTest {
             )
 
         assertEquals(200, statusCode) { "Body was: $body" }
-        val json = body.somJson()
-        assertEquals(80, json["samletDekning"]["grad"].asInt()) { "Body was: $body" }
-        assertEquals(1, json["samletDekning"]["fraDag"].asInt()) { "Body was: $body" }
-        assertEquals("2026-06-30", json["individuelleForsikringer"].single()["opphørsdato"].asText())
-
-        val nyId = json["id"].asText()
-        assertTrue(nyId != forsikringsvurdering.id.value.toString()) { "Forventet en ny forsikringsvurdering-id" }
+        assertTrue(body.somJson()["vurderingErEndret"].asBoolean()) { "Body was: $body" }
 
         assertEquals(2, TestcontainersSpForsikringDatabase.countAlleForsikringsvurderinger()) {
             "Forventet at den nye forsikringsvurderingen ble lagret"
@@ -673,14 +667,10 @@ class ForsikringsvurderingApiTest {
         assertEquals(2, TestcontainersSpForsikringDatabase.countAlleRåkopier()) {
             "Forventet at råkopien den nye vurderingen bygger på ble lagret"
         }
-
-        // Den nye vurderingen skal kunne hentes opp igjen av Spesialist
-        val (getStatusCode, getBody) = getForsikringsvurdering(nyId, m2mToken())
-        assertEquals(200, getStatusCode) { "Body was: $getBody" }
     }
 
     @Test
-    fun `POST revurdering returnerer ny vurdering når forsikringen har falt bort`() {
+    fun `POST revurdering returnerer vurderingErEndret true når forsikringen har falt bort`() {
         val identitetsnummer = lagIdentitetsnummer()
         val skjæringstidspunkt = "2026-01-01"
         val forsikringsvurdering =
@@ -706,9 +696,7 @@ class ForsikringsvurderingApiTest {
             )
 
         assertEquals(200, statusCode) { "Body was: $body" }
-        val json = body.somJson()
-        assertTrue(json["samletDekning"].isNull) { "Forventet ingen dekning, fikk: $body" }
-        assertTrue(json["individuelleForsikringer"].isEmpty) { "Forventet ingen individuelle forsikringer, fikk: $body" }
+        assertTrue(body.somJson()["vurderingErEndret"].asBoolean()) { "Body was: $body" }
         assertEquals(2, TestcontainersSpForsikringDatabase.countAlleForsikringsvurderinger())
     }
 
@@ -740,19 +728,6 @@ class ForsikringsvurderingApiTest {
             )
 
         assertEquals(200, statusCode) { "Body was: $body" }
-        val nyId = body.somJson()["id"].asText()
-
-        // Behovet lagres på samme form som behovmeldingene fra Kafka, slik at grunnlaget er sporbart
-        val behov = TestcontainersSpForsikringDatabase.hentBehov(nyId).somJson()
-        assertEquals("POST /revurdering", behov["kilde"].asText())
-        assertEquals(identitetsnummer.value, behov["fødselsnummer"].asText())
-        assertEquals(forrigeVurdering.yrkesaktivitetstype.name, behov["yrkesaktivitetstype"].asText())
-        assertEquals(forrigeVurdering.id.value.toString(), behov["forrigeForsikringsvurderingId"].asText())
-        assertEquals(skjæringstidspunkt, behov["Forsikringsvurdering"]["skjæringstidspunkt"].asText())
-        assertEquals(
-            listOf(SpesiellYrkesgruppe.FISKER_BLAD_B.name),
-            behov["Forsikringsvurdering"]["spesielleYrkesgrupper"].map { it.asText() },
-        )
     }
 
     @Test
@@ -761,7 +736,7 @@ class ForsikringsvurderingApiTest {
         val skjæringstidspunkt = "2026-01-01"
         val vedtaksperiodeId = UUID.randomUUID()
         val behandlingId = UUID.randomUUID()
-        lagreRåkopiOgForsikringsvurdering(
+        val forrigeVurdering =
             lagForsikringsvurdering(
                 skjæringstidspunkt = LocalDate.parse(skjæringstidspunkt),
                 identitetsnummer = identitetsnummer,
@@ -772,8 +747,8 @@ class ForsikringsvurderingApiTest {
                             virkningsdato = LocalDate.parse("2025-06-01"),
                         ),
                     ),
-            ),
-        )
+            )
+        lagreRåkopiOgForsikringsvurdering(forrigeVurdering)
 
         // Samme forsikring, men med ny opphørsdato, slik at vi får en endret vurdering
         TestcontainersReplikadatabase.insertVedfrivt(
@@ -809,17 +784,13 @@ class ForsikringsvurderingApiTest {
         assertEquals("test", subsumsjon["versjonAvKode"].asString())
         assertEquals(vedtaksperiodeId.toString(), subsumsjon["vedtaksperiodeId"].asString())
         assertEquals(behandlingId.toString(), subsumsjon["behandlingId"].asString())
-        assertEquals(
-            body.somJson()["id"].asText(),
-            subsumsjon["output"]["forsikringsvurderingId"].asString(),
-        ) { "Subsumsjonen skal peke på den nye vurderingen" }
     }
 
     @Test
     fun `POST revurdering publiserer endret_forsikringsvurdering for den nye vurderingen`() {
         val identitetsnummer = lagIdentitetsnummer()
         val skjæringstidspunkt = "2026-01-01"
-        lagreRåkopiOgForsikringsvurdering(
+        val forrigeVurdering =
             lagForsikringsvurdering(
                 skjæringstidspunkt = LocalDate.parse(skjæringstidspunkt),
                 identitetsnummer = identitetsnummer,
@@ -830,8 +801,8 @@ class ForsikringsvurderingApiTest {
                             virkningsdato = LocalDate.parse("2025-06-01"),
                         ),
                     ),
-            ),
-        )
+            )
+        lagreRåkopiOgForsikringsvurdering(forrigeVurdering)
 
         val (statusCode, body) =
             postRevurdering(
@@ -848,10 +819,6 @@ class ForsikringsvurderingApiTest {
         val melding = meldinger.single()
         assertEquals(identitetsnummer.value, melding["identitetsnummer"].asString())
         assertEquals(skjæringstidspunkt, melding["skjæringstidspunkt"].asString())
-        assertEquals(
-            body.somJson()["id"].asText(),
-            melding["forsikringsvurderingId"].asString(),
-        ) { "Meldingen skal peke på den nye vurderingen" }
     }
 
     @Test

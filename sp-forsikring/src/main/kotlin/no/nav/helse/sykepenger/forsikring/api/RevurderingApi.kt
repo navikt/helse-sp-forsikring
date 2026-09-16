@@ -45,25 +45,27 @@ internal fun Route.revurderingApi(
             when (revurderingsresultat) {
                 is Revurderingsresultat.IngenTidligereVurdering -> {
                     call.respond(
-                        HttpStatusCode.NotFound,
+                        HttpStatusCode.BadRequest,
                         ProblemResponse(
                             title = "Forsikringsvurderinger ikke funnet",
-                            status = HttpStatusCode.NotFound.value,
+                            status = HttpStatusCode.BadRequest.value,
                             detail = "Fant ingen forsikringsvurderinger for skjæringstidspunkt ${request.skjæringstidspunkt}",
                             instance = call.request.uri,
                         ),
                     )
                 }
 
-                is Revurderingsresultat.UendretVurdering -> {
-                    loggInfo("Svarer på POST /revurdering ingen ny vurdering")
-                    call.respond(HttpStatusCode.OK)
-                }
-
-                is Revurderingsresultat.EndretVurdering -> {
-                    val response = revurderingsresultat.forsikringsvurdering.tilSpesialistResponse()
-                    loggInfo("Svarer på POST /revurdering med ny vurdering", "response" to response.toString())
-                    call.respond(response)
+                else -> {
+                    val response =
+                        RevurderingResponse(
+                            vurderingErEndret =
+                                when (revurderingsresultat) {
+                                    is Revurderingsresultat.UendretVurdering -> false
+                                    is Revurderingsresultat.EndretVurdering -> true
+                                },
+                        )
+                    loggInfo("Svarer på POST /revurdering", "response" to response.toString())
+                    call.respond(HttpStatusCode.OK, response)
                 }
             }
         }
@@ -75,6 +77,10 @@ data class RevurderingRequest(
     val skjæringstidspunkt: LocalDate,
     val vedtaksperiodeId: UUID,
     val behandlingId: UUID,
+)
+
+data class RevurderingResponse(
+    val vurderingErEndret: Boolean,
 )
 
 private fun RevurderingRequest.tilBehovJson(forrigeVurdering: Forsikringsvurdering): String =
