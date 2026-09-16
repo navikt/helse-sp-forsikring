@@ -4,7 +4,9 @@ import no.nav.helse.sykepenger.forsikring.domain.Forsikringsvurdering
 import no.nav.helse.sykepenger.forsikring.domain.Identitetsnummer
 import no.nav.helse.sykepenger.forsikring.råkopi.RåkopiRepository
 import no.nav.helse.sykepenger.forsikring.shared.util.inTransaction
+import no.nav.helse.sykepenger.forsikring.subsumsjon.Subsumsjonspubliserer
 import java.time.LocalDate
+import java.util.*
 import javax.sql.DataSource
 
 /**
@@ -14,10 +16,13 @@ import javax.sql.DataSource
 internal class RevurderingService(
     private val spForsikringDataSource: DataSource,
     private val forsikringsvurderingService: ForsikringsvurderingService,
+    private val subsumsjonspubliserer: Subsumsjonspubliserer,
 ) {
     fun revurder(
         identitetsnummer: Identitetsnummer,
         skjæringstidspunkt: LocalDate,
+        vedtaksperiodeId: UUID,
+        behandlingId: UUID,
         behovJson: (forrigeForsikringsvurdering: Forsikringsvurdering) -> String,
     ): Revurderingsresultat =
         spForsikringDataSource.inTransaction { transactionalSession ->
@@ -45,7 +50,11 @@ internal class RevurderingService(
             // Råkopien må lagres før vurderingen, siden vurderingen peker på den med fremmednøkler
             RåkopiRepository(transactionalSession).lagre(råkopi)
             repository.lagre(nyVurdering, behovJson(sisteForsikringsvurdering))
-
+            subsumsjonspubliserer.publiser(
+                forsikringsvurdering = nyVurdering,
+                vedtaksperiodeId = vedtaksperiodeId,
+                behandlingId = behandlingId,
+            )
             Revurderingsresultat.EndretVurdering(nyVurdering)
         }
 }

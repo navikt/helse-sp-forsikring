@@ -103,8 +103,12 @@ fun Application.api(
             flexApi(forsikringsvurderingService)
             spesialistApi(
                 spForsikringDataSource = spForsikringDataSource,
-                revurderingService = RevurderingService(spForsikringDataSource, forsikringsvurderingService),
-                subsumsjonspubliserer = subsumsjonspubliserer,
+                revurderingService =
+                    RevurderingService(
+                        spForsikringDataSource = spForsikringDataSource,
+                        forsikringsvurderingService = forsikringsvurderingService,
+                        subsumsjonspubliserer = subsumsjonspubliserer,
+                    ),
             )
         }
         authenticate("oidc") {

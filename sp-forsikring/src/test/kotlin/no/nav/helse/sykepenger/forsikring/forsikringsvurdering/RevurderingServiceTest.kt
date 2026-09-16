@@ -1,23 +1,41 @@
 package no.nav.helse.sykepenger.forsikring.forsikringsvurdering
 
+import no.nav.helse.sykepenger.forsikring.domain.Forsikringsvurdering
 import no.nav.helse.sykepenger.forsikring.domain.IndividuellForsikringType
 import no.nav.helse.sykepenger.forsikring.shared.testsupport.*
+import no.nav.helse.sykepenger.forsikring.subsumsjon.Subsumsjonspubliserer
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import java.time.LocalDate
+import java.util.*
 import kotlin.test.assertIs
+import kotlin.test.assertTrue
 
 internal class RevurderingServiceTest {
+    private val subumsjonspubliserer =
+        object : Subsumsjonspubliserer {
+            val subsumsjoner = mutableListOf<Forsikringsvurdering>()
+
+            override fun publiser(
+                forsikringsvurdering: Forsikringsvurdering,
+                vedtaksperiodeId: UUID,
+                behandlingId: UUID,
+            ) {
+                subsumsjoner.add(forsikringsvurdering)
+            }
+        }
     private val revurderingService =
         RevurderingService(
             spForsikringDataSource = TestcontainersSpForsikringDatabase.dataSource,
             forsikringsvurderingService = ForsikringsvurderingService(TestcontainersReplikadatabase.dataSource),
+            subsumsjonspubliserer = subumsjonspubliserer,
         )
 
     @BeforeEach
     fun beforeEach() {
         TestcontainersReplikadatabase.reset()
         TestcontainersSpForsikringDatabase.reset()
+        subumsjonspubliserer.subsumsjoner.clear()
     }
 
     @Test
@@ -26,9 +44,12 @@ internal class RevurderingServiceTest {
             revurderingService.revurder(
                 identitetsnummer = lagIdentitetsnummer(),
                 skjæringstidspunkt = LocalDate.parse("2026-01-01"),
+                vedtaksperiodeId = UUID.randomUUID(),
+                behandlingId = UUID.randomUUID(),
             ) { error("skal ikke bygge behov når det ikke finnes noen tidligere vurdering") }
 
         assertIs<Revurderingsresultat.IngenTidligereVurdering>(resultat)
+        assertTrue(subumsjonspubliserer.subsumsjoner.isEmpty(), "Forventet at ingen subsumsjoner ble publisert")
     }
 
     @Test
@@ -54,6 +75,8 @@ internal class RevurderingServiceTest {
             revurderingService.revurder(
                 identitetsnummer = identitetsnummer,
                 skjæringstidspunkt = skjæringstidspunkt,
+                vedtaksperiodeId = UUID.randomUUID(),
+                behandlingId = UUID.randomUUID(),
             ) { forrigeForsikringsvurdering ->
                 """{"forrigeForsikringsvurderingId": "${forrigeForsikringsvurdering.id.value}"}"""
             }
@@ -62,6 +85,10 @@ internal class RevurderingServiceTest {
         assert(endretVurdering.forsikringsvurdering.id != forrigeVurdering.id) {
             "Forventet en ny forsikringsvurdering-id"
         }
+        assertTrue(
+            subumsjonspubliserer.subsumsjoner.contains(resultat.forsikringsvurdering),
+            "Forventet at subsumsjon ble publisert for den nye vurderingen",
+        )
     }
 
     @Test
@@ -99,11 +126,14 @@ internal class RevurderingServiceTest {
             revurderingService.revurder(
                 identitetsnummer = identitetsnummer,
                 skjæringstidspunkt = skjæringstidspunkt,
+                vedtaksperiodeId = UUID.randomUUID(),
+                behandlingId = UUID.randomUUID(),
             ) { error("skal ikke bygge behov når utfallet er uendret") }
 
         assertIs<Revurderingsresultat.UendretVurdering>(resultat)
         assert(TestcontainersSpForsikringDatabase.countAlleForsikringsvurderinger() == 1) {
             "Forventet at ingen ny forsikringsvurdering ble lagret"
         }
+        assertTrue(subumsjonspubliserer.subsumsjoner.isEmpty(), "Forventet at ingen subsumsjoner ble publisert")
     }
 }

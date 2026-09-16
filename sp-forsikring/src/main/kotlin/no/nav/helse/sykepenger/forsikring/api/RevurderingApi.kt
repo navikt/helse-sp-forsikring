@@ -11,60 +11,60 @@ import no.nav.helse.sykepenger.forsikring.domain.Forsikringsvurdering
 import no.nav.helse.sykepenger.forsikring.domain.Identitetsnummer
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.RevurderingService
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.Revurderingsresultat
-import no.nav.helse.sykepenger.forsikring.subsumsjon.Subsumsjonspubliserer
+import no.nav.sykepenger.libs.logging.MdcKey
+import no.nav.sykepenger.libs.logging.coMedMdc
 import no.nav.sykepenger.libs.logging.loggInfo
 import java.time.LocalDate
 import java.util.*
 
 internal fun Route.revurderingApi(
     revurderingService: RevurderingService,
-    subsumsjonspubliserer: Subsumsjonspubliserer,
 ) {
     post("/revurdering") {
         val request = call.receive<RevurderingRequest>()
-        loggInfo(
-            "Mottok kall til POST /revurdering",
-            "identitetsnummer" to request.identitetsnummer,
-            "skjæringstidspunkt" to request.skjæringstidspunkt.toString(),
-            "vedtaksperiodeId" to request.vedtaksperiodeId.toString(),
-            "behandlingId" to request.behandlingId.toString(),
-        )
+        coMedMdc(
+            MdcKey.IDENTITETSNUMMER to request.identitetsnummer,
+            MdcKey.VEDTAKSPERIODE_ID to request.vedtaksperiodeId.toString(),
+            MdcKey.SPLEIS_BEHANDLING_ID to request.behandlingId.toString(),
+        ) {
+            loggInfo(
+                "Mottok kall til POST /revurdering",
+                "skjæringstidspunkt" to request.skjæringstidspunkt.toString(),
+            )
 
-        val identitetsnummer = Identitetsnummer.fraString(request.identitetsnummer)
+            val identitetsnummer = Identitetsnummer.fraString(request.identitetsnummer)
 
-        val revurderingsresultat =
-            revurderingService.revurder(
-                identitetsnummer = identitetsnummer,
-                skjæringstidspunkt = request.skjæringstidspunkt,
-            ) { forrigeForsikringsvurdering -> request.tilBehovJson(forrigeForsikringsvurdering) }
-
-        when (revurderingsresultat) {
-            is Revurderingsresultat.IngenTidligereVurdering -> {
-                call.respond(
-                    HttpStatusCode.NotFound,
-                    ProblemResponse(
-                        title = "Forsikringsvurderinger ikke funnet",
-                        status = HttpStatusCode.NotFound.value,
-                        detail = "Fant ingen forsikringsvurderinger for skjæringstidspunkt ${request.skjæringstidspunkt}",
-                        instance = call.request.uri,
-                    ),
-                )
-            }
-
-            is Revurderingsresultat.UendretVurdering -> {
-                loggInfo("Svarer på POST /revurdering ingen ny vurdering")
-                call.respond(HttpStatusCode.OK)
-            }
-
-            is Revurderingsresultat.EndretVurdering -> {
-                subsumsjonspubliserer.publiser(
-                    forsikringsvurdering = revurderingsresultat.forsikringsvurdering,
+            val revurderingsresultat =
+                revurderingService.revurder(
+                    identitetsnummer = identitetsnummer,
+                    skjæringstidspunkt = request.skjæringstidspunkt,
                     vedtaksperiodeId = request.vedtaksperiodeId,
                     behandlingId = request.behandlingId,
-                )
-                val response = revurderingsresultat.forsikringsvurdering.tilSpesialistResponse()
-                loggInfo("Svarer på POST /revurdering med ny vurdering", "response" to response.toString())
-                call.respond(response)
+                ) { forrigeForsikringsvurdering -> request.tilBehovJson(forrigeForsikringsvurdering) }
+
+            when (revurderingsresultat) {
+                is Revurderingsresultat.IngenTidligereVurdering -> {
+                    call.respond(
+                        HttpStatusCode.NotFound,
+                        ProblemResponse(
+                            title = "Forsikringsvurderinger ikke funnet",
+                            status = HttpStatusCode.NotFound.value,
+                            detail = "Fant ingen forsikringsvurderinger for skjæringstidspunkt ${request.skjæringstidspunkt}",
+                            instance = call.request.uri,
+                        ),
+                    )
+                }
+
+                is Revurderingsresultat.UendretVurdering -> {
+                    loggInfo("Svarer på POST /revurdering ingen ny vurdering")
+                    call.respond(HttpStatusCode.OK)
+                }
+
+                is Revurderingsresultat.EndretVurdering -> {
+                    val response = revurderingsresultat.forsikringsvurdering.tilSpesialistResponse()
+                    loggInfo("Svarer på POST /revurdering med ny vurdering", "response" to response.toString())
+                    call.respond(response)
+                }
             }
         }
     }
@@ -77,10 +77,6 @@ data class RevurderingRequest(
     val behandlingId: UUID,
 )
 
-/**
- * Forsikringsvurderinger som kommer fra Kafka lagrer behovmeldingen som utløste vurderingen. For revurderinger
- * utløst av dette API-et lagrer vi forespørselen på samme form, slik at grunnlaget for vurderingen er sporbart.
- */
 private fun RevurderingRequest.tilBehovJson(forrigeVurdering: Forsikringsvurdering): String =
     behovJsonMapper.writeValueAsString(
         RevurderingBehov(
