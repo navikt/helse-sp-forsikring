@@ -11,6 +11,7 @@ import no.nav.helse.sykepenger.forsikring.domain.KollektivForsikring
 import no.nav.helse.sykepenger.forsikring.domain.SpesiellYrkesgruppe
 import no.nav.helse.sykepenger.forsikring.domain.VurdertIndividuellForsikring
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.ForsikringsvurderingService
+import no.nav.helse.sykepenger.forsikring.kafka.RapidEndretForsikringsvurderingPubliserer
 import no.nav.helse.sykepenger.forsikring.kafka.RapidSubsumsjonspubliserer
 import no.nav.helse.sykepenger.forsikring.shared.testsupport.*
 import no.nav.security.mock.oauth2.MockOAuth2Server
@@ -45,6 +46,7 @@ class ForsikringsvurderingApiTest {
                 issuerUrl = mockOAuth2Server.issuerUrl("default").toString(),
                 jwkProviderUri = mockOAuth2Server.jwksUrl("default").toString(),
                 subsumsjonspubliserer = RapidSubsumsjonspubliserer(testRapid, versjonAvKode = "test"),
+                endretForsikringsvurderingPubliserer = RapidEndretForsikringsvurderingPubliserer(testRapid),
             )
         }.start(wait = false)
 
@@ -797,10 +799,10 @@ class ForsikringsvurderingApiTest {
             )
 
         assertEquals(200, statusCode) { "Body was: $body" }
-        assertEquals(1, testRapid.inspektør.size) { "Forventet én publisert subsumsjonsmelding" }
+        val subsumsjonsmeldinger = publiserteMeldinger(eventNavn = "subsumsjon")
+        assertEquals(1, subsumsjonsmeldinger.size) { "Forventet én publisert subsumsjonsmelding" }
 
-        val subsumsjonsmelding = testRapid.inspektør.message(0)
-        assertEquals("subsumsjon", subsumsjonsmelding["@event_name"].asString())
+        val subsumsjonsmelding = subsumsjonsmeldinger.single()
         assertEquals(identitetsnummer.value, subsumsjonsmelding["fødselsnummer"].asString())
 
         val subsumsjon = subsumsjonsmelding["subsumsjon"]
@@ -811,6 +813,45 @@ class ForsikringsvurderingApiTest {
             body.somJson()["id"].asText(),
             subsumsjon["output"]["forsikringsvurderingId"].asString(),
         ) { "Subsumsjonen skal peke på den nye vurderingen" }
+    }
+
+    @Test
+    fun `POST revurdering publiserer endret_forsikringsvurdering for den nye vurderingen`() {
+        val identitetsnummer = lagIdentitetsnummer()
+        val skjæringstidspunkt = "2026-01-01"
+        lagreRåkopiOgForsikringsvurdering(
+            lagForsikringsvurdering(
+                skjæringstidspunkt = LocalDate.parse(skjæringstidspunkt),
+                identitetsnummer = identitetsnummer,
+                individuelleForsikringer =
+                    listOf(
+                        lagVurdertIndividuellForsikring(
+                            type = IndividuellForsikringType.SELVSTENDIG_80_PROSENT_FRA_DAG_1,
+                            virkningsdato = LocalDate.parse("2025-06-01"),
+                        ),
+                    ),
+            ),
+        )
+
+        val (statusCode, body) =
+            postRevurdering(
+                identitetsnummer = identitetsnummer.value,
+                skjæringstidspunkt = skjæringstidspunkt,
+                token = m2mToken(),
+            )
+
+        assertEquals(200, statusCode) { "Body was: $body" }
+
+        val meldinger = publiserteMeldinger(eventNavn = "endret_forsikringsvurdering")
+        assertEquals(1, meldinger.size) { "Forventet én publisert endret_forsikringsvurdering-melding" }
+
+        val melding = meldinger.single()
+        assertEquals(identitetsnummer.value, melding["identitetsnummer"].asString())
+        assertEquals(skjæringstidspunkt, melding["skjæringstidspunkt"].asString())
+        assertEquals(
+            body.somJson()["id"].asText(),
+            melding["forsikringsvurderingId"].asString(),
+        ) { "Meldingen skal peke på den nye vurderingen" }
     }
 
     @Test
@@ -861,6 +902,11 @@ class ForsikringsvurderingApiTest {
 
         assertEquals(400, statusCode) { "Body was: $body" }
     }
+
+    private fun publiserteMeldinger(eventNavn: String): List<tools.jackson.databind.JsonNode> =
+        (0 until testRapid.inspektør.size)
+            .map { testRapid.inspektør.message(it) }
+            .filter { it["@event_name"].asString() == eventNavn }
 
     private fun m2mToken(
         issuerId: String = "default",

@@ -2,6 +2,7 @@ package no.nav.helse.sykepenger.forsikring.forsikringsvurdering
 
 import no.nav.helse.sykepenger.forsikring.domain.Forsikringsvurdering
 import no.nav.helse.sykepenger.forsikring.domain.Identitetsnummer
+import no.nav.helse.sykepenger.forsikring.kafka.EndretForsikringsvurderingPubliserer
 import no.nav.helse.sykepenger.forsikring.råkopi.RåkopiRepository
 import no.nav.helse.sykepenger.forsikring.shared.util.inTransaction
 import no.nav.helse.sykepenger.forsikring.subsumsjon.Subsumsjonspubliserer
@@ -17,6 +18,7 @@ internal class RevurderingService(
     private val spForsikringDataSource: DataSource,
     private val forsikringsvurderingService: ForsikringsvurderingService,
     private val subsumsjonspubliserer: Subsumsjonspubliserer,
+    private val endretForsikringsvurderingPubliserer: EndretForsikringsvurderingPubliserer,
 ) {
     fun revurder(
         identitetsnummer: Identitetsnummer,
@@ -50,6 +52,11 @@ internal class RevurderingService(
             // Råkopien må lagres før vurderingen, siden vurderingen peker på den med fremmednøkler
             RåkopiRepository(transactionalSession).lagre(råkopi)
             repository.lagre(nyVurdering, behovJson(sisteForsikringsvurdering))
+            endretForsikringsvurderingPubliserer.publiser(
+                identitetsnummer = identitetsnummer,
+                skjæringstidspunkt = skjæringstidspunkt,
+                forsikringsvurderingId = nyVurdering.id.value,
+            )
             subsumsjonspubliserer.publiser(
                 forsikringsvurdering = nyVurdering,
                 vedtaksperiodeId = vedtaksperiodeId,

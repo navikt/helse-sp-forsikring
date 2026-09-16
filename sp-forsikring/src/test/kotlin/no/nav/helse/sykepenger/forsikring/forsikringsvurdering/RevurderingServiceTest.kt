@@ -1,13 +1,16 @@
 package no.nav.helse.sykepenger.forsikring.forsikringsvurdering
 
 import no.nav.helse.sykepenger.forsikring.domain.Forsikringsvurdering
+import no.nav.helse.sykepenger.forsikring.domain.Identitetsnummer
 import no.nav.helse.sykepenger.forsikring.domain.IndividuellForsikringType
+import no.nav.helse.sykepenger.forsikring.kafka.EndretForsikringsvurderingPubliserer
 import no.nav.helse.sykepenger.forsikring.shared.testsupport.*
 import no.nav.helse.sykepenger.forsikring.subsumsjon.Subsumsjonspubliserer
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import java.time.LocalDate
 import java.util.*
+import kotlin.test.assertEquals
 import kotlin.test.assertIs
 import kotlin.test.assertTrue
 
@@ -24,11 +27,26 @@ internal class RevurderingServiceTest {
                 subsumsjoner.add(forsikringsvurdering)
             }
         }
+
+    private val endretForsikringsvurderingPubliserer =
+        object : EndretForsikringsvurderingPubliserer {
+            val publiserteMeldinger = mutableListOf<Triple<String, LocalDate, UUID>>()
+
+            override fun publiser(
+                identitetsnummer: Identitetsnummer,
+                skjæringstidspunkt: LocalDate,
+                forsikringsvurderingId: UUID,
+            ) {
+                publiserteMeldinger.add(Triple(identitetsnummer.value, skjæringstidspunkt, forsikringsvurderingId))
+            }
+        }
+
     private val revurderingService =
         RevurderingService(
             spForsikringDataSource = TestcontainersSpForsikringDatabase.dataSource,
             forsikringsvurderingService = ForsikringsvurderingService(TestcontainersReplikadatabase.dataSource),
             subsumsjonspubliserer = subumsjonspubliserer,
+            endretForsikringsvurderingPubliserer = endretForsikringsvurderingPubliserer,
         )
 
     @BeforeEach
@@ -36,6 +54,7 @@ internal class RevurderingServiceTest {
         TestcontainersReplikadatabase.reset()
         TestcontainersSpForsikringDatabase.reset()
         subumsjonspubliserer.subsumsjoner.clear()
+        endretForsikringsvurderingPubliserer.publiserteMeldinger.clear()
     }
 
     @Test
@@ -50,6 +69,10 @@ internal class RevurderingServiceTest {
 
         assertIs<Revurderingsresultat.IngenTidligereVurdering>(resultat)
         assertTrue(subumsjonspubliserer.subsumsjoner.isEmpty(), "Forventet at ingen subsumsjoner ble publisert")
+        assertTrue(
+            endretForsikringsvurderingPubliserer.publiserteMeldinger.isEmpty(),
+            "Forventet at ingen endret_forsikringsvurdering-melding ble publisert",
+        )
     }
 
     @Test
@@ -88,6 +111,17 @@ internal class RevurderingServiceTest {
         assertTrue(
             subumsjonspubliserer.subsumsjoner.contains(resultat.forsikringsvurdering),
             "Forventet at subsumsjon ble publisert for den nye vurderingen",
+        )
+        assertEquals(
+            listOf(
+                Triple(
+                    identitetsnummer.value,
+                    skjæringstidspunkt,
+                    endretVurdering.forsikringsvurdering.id.value,
+                ),
+            ),
+            endretForsikringsvurderingPubliserer.publiserteMeldinger,
+            "Forventet én endret_forsikringsvurdering-melding som peker på den nye vurderingen",
         )
     }
 
@@ -135,5 +169,9 @@ internal class RevurderingServiceTest {
             "Forventet at ingen ny forsikringsvurdering ble lagret"
         }
         assertTrue(subumsjonspubliserer.subsumsjoner.isEmpty(), "Forventet at ingen subsumsjoner ble publisert")
+        assertTrue(
+            endretForsikringsvurderingPubliserer.publiserteMeldinger.isEmpty(),
+            "Forventet at ingen endret_forsikringsvurdering-melding ble publisert",
+        )
     }
 }

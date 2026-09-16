@@ -11,6 +11,7 @@ import no.nav.helse.sykepenger.forsikring.domain.Forsikringstype
 import no.nav.helse.sykepenger.forsikring.domain.IndividuellForsikringType
 import no.nav.helse.sykepenger.forsikring.domain.KollektivForsikring
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.ForsikringsvurderingService
+import no.nav.helse.sykepenger.forsikring.kafka.RapidEndretForsikringsvurderingPubliserer
 import no.nav.helse.sykepenger.forsikring.kafka.RapidSubsumsjonspubliserer
 import no.nav.helse.sykepenger.forsikring.shared.testsupport.TestcontainersReplikadatabase
 import no.nav.helse.sykepenger.forsikring.shared.testsupport.TestcontainersSpForsikringDatabase
@@ -54,6 +55,7 @@ class UtbetalingsstatistikkApiTest {
                 issuerUrl = mockOAuth2Server.issuerUrl("default").toString(),
                 jwkProviderUri = mockOAuth2Server.jwksUrl("default").toString(),
                 subsumsjonspubliserer = RapidSubsumsjonspubliserer(testRapid, versjonAvKode = "test"),
+                endretForsikringsvurderingPubliserer = RapidEndretForsikringsvurderingPubliserer(testRapid),
             )
         }.start(wait = false)
 

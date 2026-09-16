@@ -92,6 +92,10 @@ fun launchApplication(
                     messageContext = this,
                     versjonAvKode = versjonAvKode,
                 )
+            val endretForsikringsvurderingPubliserer =
+                RapidEndretForsikringsvurderingPubliserer(
+                    messageContext = this,
+                )
 
             ktorOppsett = {
                 api(
@@ -101,6 +105,7 @@ fun launchApplication(
                     issuerUrl = env.getValue("AZURE_OPENID_CONFIG_ISSUER"),
                     jwkProviderUri = env.getValue("AZURE_OPENID_CONFIG_JWKS_URI"),
                     subsumsjonspubliserer = subsumsjonspubliserer,
+                    endretForsikringsvurderingPubliserer = endretForsikringsvurderingPubliserer,
                 )
 
                 monitor.subscribe(ApplicationStarted) {

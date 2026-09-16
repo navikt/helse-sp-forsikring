@@ -17,6 +17,7 @@ import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.ForsikringsvurderingService
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.RevurderingService
+import no.nav.helse.sykepenger.forsikring.kafka.EndretForsikringsvurderingPubliserer
 import no.nav.helse.sykepenger.forsikring.subsumsjon.Subsumsjonspubliserer
 import no.nav.sykepenger.libs.logging.loggError
 import java.net.URI
@@ -30,6 +31,7 @@ fun Application.api(
     issuerUrl: String,
     jwkProviderUri: String,
     subsumsjonspubliserer: Subsumsjonspubliserer,
+    endretForsikringsvurderingPubliserer: EndretForsikringsvurderingPubliserer,
 ) {
     install(CallId) {
         retrieveFromHeader(HttpHeaders.XRequestId)
@@ -108,6 +110,7 @@ fun Application.api(
                         spForsikringDataSource = spForsikringDataSource,
                         forsikringsvurderingService = forsikringsvurderingService,
                         subsumsjonspubliserer = subsumsjonspubliserer,
+                        endretForsikringsvurderingPubliserer = endretForsikringsvurderingPubliserer,
                     ),
             )
         }
