@@ -13,8 +13,8 @@ import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import no.nav.helse.sykepenger.forsikring.domain.Forsikringsvurdering
 import no.nav.helse.sykepenger.forsikring.domain.Identitetsnummer
-import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.RevurderingService
-import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.Revurderingsresultat
+import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.EndringssjekkService
+import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.Endringssjekkresultat
 import no.nav.sykepenger.libs.logging.MdcKey
 import no.nav.sykepenger.libs.logging.coMedMdc
 import no.nav.sykepenger.libs.logging.loggInfo
@@ -22,13 +22,14 @@ import no.nav.sykepenger.libs.logging.loggWarn
 import java.time.LocalDate
 import java.util.*
 
-internal fun Route.revurderingApi(
-    revurderingService: RevurderingService,
+internal fun Route.endringssjekkApi(
+    endringssjekkService: EndringssjekkService,
     populasjonstilgangskontrollProvider: PopulasjonstilgangskontrollProvider,
 ) {
-    post("/revurdering") {
-        val request = call.receive<RevurderingRequest>()
-        val saksbehandlerIdent = call.authentication.principal<JWTPrincipal>()?.get("NAVident")
+    post("/endringssjekk") {
+        val request = call.receive<EndringssjekkRequest>()
+        val saksbehandlerIdent =
+            call.authentication.principal<JWTPrincipal>()?.get("NAVident") ?: error("Mangler NAVident i token")
         coMedMdc(
             MdcKey.IDENTITETSNUMMER to request.identitetsnummer,
             MdcKey.VEDTAKSPERIODE_ID to request.vedtaksperiodeId.toString(),
@@ -36,7 +37,7 @@ internal fun Route.revurderingApi(
             MdcKey.SAKSBEHANDLER_IDENT to saksbehandlerIdent,
         ) {
             loggInfo(
-                "Mottok kall til POST /revurdering",
+                "Mottok kall til POST /endringssjekk",
                 "skjæringstidspunkt" to request.skjæringstidspunkt.toString(),
             )
 
@@ -107,16 +108,17 @@ internal fun Route.revurderingApi(
                     return@coMedMdc
                 }
             }
-            val revurderingsresultat =
-                revurderingService.revurder(
+            val endringssjekkresultat =
+                endringssjekkService.endringssjekk(
                     identitetsnummer = identitetsnummer,
                     skjæringstidspunkt = request.skjæringstidspunkt,
                     vedtaksperiodeId = request.vedtaksperiodeId,
                     behandlingId = request.behandlingId,
+                    saksbehandlerIdent = saksbehandlerIdent,
                 ) { forrigeForsikringsvurdering -> request.tilBehovJson(forrigeForsikringsvurdering) }
 
-            when (revurderingsresultat) {
-                is Revurderingsresultat.IngenTidligereVurdering -> {
+            when (endringssjekkresultat) {
+                is Endringssjekkresultat.IngenTidligereVurdering -> {
                     call.respond(
                         HttpStatusCode.BadRequest,
                         ProblemResponse(
@@ -130,14 +132,14 @@ internal fun Route.revurderingApi(
 
                 else -> {
                     val response =
-                        RevurderingResponse(
+                        EndringssjekkResponse(
                             vurderingErEndret =
-                                when (revurderingsresultat) {
-                                    is Revurderingsresultat.UendretVurdering -> false
-                                    is Revurderingsresultat.EndretVurdering -> true
+                                when (endringssjekkresultat) {
+                                    is Endringssjekkresultat.UendretVurdering -> false
+                                    is Endringssjekkresultat.EndretVurdering -> true
                                 },
                         )
-                    loggInfo("Svarer på POST /revurdering", "response" to response.toString())
+                    loggInfo("Svarer på POST /endringssjekk", "response" to response.toString())
                     call.respond(HttpStatusCode.OK, response)
                 }
             }
@@ -145,18 +147,18 @@ internal fun Route.revurderingApi(
     }
 }
 
-data class RevurderingRequest(
+data class EndringssjekkRequest(
     val identitetsnummer: String,
     val skjæringstidspunkt: LocalDate,
     val vedtaksperiodeId: UUID,
     val behandlingId: UUID,
 )
 
-data class RevurderingResponse(
+data class EndringssjekkResponse(
     val vurderingErEndret: Boolean,
 )
 
-private fun RevurderingRequest.tilBehovJson(forrigeVurdering: Forsikringsvurdering): String =
+private fun EndringssjekkRequest.tilBehovJson(forrigeVurdering: Forsikringsvurdering): String =
     behovJsonMapper.writeValueAsString(
         RevurderingBehov(
             fødselsnummer = identitetsnummer,
@@ -180,7 +182,7 @@ private val behovJsonMapper = ObjectMapper()
     "Forsikringsvurdering",
 )
 private data class RevurderingBehov(
-    val kilde: String = "POST /revurdering",
+    val kilde: String = "POST /endringssjekk",
     val fødselsnummer: String,
     val yrkesaktivitetstype: String,
     val forrigeForsikringsvurderingId: String,

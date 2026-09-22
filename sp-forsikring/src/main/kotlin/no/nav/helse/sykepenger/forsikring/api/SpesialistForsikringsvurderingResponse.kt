@@ -5,11 +5,12 @@ import no.nav.helse.sykepenger.forsikring.api.SpesialistForsikringsvurderingResp
 import no.nav.helse.sykepenger.forsikring.domain.Forsikringsvurdering
 import no.nav.helse.sykepenger.forsikring.domain.KollektivForsikring
 import no.nav.helse.sykepenger.forsikring.domain.VurdertIndividuellForsikring
+import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.EndringssjekkLogg
 import java.time.Instant
 import java.time.LocalDate
 
 /**
- * Responsen som sendes til spesialist for både GET /forsikringsvurderinger/{id} og POST /revurdering,
+ * Responsen som sendes til spesialist for både GET /forsikringsvurderinger/{id} og POST /endringssjekk,
  * siden begge endepunktene svarer med den (eventuelt nye) forsikringsvurderingen.
  */
 data class SpesialistForsikringsvurderingResponse(
@@ -19,10 +20,16 @@ data class SpesialistForsikringsvurderingResponse(
     val kollektivForsikring: KollektivForsikring?,
     val individuelleForsikringer: List<IndividuellForsikring>,
     val vurdertTidspunkt: Instant,
+    val sistHentet: SistHentet?,
 ) {
     data class Dekning(
         val grad: Int,
         val fraDag: Int,
+    )
+
+    data class SistHentet(
+        val tidspunkt: Instant,
+        val utførtAvSaksbehandlerIdent: String,
     )
 
     data class KollektivForsikring(
@@ -53,7 +60,9 @@ data class Folketrygdlovenreferanse(
     val bokstav: Char?,
 )
 
-internal fun Forsikringsvurdering.tilSpesialistResponse(): SpesialistForsikringsvurderingResponse =
+internal fun Forsikringsvurdering.tilSpesialistResponse(
+    sistHentet: SpesialistForsikringsvurderingResponse.SistHentet?,
+): SpesialistForsikringsvurderingResponse =
     SpesialistForsikringsvurderingResponse(
         id = id.value.toString(),
         identitetsnummer = identitetsnummer.value,
@@ -90,6 +99,13 @@ internal fun Forsikringsvurdering.tilSpesialistResponse(): SpesialistForsikrings
                 )
             },
         vurdertTidspunkt = vurdertTidspunkt,
+        sistHentet = sistHentet,
+    )
+
+internal fun EndringssjekkLogg.tilResponse(): SpesialistForsikringsvurderingResponse.SistHentet =
+    SpesialistForsikringsvurderingResponse.SistHentet(
+        tidspunkt = tidspunkt,
+        utførtAvSaksbehandlerIdent = utførtAvSaksbehandlerIdent,
     )
 
 private fun VurdertIndividuellForsikring.Konklusjon.forklaring(): String =

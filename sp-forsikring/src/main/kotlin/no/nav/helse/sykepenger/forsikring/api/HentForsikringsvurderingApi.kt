@@ -5,6 +5,7 @@ import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import no.nav.helse.sykepenger.forsikring.domain.Forsikringsvurdering
+import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.EndringssjekkLoggDao
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.ForsikringsvurderingRepository
 import no.nav.helse.sykepenger.forsikring.shared.util.inTransaction
 import no.nav.sykepenger.libs.logging.loggInfo
@@ -26,9 +27,11 @@ internal fun Route.hentForsikringsvurderingApi(spForsikringDataSource: DataSourc
                 )
         loggInfo("Mottok kall til GET /forsikringsvurderinger/${id.value}")
 
-        val forsikringsvurdering =
+        val resultat =
             spForsikringDataSource.inTransaction { transactionalSession ->
-                ForsikringsvurderingRepository(transactionalSession).hent(id)
+                ForsikringsvurderingRepository(transactionalSession).hent(id)?.let { vurdering ->
+                    vurdering to EndringssjekkLoggDao(transactionalSession).hentSistHentet(id)
+                }
             } ?: return@get call.respond(
                 HttpStatusCode.NotFound,
                 ProblemResponse(
@@ -39,7 +42,8 @@ internal fun Route.hentForsikringsvurderingApi(spForsikringDataSource: DataSourc
                 ),
             )
 
-        val response = forsikringsvurdering.tilSpesialistResponse()
+        val (forsikringsvurdering, sistHentet) = resultat
+        val response = forsikringsvurdering.tilSpesialistResponse(sistHentet?.tilResponse())
 
         loggInfo("Svarer på GET /forsikringsvurderinger/$id", "response" to response.toString())
 

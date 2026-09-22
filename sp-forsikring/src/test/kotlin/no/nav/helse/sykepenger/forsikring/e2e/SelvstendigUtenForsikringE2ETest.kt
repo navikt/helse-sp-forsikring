@@ -41,7 +41,8 @@ class SelvstendigUtenForsikringE2ETest :
                   "identitetsnummer" : "${testPerson.identitetsnummer}",
                   "individuelleForsikringer" : [ ],
                   "kollektivForsikring" : null,
-                  "samletDekning" : null
+                  "samletDekning" : null,
+                  "sistHentet": null
                 }
                 """.trimIndent(),
         )

@@ -6,34 +6,37 @@ import no.nav.helse.sykepenger.forsikring.kafka.EndretForsikringsvurderingPublis
 import no.nav.helse.sykepenger.forsikring.råkopi.RåkopiRepository
 import no.nav.helse.sykepenger.forsikring.shared.util.inTransaction
 import no.nav.helse.sykepenger.forsikring.subsumsjon.Subsumsjonspubliserer
+import java.time.Instant
 import java.time.LocalDate
 import java.util.*
 import javax.sql.DataSource
 
 /**
- * Revurderer en tidligere forsikringsvurdering på grunnlag av gjeldende data i Infotrygd, og lagrer
+ * Endringssjekker en tidligere forsikringsvurdering på grunnlag av gjeldende data i Infotrygd, og lagrer
  * en ny vurdering dersom utfallet er endret.
  */
-internal class RevurderingService(
+internal class EndringssjekkService(
     private val spForsikringDataSource: DataSource,
     private val forsikringsvurderingService: ForsikringsvurderingService,
     private val subsumsjonspubliserer: Subsumsjonspubliserer,
     private val endretForsikringsvurderingPubliserer: EndretForsikringsvurderingPubliserer,
 ) {
-    fun revurder(
+    fun endringssjekk(
         identitetsnummer: Identitetsnummer,
         skjæringstidspunkt: LocalDate,
         vedtaksperiodeId: UUID,
         behandlingId: UUID,
+        saksbehandlerIdent: String,
         behovJson: (forrigeForsikringsvurdering: Forsikringsvurdering) -> String,
-    ): Revurderingsresultat =
+    ): Endringssjekkresultat =
         spForsikringDataSource.inTransaction { transactionalSession ->
             val repository = ForsikringsvurderingRepository(transactionalSession)
+            val endringssjekkLoggDao = EndringssjekkLoggDao(transactionalSession)
             val sisteForsikringsvurdering =
                 repository.finn(
                     identitetsnummer = identitetsnummer,
                     skjæringstidspunkt = skjæringstidspunkt,
-                ) ?: return@inTransaction Revurderingsresultat.IngenTidligereVurdering
+                ) ?: return@inTransaction Endringssjekkresultat.IngenTidligereVurdering
 
             // Yrkesaktivitetstype og spesielle yrkesgrupper er ikke en del av forespørselen, og arves derfor
             // fra den forrige vurderingen. Vi revurderer altså kun på grunnlag av endringer i Infotrygd.
@@ -45,8 +48,10 @@ internal class RevurderingService(
                     skjæringstidspunkt = skjæringstidspunkt,
                 )
 
+            endringssjekkLoggDao.insert(sisteForsikringsvurdering.id, saksbehandlerIdent, Instant.now())
+
             if (sisteForsikringsvurdering.harSammeUtfallSom(nyVurdering)) {
-                return@inTransaction Revurderingsresultat.UendretVurdering
+                return@inTransaction Endringssjekkresultat.UendretVurdering
             }
 
             // Råkopien må lagres før vurderingen, siden vurderingen peker på den med fremmednøkler
@@ -62,16 +67,16 @@ internal class RevurderingService(
                 vedtaksperiodeId = vedtaksperiodeId,
                 behandlingId = behandlingId,
             )
-            Revurderingsresultat.EndretVurdering(nyVurdering)
+            Endringssjekkresultat.EndretVurdering(nyVurdering)
         }
 }
 
-internal sealed interface Revurderingsresultat {
-    data object IngenTidligereVurdering : Revurderingsresultat
+internal sealed interface Endringssjekkresultat {
+    data object IngenTidligereVurdering : Endringssjekkresultat
 
-    data object UendretVurdering : Revurderingsresultat
+    data object UendretVurdering : Endringssjekkresultat
 
     data class EndretVurdering(
         val forsikringsvurdering: Forsikringsvurdering,
-    ) : Revurderingsresultat
+    ) : Endringssjekkresultat
 }

@@ -16,8 +16,8 @@ import io.ktor.server.plugins.statuspages.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
+import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.EndringssjekkService
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.ForsikringsvurderingService
-import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.RevurderingService
 import no.nav.helse.sykepenger.forsikring.kafka.EndretForsikringsvurderingPubliserer
 import no.nav.helse.sykepenger.forsikring.subsumsjon.Subsumsjonspubliserer
 import no.nav.sykepenger.libs.logging.loggError
@@ -108,9 +108,9 @@ fun Application.api(
             hentForsikringsvurderingApi(spForsikringDataSource = spForsikringDataSource)
         }
         authenticate("oidc") {
-            revurderingApi(
-                revurderingService =
-                    RevurderingService(
+            endringssjekkApi(
+                endringssjekkService =
+                    EndringssjekkService(
                         spForsikringDataSource = spForsikringDataSource,
                         forsikringsvurderingService = forsikringsvurderingService,
                         subsumsjonspubliserer = subsumsjonspubliserer,

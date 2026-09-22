@@ -78,7 +78,8 @@ class SelvstendigHundreProsentFraDagEnE2ETest :
                   "samletDekning" : {
                     "fraDag" : 1,
                     "grad" : 100
-                  }
+                  },
+                  "sistHentet": null
                 }
                 """.trimIndent(),
         )

@@ -25,10 +25,10 @@ object RevurderingApiClient {
         behandlingId: UUID = UUID.randomUUID(),
     ): Pair<Int, String> =
         Request
-            .post("$baseUrl/revurdering")
+            .post("$baseUrl/endringssjekk")
             .bodyString(
                 objectMapper.writeValueAsString(
-                    RevurderingRequest(
+                    EndringssjekkRequest(
                         identitetsnummer = identitetsnummer,
                         skjæringstidspunkt = LocalDate.parse(skjæringstidspunkt),
                         vedtaksperiodeId = vedtaksperiodeId,

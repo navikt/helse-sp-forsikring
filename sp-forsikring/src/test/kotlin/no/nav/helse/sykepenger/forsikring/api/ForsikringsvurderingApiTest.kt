@@ -15,21 +15,10 @@ import no.nav.helse.sykepenger.forsikring.domain.VurdertIndividuellForsikring
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.ForsikringsvurderingService
 import no.nav.helse.sykepenger.forsikring.kafka.RapidEndretForsikringsvurderingPubliserer
 import no.nav.helse.sykepenger.forsikring.kafka.RapidSubsumsjonspubliserer
-import no.nav.helse.sykepenger.forsikring.shared.testsupport.FakeTilgangskontroll
-import no.nav.helse.sykepenger.forsikring.shared.testsupport.TestcontainersReplikadatabase
-import no.nav.helse.sykepenger.forsikring.shared.testsupport.TestcontainersSpForsikringDatabase
-import no.nav.helse.sykepenger.forsikring.shared.testsupport.lagForsikringsvurdering
-import no.nav.helse.sykepenger.forsikring.shared.testsupport.lagIdentitetsnummer
-import no.nav.helse.sykepenger.forsikring.shared.testsupport.lagVurdertIndividuellForsikring
-import no.nav.helse.sykepenger.forsikring.shared.testsupport.lagreRåkopiOgForsikringsvurdering
-import no.nav.helse.sykepenger.forsikring.shared.testsupport.tilInfotrygdFødselsnummer
+import no.nav.helse.sykepenger.forsikring.shared.testsupport.*
 import no.nav.security.mock.oauth2.MockOAuth2Server
 import org.junit.jupiter.api.AfterAll
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertFalse
-import org.junit.jupiter.api.Assertions.assertNotNull
-import org.junit.jupiter.api.Assertions.assertNull
-import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
@@ -580,14 +569,14 @@ class ForsikringsvurderingApiTest {
     }
 
     @Test
-    fun `POST revurdering returnerer 400 om det ikke finnes en forsikringsvurdering for fødselsnummer på skjæringstidspunkt`() {
+    fun `POST endringssjekk returnerer 400 om det ikke finnes en forsikringsvurdering for fødselsnummer på skjæringstidspunkt`() {
         val (statusCode, body) = postRevurdering(token = brukertoken())
 
         assertEquals(400, statusCode) { "Body was: $body" }
     }
 
     @Test
-    fun `POST revurdering returnerer vurderingErEndret false og lagrer ingen ny vurdering når utfallet er uendret`() {
+    fun `POST endringssjekk returnerer vurderingErEndret false og lagrer ingen ny vurdering når utfallet er uendret`() {
         val identitetsnummer = lagIdentitetsnummer()
         val skjæringstidspunkt = "2026-01-01"
         val forsikringsvurdering =
@@ -635,7 +624,7 @@ class ForsikringsvurderingApiTest {
     }
 
     @Test
-    fun `POST revurdering oppdager endret opphørsdato selv om dekningen er den samme`() {
+    fun `POST endringssjekk oppdager endret opphørsdato selv om dekningen er den samme`() {
         val identitetsnummer = lagIdentitetsnummer()
         val skjæringstidspunkt = "2026-01-01"
         val forsikringsvurdering =
@@ -686,7 +675,7 @@ class ForsikringsvurderingApiTest {
     }
 
     @Test
-    fun `POST revurdering returnerer vurderingErEndret true når forsikringen har falt bort`() {
+    fun `POST endringssjekk returnerer vurderingErEndret true når forsikringen har falt bort`() {
         val identitetsnummer = lagIdentitetsnummer()
         val skjæringstidspunkt = "2026-01-01"
         val forsikringsvurdering =
@@ -717,7 +706,7 @@ class ForsikringsvurderingApiTest {
     }
 
     @Test
-    fun `POST revurdering lagrer behovet som utløste revurderingen`() {
+    fun `POST endringssjekk lagrer behovet som utløste endringssjekken`() {
         val identitetsnummer = lagIdentitetsnummer()
         val skjæringstidspunkt = "2026-01-01"
         val forrigeVurdering =
@@ -747,7 +736,7 @@ class ForsikringsvurderingApiTest {
     }
 
     @Test
-    fun `POST revurdering publiserer subsumsjoner for den nye vurderingen`() {
+    fun `POST endringssjekk publiserer subsumsjoner for den nye vurderingen`() {
         val identitetsnummer = lagIdentitetsnummer()
         val skjæringstidspunkt = "2026-01-01"
         val vedtaksperiodeId = UUID.randomUUID()
@@ -803,7 +792,7 @@ class ForsikringsvurderingApiTest {
     }
 
     @Test
-    fun `POST revurdering publiserer endret_forsikringsvurdering for den nye vurderingen`() {
+    fun `POST endringssjekk publiserer endret_forsikringsvurdering for den nye vurderingen`() {
         val identitetsnummer = lagIdentitetsnummer()
         val skjæringstidspunkt = "2026-01-01"
         val forrigeVurdering =
@@ -838,7 +827,7 @@ class ForsikringsvurderingApiTest {
     }
 
     @Test
-    fun `POST revurdering publiserer ingen subsumsjoner når utfallet er uendret`() {
+    fun `POST endringssjekk publiserer ingen subsumsjoner når utfallet er uendret`() {
         val identitetsnummer = lagIdentitetsnummer()
         val skjæringstidspunkt = "2026-01-01"
         lagreRåkopiOgForsikringsvurdering(
@@ -880,14 +869,14 @@ class ForsikringsvurderingApiTest {
     }
 
     @Test
-    fun `POST revurdering returnerer 400 når identitetsnummer er ugyldig`() {
-        val (statusCode, body) = postRevurdering(identitetsnummer = "123", token = m2mToken())
+    fun `POST endringssjekk returnerer 400 når identitetsnummer er ugyldig`() {
+        val (statusCode, body) = postRevurdering(identitetsnummer = "123", token = brukertoken())
 
         assertEquals(400, statusCode) { "Body was: $body" }
     }
 
     @Test
-    fun `POST revurdering returnerer 403 når populasjonstilgangskontrollen sier ManglerTilgang`() {
+    fun `POST endringssjekk returnerer 403 når populasjonstilgangskontrollen sier ManglerTilgang`() {
         fakeTilgangskontroll.resultat = TilgangskontrollResultat.ManglerTilgang(TilgangSomMangler.EgenAnsatt)
 
         val (statusCode, body) = postRevurdering(token = brukertoken())
@@ -899,7 +888,7 @@ class ForsikringsvurderingApiTest {
     }
 
     @Test
-    fun `POST revurdering returnerer 400 når populasjonstilgangskontrollen sier IdentIkkeFunnet`() {
+    fun `POST endringssjekk returnerer 400 når populasjonstilgangskontrollen sier IdentIkkeFunnet`() {
         fakeTilgangskontroll.resultat = TilgangskontrollResultat.IdentIkkeFunnet
 
         val (statusCode, body) = postRevurdering(token = brukertoken())
@@ -911,7 +900,7 @@ class ForsikringsvurderingApiTest {
     }
 
     @Test
-    fun `POST revurdering returnerer 500 når populasjonstilgangskontrollen sier UventetFeil`() {
+    fun `POST endringssjekk returnerer 500 når populasjonstilgangskontrollen sier UventetFeil`() {
         fakeTilgangskontroll.resultat = TilgangskontrollResultat.UventetFeil("noe gikk galt i tilgangsmaskinen")
 
         val (statusCode, body) = postRevurdering(token = brukertoken())
@@ -923,7 +912,7 @@ class ForsikringsvurderingApiTest {
     }
 
     @Test
-    fun `POST revurdering utfører ingen revurdering når populasjonstilgangskontrollen avslår tilgang`() {
+    fun `POST endringssjekk utfører ingen endringssjekk når populasjonstilgangskontrollen avslår tilgang`() {
         val identitetsnummer = lagIdentitetsnummer()
         val skjæringstidspunkt = "2026-01-01"
         lagreRåkopiOgForsikringsvurdering(
@@ -939,7 +928,7 @@ class ForsikringsvurderingApiTest {
                     ),
             ),
         )
-        // Replikabasen er tom, altså ville revurderingen normalt funnet en endring
+        // Replikabasen er tom, altså ville endringssjekken normalt funnet en endring
         fakeTilgangskontroll.resultat = TilgangskontrollResultat.ManglerTilgang(TilgangSomMangler.StrengtFortroligAdresse)
 
         val (statusCode, body) =
@@ -960,7 +949,7 @@ class ForsikringsvurderingApiTest {
     }
 
     @Test
-    fun `POST revurdering returnerer 401 uten autentiseringstoken`() {
+    fun `POST endringssjekk returnerer 401 uten autentiseringstoken`() {
         val (statusCode, _) = postRevurdering(token = null)
 
         assertEquals(401, statusCode)
@@ -984,9 +973,9 @@ class ForsikringsvurderingApiTest {
     private fun postRevurdering(
         identitetsnummer: String = lagIdentitetsnummer().value,
         skjæringstidspunkt: String = "2026-01-01",
-        token: String?,
         vedtaksperiodeId: UUID = UUID.randomUUID(),
         behandlingId: UUID = UUID.randomUUID(),
+        token: String?,
     ): Pair<Int, String> =
         RevurderingApiClient.postRevurdering(
             baseUrl = serverUrl,

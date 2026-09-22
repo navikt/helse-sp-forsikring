@@ -14,7 +14,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertIs
 import kotlin.test.assertTrue
 
-internal class RevurderingServiceTest {
+internal class EndringssjekkServiceTest {
     private val subumsjonspubliserer =
         object : Subsumsjonspubliserer {
             val subsumsjoner = mutableListOf<Forsikringsvurdering>()
@@ -41,8 +41,8 @@ internal class RevurderingServiceTest {
             }
         }
 
-    private val revurderingService =
-        RevurderingService(
+    private val endringssjekkService =
+        EndringssjekkService(
             spForsikringDataSource = TestcontainersSpForsikringDatabase.dataSource,
             forsikringsvurderingService = ForsikringsvurderingService(TestcontainersReplikadatabase.dataSource),
             subsumsjonspubliserer = subumsjonspubliserer,
@@ -60,14 +60,15 @@ internal class RevurderingServiceTest {
     @Test
     fun `returnerer IngenTidligereVurdering når det ikke finnes noen forsikringsvurdering fra før`() {
         val resultat =
-            revurderingService.revurder(
+            endringssjekkService.endringssjekk(
                 identitetsnummer = lagIdentitetsnummer(),
                 skjæringstidspunkt = LocalDate.parse("2026-01-01"),
                 vedtaksperiodeId = UUID.randomUUID(),
                 behandlingId = UUID.randomUUID(),
+                saksbehandlerIdent = "Z123456",
             ) { error("skal ikke bygge behov når det ikke finnes noen tidligere vurdering") }
 
-        assertIs<Revurderingsresultat.IngenTidligereVurdering>(resultat)
+        assertIs<Endringssjekkresultat.IngenTidligereVurdering>(resultat)
         assertTrue(subumsjonspubliserer.subsumsjoner.isEmpty(), "Forventet at ingen subsumsjoner ble publisert")
         assertTrue(
             endretForsikringsvurderingPubliserer.publiserteMeldinger.isEmpty(),
@@ -95,16 +96,17 @@ internal class RevurderingServiceTest {
 
         // Replikabasen er tom, altså har brukeren ingen forsikring lenger
         val resultat =
-            revurderingService.revurder(
+            endringssjekkService.endringssjekk(
                 identitetsnummer = identitetsnummer,
                 skjæringstidspunkt = skjæringstidspunkt,
                 vedtaksperiodeId = UUID.randomUUID(),
                 behandlingId = UUID.randomUUID(),
+                saksbehandlerIdent = "Z123456",
             ) { forrigeForsikringsvurdering ->
                 """{"forrigeForsikringsvurderingId": "${forrigeForsikringsvurdering.id.value}"}"""
             }
 
-        val endretVurdering = assertIs<Revurderingsresultat.EndretVurdering>(resultat)
+        val endretVurdering = assertIs<Endringssjekkresultat.EndretVurdering>(resultat)
         assert(endretVurdering.forsikringsvurdering.id != forrigeVurdering.id) {
             "Forventet en ny forsikringsvurdering-id"
         }
@@ -157,14 +159,15 @@ internal class RevurderingServiceTest {
         )
 
         val resultat =
-            revurderingService.revurder(
+            endringssjekkService.endringssjekk(
                 identitetsnummer = identitetsnummer,
                 skjæringstidspunkt = skjæringstidspunkt,
                 vedtaksperiodeId = UUID.randomUUID(),
                 behandlingId = UUID.randomUUID(),
+                saksbehandlerIdent = "Z123456",
             ) { error("skal ikke bygge behov når utfallet er uendret") }
 
-        assertIs<Revurderingsresultat.UendretVurdering>(resultat)
+        assertIs<Endringssjekkresultat.UendretVurdering>(resultat)
         assert(TestcontainersSpForsikringDatabase.countAlleForsikringsvurderinger() == 1) {
             "Forventet at ingen ny forsikringsvurdering ble lagret"
         }
