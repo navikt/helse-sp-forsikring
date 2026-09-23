@@ -2,7 +2,7 @@ package no.nav.helse.sykepenger.forsikring.e2e
 
 import com.github.navikt.tbd_libs.rapids_and_rivers.asInstant
 import no.nav.helse.sykepenger.forsikring.api.FlexApiClient
-import no.nav.helse.sykepenger.forsikring.api.SpesialistApiClient
+import no.nav.helse.sykepenger.forsikring.api.ForsikringsvurderingApiClient
 import no.nav.helse.sykepenger.forsikring.api.UtbetalingsstatistikkApiClient
 import no.nav.helse.sykepenger.forsikring.domain.Identitetsnummer
 import no.nav.helse.sykepenger.forsikring.kafka.Testmeldingsfabrikk
@@ -237,7 +237,7 @@ abstract class AbstractE2ETest(
 
     private fun getForsikringsvurdering(forsikringsvurderingId: String): JsonNode =
         forvent200OgTolkJson(
-            SpesialistApiClient
+            ForsikringsvurderingApiClient
                 .getForsikringsvurdering(
                     baseUrl = E2ETestApplication.baseUrl,
                     forsikringsvurderingId = forsikringsvurderingId,

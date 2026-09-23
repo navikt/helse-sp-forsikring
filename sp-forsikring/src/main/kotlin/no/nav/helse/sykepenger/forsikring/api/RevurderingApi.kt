@@ -4,6 +4,8 @@ import com.fasterxml.jackson.annotation.JsonProperty
 import com.fasterxml.jackson.annotation.JsonPropertyOrder
 import com.fasterxml.jackson.databind.ObjectMapper
 import io.ktor.http.*
+import io.ktor.server.auth.*
+import io.ktor.server.auth.jwt.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
@@ -22,10 +24,12 @@ internal fun Route.revurderingApi(
 ) {
     post("/revurdering") {
         val request = call.receive<RevurderingRequest>()
+        val saksbehandlerIdent = call.authentication.principal<JWTPrincipal>()?.get("NAVident")
         coMedMdc(
             MdcKey.IDENTITETSNUMMER to request.identitetsnummer,
             MdcKey.VEDTAKSPERIODE_ID to request.vedtaksperiodeId.toString(),
             MdcKey.SPLEIS_BEHANDLING_ID to request.behandlingId.toString(),
+            MdcKey.SAKSBEHANDLER_IDENT to saksbehandlerIdent,
         ) {
             loggInfo(
                 "Mottok kall til POST /revurdering",

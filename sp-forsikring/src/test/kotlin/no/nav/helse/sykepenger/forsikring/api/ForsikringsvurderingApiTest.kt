@@ -565,7 +565,7 @@ class ForsikringsvurderingApiTest {
 
     @Test
     fun `POST revurdering returnerer 400 om det ikke finnes en forsikringsvurdering for fødselsnummer på skjæringstidspunkt`() {
-        val (statusCode, body) = postRevurdering(token = m2mToken())
+        val (statusCode, body) = postRevurdering(token = brukertoken())
 
         assertEquals(400, statusCode) { "Body was: $body" }
     }
@@ -605,7 +605,7 @@ class ForsikringsvurderingApiTest {
             postRevurdering(
                 identitetsnummer = identitetsnummer.value,
                 skjæringstidspunkt = skjæringstidspunkt,
-                token = m2mToken(),
+                token = brukertoken(),
             )
 
         assertEquals(200, statusCode) { "Body was: $body" }
@@ -655,7 +655,7 @@ class ForsikringsvurderingApiTest {
             postRevurdering(
                 identitetsnummer = identitetsnummer.value,
                 skjæringstidspunkt = skjæringstidspunkt,
-                token = m2mToken(),
+                token = brukertoken(),
             )
 
         assertEquals(200, statusCode) { "Body was: $body" }
@@ -692,7 +692,7 @@ class ForsikringsvurderingApiTest {
             postRevurdering(
                 identitetsnummer = identitetsnummer.value,
                 skjæringstidspunkt = skjæringstidspunkt,
-                token = m2mToken(),
+                token = brukertoken(),
             )
 
         assertEquals(200, statusCode) { "Body was: $body" }
@@ -724,7 +724,7 @@ class ForsikringsvurderingApiTest {
             postRevurdering(
                 identitetsnummer = identitetsnummer.value,
                 skjæringstidspunkt = skjæringstidspunkt,
-                token = m2mToken(),
+                token = brukertoken(),
             )
 
         assertEquals(200, statusCode) { "Body was: $body" }
@@ -768,7 +768,7 @@ class ForsikringsvurderingApiTest {
             postRevurdering(
                 identitetsnummer = identitetsnummer.value,
                 skjæringstidspunkt = skjæringstidspunkt,
-                token = m2mToken(),
+                token = brukertoken(),
                 vedtaksperiodeId = vedtaksperiodeId,
                 behandlingId = behandlingId,
             )
@@ -808,7 +808,7 @@ class ForsikringsvurderingApiTest {
             postRevurdering(
                 identitetsnummer = identitetsnummer.value,
                 skjæringstidspunkt = skjæringstidspunkt,
-                token = m2mToken(),
+                token = brukertoken(),
             )
 
         assertEquals(200, statusCode) { "Body was: $body" }
@@ -856,7 +856,7 @@ class ForsikringsvurderingApiTest {
             postRevurdering(
                 identitetsnummer = identitetsnummer.value,
                 skjæringstidspunkt = skjæringstidspunkt,
-                token = m2mToken(),
+                token = brukertoken(),
             )
 
         assertEquals(200, statusCode) { "Body was: $body" }
@@ -892,7 +892,7 @@ class ForsikringsvurderingApiTest {
         vedtaksperiodeId: UUID = UUID.randomUUID(),
         behandlingId: UUID = UUID.randomUUID(),
     ): Pair<Int, String> =
-        SpesialistApiClient.postRevurdering(
+        RevurderingApiClient.postRevurdering(
             baseUrl = serverUrl,
             identitetsnummer = identitetsnummer,
             skjæringstidspunkt = skjæringstidspunkt,
@@ -919,7 +919,7 @@ class ForsikringsvurderingApiTest {
         forsikringsvurderingId: String,
         token: String?,
     ): Pair<Int, String> =
-        SpesialistApiClient.getForsikringsvurdering(
+        ForsikringsvurderingApiClient.getForsikringsvurdering(
             baseUrl = serverUrl,
             forsikringsvurderingId = forsikringsvurderingId,
             token = token,

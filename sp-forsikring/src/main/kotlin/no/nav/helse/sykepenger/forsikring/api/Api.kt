@@ -103,8 +103,10 @@ fun Application.api(
     routing {
         authenticate("oidc-m2m") {
             flexApi(forsikringsvurderingService)
-            spesialistApi(
-                spForsikringDataSource = spForsikringDataSource,
+            hentForsikringsvurderingApi(spForsikringDataSource = spForsikringDataSource)
+        }
+        authenticate("oidc") {
+            revurderingApi(
                 revurderingService =
                     RevurderingService(
                         spForsikringDataSource = spForsikringDataSource,
@@ -113,8 +115,6 @@ fun Application.api(
                         endretForsikringsvurderingPubliserer = endretForsikringsvurderingPubliserer,
                     ),
             )
-        }
-        authenticate("oidc") {
             utbetalingsstatistikkApi(spForsikringDataSource)
         }
     }
