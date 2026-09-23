@@ -29,7 +29,7 @@ tbd-libs-access-token-provider-api = {module = "com.github.navikt.tbd-libs:acces
 tbd-libs-access-token-provider-texas = {module = "com.github.navikt.tbd-libs:access-token-provider-texas", version.ref = "tbd-libs"}
 tbd-libs-retry = {module = "com.github.navikt.tbd-libs:retry", version.ref = "tbd-libs"}
 postgresql = "org.postgresql:postgresql:42.7.13"
-rapids-and-rivers = "com.github.navikt:rapids-and-rivers:2026071513121784113927"
+rapids-and-rivers = "com.github.navikt:rapids-and-rivers:2026091610031789545782"
 ojdbc11 = "com.oracle.database.jdbc:ojdbc11:23.26.3.0.0"
 
 mock-oauth2-server = "no.nav.security:mock-oauth2-server:6.0.2"
