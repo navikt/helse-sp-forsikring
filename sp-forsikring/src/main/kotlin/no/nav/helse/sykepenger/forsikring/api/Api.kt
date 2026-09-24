@@ -3,6 +3,7 @@ package no.nav.helse.sykepenger.forsikring.api
 import com.auth0.jwk.JwkProviderBuilder
 import com.fasterxml.jackson.databind.SerializationFeature
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
+import com.github.navikt.tbd_libs.populasjonstilgang.api.PopulasjonstilgangskontrollProvider
 import io.ktor.http.*
 import io.ktor.serialization.jackson.*
 import io.ktor.server.application.*
@@ -32,6 +33,7 @@ fun Application.api(
     jwkProviderUri: String,
     subsumsjonspubliserer: Subsumsjonspubliserer,
     endretForsikringsvurderingPubliserer: EndretForsikringsvurderingPubliserer,
+    populasjonstilgangskontrollProvider: PopulasjonstilgangskontrollProvider,
 ) {
     install(CallId) {
         retrieveFromHeader(HttpHeaders.XRequestId)
@@ -114,6 +116,7 @@ fun Application.api(
                         subsumsjonspubliserer = subsumsjonspubliserer,
                         endretForsikringsvurderingPubliserer = endretForsikringsvurderingPubliserer,
                     ),
+                populasjonstilgangskontrollProvider = populasjonstilgangskontrollProvider,
             )
             utbetalingsstatistikkApi(spForsikringDataSource)
         }

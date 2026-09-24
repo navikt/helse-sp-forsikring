@@ -13,6 +13,7 @@ import no.nav.helse.sykepenger.forsikring.domain.KollektivForsikring
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.ForsikringsvurderingService
 import no.nav.helse.sykepenger.forsikring.kafka.RapidEndretForsikringsvurderingPubliserer
 import no.nav.helse.sykepenger.forsikring.kafka.RapidSubsumsjonspubliserer
+import no.nav.helse.sykepenger.forsikring.shared.testsupport.FakeTilgangskontroll
 import no.nav.helse.sykepenger.forsikring.shared.testsupport.TestcontainersReplikadatabase
 import no.nav.helse.sykepenger.forsikring.shared.testsupport.TestcontainersSpForsikringDatabase
 import no.nav.helse.sykepenger.forsikring.shared.testsupport.lagIdentitetsnummer
@@ -40,6 +41,7 @@ class UtbetalingsstatistikkApiTest {
     private val objectMapper = ObjectMapper().registerModule(JavaTimeModule())
 
     private val mockOAuth2Server = MockOAuth2Server().also(MockOAuth2Server::start)
+    private val fakeTilgangskontroll = FakeTilgangskontroll()
 
     private val port = ServerSocket(0).use { it.localPort }
     private val serverUrl = "http://localhost:$port"
@@ -56,6 +58,7 @@ class UtbetalingsstatistikkApiTest {
                 jwkProviderUri = mockOAuth2Server.jwksUrl("default").toString(),
                 subsumsjonspubliserer = RapidSubsumsjonspubliserer(testRapid, versjonAvKode = "test"),
                 endretForsikringsvurderingPubliserer = RapidEndretForsikringsvurderingPubliserer(testRapid),
+                populasjonstilgangskontrollProvider = fakeTilgangskontroll,
             )
         }.start(wait = false)
 

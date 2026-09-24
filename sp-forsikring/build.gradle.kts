@@ -22,6 +22,8 @@ dependencies {
     implementation(libs.tbd.libs.access.token.provider.api)
     implementation(libs.tbd.libs.access.token.provider.texas)
     implementation(libs.tbd.libs.retry)
+    implementation(libs.tbd.libs.populasjonstilgangskontroll.provider.api)
+    implementation(libs.tbd.libs.populasjonstilgangskontroll.provider.tilgangsmaskinen)
     implementation(project(":migreringer"))
 
     testImplementation(libs.flyway.database.oracle)

@@ -117,5 +117,7 @@ spec:
       rules:
         - application: logging
           namespace: nais-system
+        - application: populasjonstilgangskontroll
+          namespace: tilgangsmaskin
       external:
         - host: {{ gosys.externalAddress }}

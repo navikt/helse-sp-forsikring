@@ -3,6 +3,8 @@ package no.nav.helse.sykepenger.forsikring.api
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
+import com.github.navikt.tbd_libs.populasjonstilgang.api.TilgangSomMangler
+import com.github.navikt.tbd_libs.populasjonstilgang.api.TilgangskontrollResultat
 import com.github.navikt.tbd_libs.rapids_and_rivers.test_support.TestRapid
 import io.ktor.server.cio.*
 import io.ktor.server.engine.*
@@ -13,10 +15,21 @@ import no.nav.helse.sykepenger.forsikring.domain.VurdertIndividuellForsikring
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.ForsikringsvurderingService
 import no.nav.helse.sykepenger.forsikring.kafka.RapidEndretForsikringsvurderingPubliserer
 import no.nav.helse.sykepenger.forsikring.kafka.RapidSubsumsjonspubliserer
-import no.nav.helse.sykepenger.forsikring.shared.testsupport.*
+import no.nav.helse.sykepenger.forsikring.shared.testsupport.FakeTilgangskontroll
+import no.nav.helse.sykepenger.forsikring.shared.testsupport.TestcontainersReplikadatabase
+import no.nav.helse.sykepenger.forsikring.shared.testsupport.TestcontainersSpForsikringDatabase
+import no.nav.helse.sykepenger.forsikring.shared.testsupport.lagForsikringsvurdering
+import no.nav.helse.sykepenger.forsikring.shared.testsupport.lagIdentitetsnummer
+import no.nav.helse.sykepenger.forsikring.shared.testsupport.lagVurdertIndividuellForsikring
+import no.nav.helse.sykepenger.forsikring.shared.testsupport.lagreRåkopiOgForsikringsvurdering
+import no.nav.helse.sykepenger.forsikring.shared.testsupport.tilInfotrygdFødselsnummer
 import no.nav.security.mock.oauth2.MockOAuth2Server
 import org.junit.jupiter.api.AfterAll
-import org.junit.jupiter.api.Assertions.*
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertFalse
+import org.junit.jupiter.api.Assertions.assertNotNull
+import org.junit.jupiter.api.Assertions.assertNull
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
@@ -31,6 +44,7 @@ private const val CLIENT_ID = "sp-forsikring-junit"
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class ForsikringsvurderingApiTest {
     private val mockOAuth2Server = MockOAuth2Server().also(MockOAuth2Server::start)
+    private val fakeTilgangskontroll = FakeTilgangskontroll()
 
     private val port = ServerSocket(0).use { it.localPort }
     private val serverUrl = "http://localhost:$port"
@@ -47,6 +61,7 @@ class ForsikringsvurderingApiTest {
                 jwkProviderUri = mockOAuth2Server.jwksUrl("default").toString(),
                 subsumsjonspubliserer = RapidSubsumsjonspubliserer(testRapid, versjonAvKode = "test"),
                 endretForsikringsvurderingPubliserer = RapidEndretForsikringsvurderingPubliserer(testRapid),
+                populasjonstilgangskontrollProvider = fakeTilgangskontroll,
             )
         }.start(wait = false)
 
@@ -55,6 +70,7 @@ class ForsikringsvurderingApiTest {
         TestcontainersReplikadatabase.reset()
         TestcontainersSpForsikringDatabase.reset()
         testRapid.reset()
+        fakeTilgangskontroll.resultat = TilgangskontrollResultat.Ok
     }
 
     @AfterAll
@@ -868,6 +884,86 @@ class ForsikringsvurderingApiTest {
         val (statusCode, body) = postRevurdering(identitetsnummer = "123", token = m2mToken())
 
         assertEquals(400, statusCode) { "Body was: $body" }
+    }
+
+    @Test
+    fun `POST revurdering returnerer 403 når populasjonstilgangskontrollen sier ManglerTilgang`() {
+        fakeTilgangskontroll.resultat = TilgangskontrollResultat.ManglerTilgang(TilgangSomMangler.EgenAnsatt)
+
+        val (statusCode, body) = postRevurdering(token = brukertoken())
+
+        assertEquals(403, statusCode) { "Body was: $body" }
+        val json = body.somJson()
+        assertEquals("Mangler tilgang til person", json["title"].asText())
+        assertEquals(403, json["status"].asInt())
+    }
+
+    @Test
+    fun `POST revurdering returnerer 400 når populasjonstilgangskontrollen sier IdentIkkeFunnet`() {
+        fakeTilgangskontroll.resultat = TilgangskontrollResultat.IdentIkkeFunnet
+
+        val (statusCode, body) = postRevurdering(token = brukertoken())
+
+        assertEquals(400, statusCode) { "Body was: $body" }
+        val json = body.somJson()
+        assertEquals("Person ikke funnet", json["title"].asText())
+        assertEquals(400, json["status"].asInt())
+    }
+
+    @Test
+    fun `POST revurdering returnerer 500 når populasjonstilgangskontrollen sier UventetFeil`() {
+        fakeTilgangskontroll.resultat = TilgangskontrollResultat.UventetFeil("noe gikk galt i tilgangsmaskinen")
+
+        val (statusCode, body) = postRevurdering(token = brukertoken())
+
+        assertEquals(500, statusCode) { "Body was: $body" }
+        val json = body.somJson()
+        assertEquals("Uventet feil", json["title"].asText())
+        assertEquals(500, json["status"].asInt())
+    }
+
+    @Test
+    fun `POST revurdering utfører ingen revurdering når populasjonstilgangskontrollen avslår tilgang`() {
+        val identitetsnummer = lagIdentitetsnummer()
+        val skjæringstidspunkt = "2026-01-01"
+        lagreRåkopiOgForsikringsvurdering(
+            lagForsikringsvurdering(
+                skjæringstidspunkt = LocalDate.parse(skjæringstidspunkt),
+                identitetsnummer = identitetsnummer,
+                individuelleForsikringer =
+                    listOf(
+                        lagVurdertIndividuellForsikring(
+                            type = IndividuellForsikringType.SELVSTENDIG_80_PROSENT_FRA_DAG_1,
+                            virkningsdato = LocalDate.parse("2025-06-01"),
+                        ),
+                    ),
+            ),
+        )
+        // Replikabasen er tom, altså ville revurderingen normalt funnet en endring
+        fakeTilgangskontroll.resultat = TilgangskontrollResultat.ManglerTilgang(TilgangSomMangler.StrengtFortroligAdresse)
+
+        val (statusCode, body) =
+            postRevurdering(
+                identitetsnummer = identitetsnummer.value,
+                skjæringstidspunkt = skjæringstidspunkt,
+                token = brukertoken(),
+            )
+
+        assertEquals(403, statusCode) { "Body was: $body" }
+        assertEquals(1, TestcontainersSpForsikringDatabase.countAlleForsikringsvurderinger()) {
+            "Forventet at ingen ny forsikringsvurdering ble lagret når tilgang avslås"
+        }
+        assertEquals(1, TestcontainersSpForsikringDatabase.countAlleRåkopier()) {
+            "Forventet at ingen ny råkopi ble lagret når tilgang avslås"
+        }
+        assertEquals(0, testRapid.inspektør.size) { "Forventet ingen publiserte meldinger når tilgang avslås" }
+    }
+
+    @Test
+    fun `POST revurdering returnerer 401 uten autentiseringstoken`() {
+        val (statusCode, _) = postRevurdering(token = null)
+
+        assertEquals(401, statusCode)
     }
 
     private fun publiserteMeldinger(eventNavn: String): List<tools.jackson.databind.JsonNode> =

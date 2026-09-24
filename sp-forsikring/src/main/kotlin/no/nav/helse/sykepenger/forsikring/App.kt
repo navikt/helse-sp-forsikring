@@ -4,6 +4,7 @@ import com.github.navikt.tbd_libs.access_token.TexasClient
 import com.github.navikt.tbd_libs.kafka.AivenConfig
 import com.github.navikt.tbd_libs.kafka.Config
 import com.github.navikt.tbd_libs.kafka.ConsumerProducerFactory
+import com.github.navikt.tbd_libs.populasjonstilgang.client.TilgangsmaskinenClient
 import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
 import io.ktor.server.application.*
@@ -11,7 +12,13 @@ import no.nav.helse.rapids_rivers.RapidApplication
 import no.nav.helse.sykepenger.forsikring.api.api
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.ForsikringsvurderingService
 import no.nav.helse.sykepenger.forsikring.gosys.GosysOppgaveClient
-import no.nav.helse.sykepenger.forsikring.kafka.*
+import no.nav.helse.sykepenger.forsikring.kafka.ForsikringsvurderingBehovRiver
+import no.nav.helse.sykepenger.forsikring.kafka.ForsikringsvurderingResultatBehovRiver
+import no.nav.helse.sykepenger.forsikring.kafka.RapidEndretForsikringsvurderingPubliserer
+import no.nav.helse.sykepenger.forsikring.kafka.RapidSubsumsjonspubliserer
+import no.nav.helse.sykepenger.forsikring.kafka.SelvstendigIngenDagerIgjenRiver
+import no.nav.helse.sykepenger.forsikring.kafka.SelvstendigUtbetaltEtterVentetidRiver
+import no.nav.helse.sykepenger.forsikring.kafka.VedtakFattetRiver
 import no.nav.sykepenger.libs.logging.loggInfo
 import org.flywaydb.core.Flyway
 import java.net.URI
@@ -97,6 +104,9 @@ fun launchApplication(
                     messageContext = this,
                 )
 
+            val populasjonstilgangskontrollProvider =
+                TilgangsmaskinenClient.fromEnv(tokenProvider = accessTokenProvider, env = env)
+
             ktorOppsett = {
                 api(
                     spForsikringDataSource = spForsikringDataSource,
@@ -106,6 +116,7 @@ fun launchApplication(
                     jwkProviderUri = env.getValue("AZURE_OPENID_CONFIG_JWKS_URI"),
                     subsumsjonspubliserer = subsumsjonspubliserer,
                     endretForsikringsvurderingPubliserer = endretForsikringsvurderingPubliserer,
+                    populasjonstilgangskontrollProvider = populasjonstilgangskontrollProvider,
                 )
 
                 monitor.subscribe(ApplicationStarted) {

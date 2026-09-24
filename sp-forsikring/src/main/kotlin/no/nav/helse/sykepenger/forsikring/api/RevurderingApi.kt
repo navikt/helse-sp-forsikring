@@ -3,6 +3,8 @@ package no.nav.helse.sykepenger.forsikring.api
 import com.fasterxml.jackson.annotation.JsonProperty
 import com.fasterxml.jackson.annotation.JsonPropertyOrder
 import com.fasterxml.jackson.databind.ObjectMapper
+import com.github.navikt.tbd_libs.populasjonstilgang.api.PopulasjonstilgangskontrollProvider
+import com.github.navikt.tbd_libs.populasjonstilgang.api.TilgangskontrollResultat
 import io.ktor.http.*
 import io.ktor.server.auth.*
 import io.ktor.server.auth.jwt.*
@@ -16,11 +18,13 @@ import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.Revurderingsresul
 import no.nav.sykepenger.libs.logging.MdcKey
 import no.nav.sykepenger.libs.logging.coMedMdc
 import no.nav.sykepenger.libs.logging.loggInfo
+import no.nav.sykepenger.libs.logging.loggWarn
 import java.time.LocalDate
 import java.util.*
 
 internal fun Route.revurderingApi(
     revurderingService: RevurderingService,
+    populasjonstilgangskontrollProvider: PopulasjonstilgangskontrollProvider,
 ) {
     post("/revurdering") {
         val request = call.receive<RevurderingRequest>()
@@ -38,6 +42,71 @@ internal fun Route.revurderingApi(
 
             val identitetsnummer = Identitetsnummer.fraString(request.identitetsnummer)
 
+            when (
+                val tilgangsresultat =
+                    populasjonstilgangskontrollProvider.kontrollerKjerneTilgang(
+                        accessToken =
+                            call.request.headers[HttpHeaders.Authorization]
+                                ?.removePrefix("Bearer ") ?: error("Mangler access token"),
+                        fødselsnummer = identitetsnummer.value,
+                    )
+            ) {
+                is TilgangskontrollResultat.Ok -> {
+                }
+
+                is TilgangskontrollResultat.ManglerTilgang -> {
+                    loggWarn(
+                        "403: populasjonstilgangskontrollen ga avslag",
+                        "navIdent" to saksbehandlerIdent,
+                        "tilgangSomMangler" to tilgangsresultat.tilgangSomMangler.name,
+                    )
+                    call.respond(
+                        HttpStatusCode.Forbidden,
+                        ProblemResponse(
+                            title = "Mangler tilgang til person",
+                            status = HttpStatusCode.Forbidden.value,
+                            detail = "",
+                            instance = call.request.uri,
+                        ),
+                    )
+                    return@coMedMdc
+                }
+
+                is TilgangskontrollResultat.IdentIkkeFunnet -> {
+                    loggWarn(
+                        "400: Tilgangsmaskinen sa ident ikke funnet",
+                        "navIdent" to saksbehandlerIdent,
+                    )
+                    call.respond(
+                        HttpStatusCode.BadRequest,
+                        ProblemResponse(
+                            title = "Person ikke funnet",
+                            status = HttpStatusCode.BadRequest.value,
+                            detail = "",
+                            instance = call.request.uri,
+                        ),
+                    )
+                    return@coMedMdc
+                }
+
+                is TilgangskontrollResultat.UventetFeil -> {
+                    loggWarn(
+                        "500: Uventet feil i tilgangsmaskinen",
+                        "navIdent" to saksbehandlerIdent,
+                        "forklaring" to tilgangsresultat.menneskeligLesbarForklaring,
+                    )
+                    call.respond(
+                        HttpStatusCode.InternalServerError,
+                        ProblemResponse(
+                            title = "Uventet feil",
+                            status = HttpStatusCode.InternalServerError.value,
+                            detail = "",
+                            instance = call.request.uri,
+                        ),
+                    )
+                    return@coMedMdc
+                }
+            }
             val revurderingsresultat =
                 revurderingService.revurder(
                     identitetsnummer = identitetsnummer,
