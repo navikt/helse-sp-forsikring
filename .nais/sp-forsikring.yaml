@@ -98,7 +98,12 @@ spec:
       value: {{ gosys.baseurl }}
     - name: GOSYS_SCOPE
       value: {{ gosys.scope }}
-  accessPolicy:
+    - name: TILGANGSMASKINEN_SCOPE
+      value: { { tilgangsmaskinen.scope } }
+    - name: TILGANGSMASKINEN_BASE_URL
+      value: http://populasjonstilgangskontroll.tilgangsmaskin
+
+accessPolicy:
     inbound:
       rules:
         - application: spesialist
@@ -117,5 +122,7 @@ spec:
       rules:
         - application: logging
           namespace: nais-system
+        - application: populasjonstilgangskontroll
+          namespace: tilgangsmaskin
       external:
         - host: {{ gosys.externalAddress }}

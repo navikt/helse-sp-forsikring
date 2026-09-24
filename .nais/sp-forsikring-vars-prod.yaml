@@ -15,3 +15,6 @@ gosys:
   baseurl: https://oppgave.prod-fss-pub.nais.io
   scope: api://prod-fss.oppgavehandtering.oppgave/.default
   externalAddress: oppgave.prod-fss-pub.nais.io
+
+tilgangsmaskinen:
+  scope: api://prod-gcp.tilgangsmaskin.populasjonstilgangskontroll/.default

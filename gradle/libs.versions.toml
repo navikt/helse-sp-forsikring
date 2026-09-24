@@ -27,6 +27,8 @@ ktor-server-status-pages = { module = "io.ktor:ktor-server-status-pages", versio
 kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "coroutines" }
 tbd-libs-access-token-provider-api = {module = "com.github.navikt.tbd-libs:access-token-provider-api", version.ref = "tbd-libs"}
 tbd-libs-access-token-provider-texas = {module = "com.github.navikt.tbd-libs:access-token-provider-texas", version.ref = "tbd-libs"}
+tbd-libs-populasjonstilgangskontroll-provider-api = { module = "com.github.navikt.tbd-libs:populasjonstilgangskontroll-provider-api", version.ref = "tbd-libs" }
+tbd-libs-populasjonstilgangskontroll-provider-tilgangsmaskinen = { module = "com.github.navikt.tbd-libs:populasjonstilgangskontroll-provider-tilgangsmaskinen", version.ref = "tbd-libs" }
 tbd-libs-retry = {module = "com.github.navikt.tbd-libs:retry", version.ref = "tbd-libs"}
 postgresql = "org.postgresql:postgresql:42.7.13"
 rapids-and-rivers = "com.github.navikt:rapids-and-rivers:2026091610031789545782"

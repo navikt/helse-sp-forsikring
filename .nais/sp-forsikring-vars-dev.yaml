@@ -25,3 +25,6 @@ gosys:
   baseurl: https://oppgave.dev-fss-pub.nais.io
   scope: api://dev-fss.oppgavehandtering.oppgave/.default
   externalAddress: oppgave.dev-fss-pub.nais.io
+
+tilgangsmaskinen:
+  scope: api://dev-gcp.tilgangsmaskin.populasjonstilgangskontroll/.default
