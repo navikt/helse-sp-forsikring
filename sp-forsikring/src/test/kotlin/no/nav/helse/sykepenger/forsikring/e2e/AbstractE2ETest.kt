@@ -659,7 +659,7 @@ abstract class AbstractE2ETest(
         val endretForsikringsvurderingMelding =
             rapid.konsumerMelding {
                 it.path("@event_name").stringValue() == "endret_forsikringsvurdering" &&
-                    it.path("identitetsnummer").asString() == testPerson.identitetsnummer
+                    it.path("fødselsnummer").asString() == testPerson.identitetsnummer
             }
         val forsikringsvurderingId = endretForsikringsvurderingMelding["forsikringsvurderingId"].stringValue()
         assertJsonEquals(
@@ -667,7 +667,7 @@ abstract class AbstractE2ETest(
                 """
                 {
                   "@event_name" : "endret_forsikringsvurdering",
-                  "identitetsnummer" : "${testPerson.identitetsnummer}",
+                  "fødselsnummer" : "${testPerson.identitetsnummer}",
                   "skjæringstidspunkt" : "${sykefraværstilfelle.skjæringstidspunkt}",
                   "forsikringsvurderingId" : "$forsikringsvurderingId"
                 }
