@@ -13,7 +13,7 @@ hikaricp = "com.zaxxer:HikariCP:7.1.0"
 cloud-sql-postgres-socket-factory = "com.google.cloud.sql:postgres-socket-factory:1.30.0"
 httpclient5-fluent = "org.apache.httpcomponents.client5:httpclient5-fluent:5.6.4"
 kotliquery = "com.github.seratch:kotliquery:1.9.1"
-ktor-serialization-jackson = { module = "io.ktor:ktor-serialization-jackson", version.ref = "ktor" }
+ktor-serialization-jackson3 = { module = "io.ktor:ktor-serialization-jackson3", version.ref = "ktor" }
 ktor-server-auth = { module = "io.ktor:ktor-server-auth", version.ref = "ktor" }
 ktor-server-auth-jwt = { module = "io.ktor:ktor-server-auth-jwt", version.ref = "ktor" }
 ktor-server-call-id = { module = "io.ktor:ktor-server-call-id", version.ref = "ktor" }
@@ -52,7 +52,7 @@ ktor-server = [
     "ktor-server-cio",
     "ktor-server-content-negotiation",
     "ktor-server-core",
-    "ktor-serialization-jackson",
+    "ktor-serialization-jackson3",
     "ktor-server-metrics-micrometer",
     "ktor-server-status-pages"
 ]
