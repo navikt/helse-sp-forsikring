@@ -580,7 +580,7 @@ class ForsikringsvurderingApiTest {
 
     @Test
     fun `POST endringssjekk returnerer 400 om det ikke finnes en forsikringsvurdering for fødselsnummer på skjæringstidspunkt`() {
-        val (statusCode, body) = postRevurdering(token = brukertoken())
+        val (statusCode, body) = postEndringssjekk(token = brukertoken())
 
         assertEquals(400, statusCode) { "Body was: $body" }
     }
@@ -617,7 +617,7 @@ class ForsikringsvurderingApiTest {
         )
 
         val (statusCode, body) =
-            postRevurdering(
+            postEndringssjekk(
                 identitetsnummer = identitetsnummer.value,
                 skjæringstidspunkt = skjæringstidspunkt,
                 token = brukertoken(),
@@ -667,7 +667,7 @@ class ForsikringsvurderingApiTest {
         )
 
         val (statusCode, body) =
-            postRevurdering(
+            postEndringssjekk(
                 identitetsnummer = identitetsnummer.value,
                 skjæringstidspunkt = skjæringstidspunkt,
                 token = brukertoken(),
@@ -704,7 +704,7 @@ class ForsikringsvurderingApiTest {
 
         // Replikabasen er tom, altså har brukeren ingen forsikring lenger
         val (statusCode, body) =
-            postRevurdering(
+            postEndringssjekk(
                 identitetsnummer = identitetsnummer.value,
                 skjæringstidspunkt = skjæringstidspunkt,
                 token = brukertoken(),
@@ -736,7 +736,7 @@ class ForsikringsvurderingApiTest {
 
         // Replikabasen er tom, altså har brukeren ingen forsikring lenger, og vi får en ny vurdering
         val (statusCode, body) =
-            postRevurdering(
+            postEndringssjekk(
                 identitetsnummer = identitetsnummer.value,
                 skjæringstidspunkt = skjæringstidspunkt,
                 token = brukertoken(),
@@ -792,7 +792,7 @@ class ForsikringsvurderingApiTest {
         )
 
         val (statusCode, body) =
-            postRevurdering(
+            postEndringssjekk(
                 identitetsnummer = identitetsnummer.value,
                 skjæringstidspunkt = skjæringstidspunkt,
                 token = brukertoken(),
@@ -830,7 +830,7 @@ class ForsikringsvurderingApiTest {
         lagreRåkopiOgForsikringsvurdering(forrigeVurdering)
 
         val (statusCode, body) =
-            postRevurdering(
+            postEndringssjekk(
                 identitetsnummer = identitetsnummer.value,
                 skjæringstidspunkt = skjæringstidspunkt,
                 token = brukertoken(),
@@ -878,7 +878,7 @@ class ForsikringsvurderingApiTest {
         )
 
         val (statusCode, body) =
-            postRevurdering(
+            postEndringssjekk(
                 identitetsnummer = identitetsnummer.value,
                 skjæringstidspunkt = skjæringstidspunkt,
                 token = brukertoken(),
@@ -890,7 +890,7 @@ class ForsikringsvurderingApiTest {
 
     @Test
     fun `POST endringssjekk returnerer 400 når identitetsnummer er ugyldig`() {
-        val (statusCode, body) = postRevurdering(identitetsnummer = "123", token = brukertoken())
+        val (statusCode, body) = postEndringssjekk(identitetsnummer = "123", token = brukertoken())
 
         assertEquals(400, statusCode) { "Body was: $body" }
     }
@@ -899,7 +899,7 @@ class ForsikringsvurderingApiTest {
     fun `POST endringssjekk returnerer 403 når populasjonstilgangskontrollen sier ManglerTilgang`() {
         fakeTilgangskontroll.resultat = TilgangskontrollResultat.ManglerTilgang(TilgangSomMangler.EgenAnsatt)
 
-        val (statusCode, body) = postRevurdering(token = brukertoken())
+        val (statusCode, body) = postEndringssjekk(token = brukertoken())
 
         assertEquals(403, statusCode) { "Body was: $body" }
         val json = body.somJson()
@@ -911,7 +911,7 @@ class ForsikringsvurderingApiTest {
     fun `POST endringssjekk returnerer 400 når populasjonstilgangskontrollen sier IdentIkkeFunnet`() {
         fakeTilgangskontroll.resultat = TilgangskontrollResultat.IdentIkkeFunnet
 
-        val (statusCode, body) = postRevurdering(token = brukertoken())
+        val (statusCode, body) = postEndringssjekk(token = brukertoken())
 
         assertEquals(400, statusCode) { "Body was: $body" }
         val json = body.somJson()
@@ -923,7 +923,7 @@ class ForsikringsvurderingApiTest {
     fun `POST endringssjekk returnerer 500 når populasjonstilgangskontrollen sier UventetFeil`() {
         fakeTilgangskontroll.resultat = TilgangskontrollResultat.UventetFeil("noe gikk galt i tilgangsmaskinen")
 
-        val (statusCode, body) = postRevurdering(token = brukertoken())
+        val (statusCode, body) = postEndringssjekk(token = brukertoken())
 
         assertEquals(500, statusCode) { "Body was: $body" }
         val json = body.somJson()
@@ -952,7 +952,7 @@ class ForsikringsvurderingApiTest {
         fakeTilgangskontroll.resultat = TilgangskontrollResultat.ManglerTilgang(TilgangSomMangler.StrengtFortroligAdresse)
 
         val (statusCode, body) =
-            postRevurdering(
+            postEndringssjekk(
                 identitetsnummer = identitetsnummer.value,
                 skjæringstidspunkt = skjæringstidspunkt,
                 token = brukertoken(),
@@ -970,7 +970,7 @@ class ForsikringsvurderingApiTest {
 
     @Test
     fun `POST endringssjekk returnerer 401 uten autentiseringstoken`() {
-        val (statusCode, _) = postRevurdering(token = null)
+        val (statusCode, _) = postEndringssjekk(token = null)
 
         assertEquals(401, statusCode)
     }
@@ -990,12 +990,12 @@ class ForsikringsvurderingApiTest {
             claims = mapOf("idtyp" to "app"),
         )
 
-    private fun postRevurdering(
+    private fun postEndringssjekk(
         identitetsnummer: String = lagIdentitetsnummer().value,
         skjæringstidspunkt: String = "2026-01-01",
         token: String?,
     ): Pair<Int, String> =
-        RevurderingApiClient.postRevurdering(
+        EndringssjekkApiClient.postEndringssjekk(
             baseUrl = serverUrl,
             identitetsnummer = identitetsnummer,
             skjæringstidspunkt = skjæringstidspunkt,

@@ -7,13 +7,13 @@ import tools.jackson.databind.introspect.DefaultAccessorNamingStrategy
 import tools.jackson.module.kotlin.jacksonMapperBuilder
 import java.time.LocalDate
 
-object RevurderingApiClient {
+object EndringssjekkApiClient {
     private val objectMapper =
         jacksonMapperBuilder()
             .accessorNaming(DefaultAccessorNamingStrategy.Provider().withFirstCharAcceptance(true, true))
             .build()
 
-    fun postRevurdering(
+    fun postEndringssjekk(
         baseUrl: String,
         identitetsnummer: String,
         skjæringstidspunkt: String,

@@ -52,7 +52,7 @@ internal class EndringssjekkService(
                 MdcKey.SPLEIS_BEHANDLING_ID to behandlingId.toString(),
             ) {
                 // Yrkesaktivitetstype og spesielle yrkesgrupper er ikke en del av forespørselen, og arves derfor
-                // fra den forrige vurderingen. Vi revurderer altså kun på grunnlag av endringer i Infotrygd.
+                // fra den forrige vurderingen. Vi gjør altså endringssjekk kun på grunnlag av endringer i Infotrygd.
                 val (råkopi, nyVurdering) =
                     forsikringsvurderingService.gjørForsikringsvurdering(
                         identitetsnummer = identitetsnummer,
