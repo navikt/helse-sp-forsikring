@@ -107,7 +107,11 @@ fun launchApplication(
                 )
 
             val populasjonstilgangskontrollProvider =
-                TilgangsmaskinenClient.fromEnv(tokenProvider = accessTokenProvider, env = env)
+                TilgangsmaskinenClient(
+                    scope = env.getValue("TILGANGSMASKINEN_SCOPE"),
+                    baseUrl = env.getValue("TILGANGSMASKINEN_BASE_URL"),
+                    tokenProvider = accessTokenProvider,
+                )
 
             ktorOppsett = {
                 api(

@@ -98,6 +98,10 @@ spec:
       value: {{ gosys.baseurl }}
     - name: GOSYS_SCOPE
       value: {{ gosys.scope }}
+    - name: TILGANGSMASKINEN_BASE_URL
+      value: http://populasjonstilgangskontroll.tilgangsmaskin
+    - name: TILGANGSMASKINEN_SCOPE
+      value: {{ tilgangsmaskinen.scope }}
   accessPolicy:
     inbound:
       rules:

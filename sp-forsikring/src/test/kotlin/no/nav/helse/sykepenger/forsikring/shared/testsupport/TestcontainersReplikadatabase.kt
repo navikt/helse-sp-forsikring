@@ -68,13 +68,38 @@ object TestcontainersReplikadatabase {
         opphørsdato: LocalDate? = null,
         opphørsgrunn: String? = null,
     ) {
+        val forsfomSeq =
+            opprettUbetaltForsikring(
+                identitetsnummer = identitetsnummer,
+                virkningsdato = virkningsdato,
+                type = type,
+                premiegrunnlag = premiegrunnlag,
+                opphørsdato = opphørsdato,
+                opphørsgrunn = opphørsgrunn,
+            )
+        registrerBetalingAvForsikring(
+            identitetsnummer = identitetsnummer,
+            forsfomSeq = forsfomSeq,
+            virkningsdato = virkningsdato,
+        )
+    }
+
+    /** @return IF10_FORSFOM_SEQ, som identifiserer forsikringen i Infotrygd */
+    fun opprettUbetaltForsikring(
+        identitetsnummer: Identitetsnummer,
+        virkningsdato: LocalDate,
+        type: Char,
+        premiegrunnlag: Int,
+        opphørsdato: LocalDate? = null,
+        opphørsgrunn: String? = null,
+    ): Int {
         val vedfrivtId = vedfrivtSeq++
         val nå = Instant.now()
         val IF01_KODE = '1'
         val IF01_AGNR_FNR = identitetsnummer.tilInfotrygdFødselsnummer()
         val IF10_FORSFOM_SEQ = vedfrivtId
         val forsikringFom = virkningsdato.minusDays(28L)
-        TestcontainersReplikadatabase.insertVedfrivt(
+        insertVedfrivt(
             IF01_KODE = IF01_KODE,
             IF01_AGNR_FNR = IF01_AGNR_FNR,
             IF10_FORSFOM_SEQ = IF10_FORSFOM_SEQ,
@@ -107,14 +132,23 @@ object TestcontainersReplikadatabase {
             ID_VED = BigDecimal.valueOf(vedfrivtId.toLong()),
             OPPDATERT = nå,
         )
-        val fkontoId = fkontoSeq++
+        return IF10_FORSFOM_SEQ
+    }
 
+    fun registrerBetalingAvForsikring(
+        identitetsnummer: Identitetsnummer,
+        forsfomSeq: Int,
+        virkningsdato: LocalDate,
+    ) {
+        val fkontoId = fkontoSeq++
+        val nå = Instant.now()
+        val forsikringFom = virkningsdato.minusDays(28L)
         val betalingFomYearMonth = YearMonth.of(forsikringFom.year, 1 + (6 * (forsikringFom.month.value / 7)))
         val betalingTomYearMonth = betalingFomYearMonth.plusMonths(5)
-        TestcontainersReplikadatabase.insertFkonto12(
-            IF01_KODE = IF01_KODE,
-            IF01_AGNR_FNR = IF01_AGNR_FNR,
-            IF10_FORSFOM_SEQ = IF10_FORSFOM_SEQ,
+        insertFkonto12(
+            IF01_KODE = '1',
+            IF01_AGNR_FNR = identitetsnummer.tilInfotrygdFødselsnummer(),
+            IF10_FORSFOM_SEQ = forsfomSeq,
             IF12_BETDATO_SEQ = fkontoId,
             IF12_FOM = betalingFomYearMonth.atDay(1).tilInfotrygddato(),
             IF12_TOM = betalingTomYearMonth.atEndOfMonth().tilInfotrygddato(),

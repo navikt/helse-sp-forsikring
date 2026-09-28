@@ -1,6 +1,7 @@
 package no.nav.helse.sykepenger.forsikring.e2e
 
 import com.github.navikt.tbd_libs.rapids_and_rivers.asInstant
+import no.nav.helse.sykepenger.forsikring.api.EndringssjekkApiClient
 import no.nav.helse.sykepenger.forsikring.api.FlexApiClient
 import no.nav.helse.sykepenger.forsikring.api.ForsikringsvurderingApiClient
 import no.nav.helse.sykepenger.forsikring.api.UtbetalingsstatistikkApiClient
@@ -21,7 +22,11 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.parallel.Isolated
 import tools.jackson.databind.JsonNode
 import tools.jackson.module.kotlin.jacksonObjectMapper
-import java.time.*
+import java.time.Instant
+import java.time.LocalDate
+import java.time.LocalDateTime
+import java.time.YearMonth
+import java.time.ZoneId
 import java.util.*
 import kotlin.test.fail
 
@@ -273,6 +278,14 @@ abstract class AbstractE2ETest(
         E2ETestApplication.mockOAuth2Server
             .issueToken(issuerId = "default", audience = E2ETestApplication.CLIENT_ID, claims = mapOf("idtyp" to "app"))
             .serialize()
+
+    private fun saksbehandlertoken(saksbehandlerIdent: String): String =
+        E2ETestApplication.mockOAuth2Server
+            .issueToken(
+                issuerId = "default",
+                audience = E2ETestApplication.CLIENT_ID,
+                claims = mapOf("NAVident" to saksbehandlerIdent),
+            ).serialize()
 
     protected fun spesialistSenderVedtakFattet(
         vedtaksperiode: Sykefraværstilfelle.Vedtaksperiode,
@@ -597,6 +610,81 @@ abstract class AbstractE2ETest(
             type = infotrygdType,
             premiegrunnlag = premiegrunnlag,
         )
+    }
+
+    /** @return IF10_FORSFOM_SEQ, som identifiserer forsikringen i Infotrygd */
+    protected fun brukerenHarEnUbetaltForsikringIInfotrygd(
+        virkningsdato: LocalDate,
+        infotrygdType: Char,
+        premiegrunnlag: Int,
+    ): Int =
+        TestcontainersReplikadatabase.opprettUbetaltForsikring(
+            identitetsnummer = Identitetsnummer.fraString(testPerson.identitetsnummer),
+            virkningsdato = virkningsdato,
+            type = infotrygdType,
+            premiegrunnlag = premiegrunnlag,
+        )
+
+    protected fun brukerenBetalerForsikringenSinIInfotrygd(
+        forsfomSeq: Int,
+        virkningsdato: LocalDate,
+    ) {
+        TestcontainersReplikadatabase.registrerBetalingAvForsikring(
+            identitetsnummer = Identitetsnummer.fraString(testPerson.identitetsnummer),
+            forsfomSeq = forsfomSeq,
+            virkningsdato = virkningsdato,
+        )
+    }
+
+    protected fun saksbehandlerGjørEndringssjekkISpeil(
+        saksbehandlerIdent: String,
+        forventetVurderingErEndret: Boolean,
+    ) {
+        val endringssjekkSvar =
+            forvent200OgTolkJson(
+                EndringssjekkApiClient.postEndringssjekk(
+                    baseUrl = E2ETestApplication.baseUrl,
+                    identitetsnummer = testPerson.identitetsnummer,
+                    skjæringstidspunkt = sykefraværstilfelle.skjæringstidspunkt.toString(),
+                    token = saksbehandlertoken(saksbehandlerIdent),
+                ),
+            )
+        assertJsonEquals(
+            expectedJson = """{ "vurderingErEndret": $forventetVurderingErEndret }""",
+            actualJsonNode = endringssjekkSvar,
+        )
+    }
+
+    protected fun detBlirPublisertEnEndretForsikringsvurderingMelding(): String {
+        val endretForsikringsvurderingMelding =
+            rapid.konsumerMelding {
+                it.path("@event_name").stringValue() == "endret_forsikringsvurdering" &&
+                    it.path("identitetsnummer").asString() == testPerson.identitetsnummer
+            }
+        val forsikringsvurderingId = endretForsikringsvurderingMelding["forsikringsvurderingId"].stringValue()
+        assertJsonEquals(
+            expectedJson =
+                """
+                {
+                  "@event_name" : "endret_forsikringsvurdering",
+                  "identitetsnummer" : "${testPerson.identitetsnummer}",
+                  "skjæringstidspunkt" : "${sykefraværstilfelle.skjæringstidspunkt}",
+                  "forsikringsvurderingId" : "$forsikringsvurderingId"
+                }
+                """.trimIndent(),
+            actualJsonNode = endretForsikringsvurderingMelding,
+            bortsettFraStier =
+                setOf(
+                    "@id",
+                    "@opprettet",
+                    "@opprettetUTC",
+                    "system_read_count",
+                    "system_participating_services",
+                ),
+        )
+        // UUID-sjekk: kaster hvis id-en ikke er en gyldig UUID
+        UUID.fromString(forsikringsvurderingId)
+        return forsikringsvurderingId
     }
 
     protected fun utbetalingsstatistikkenForIÅrErTom() {

@@ -1,6 +1,7 @@
 package no.nav.helse.sykepenger.forsikring.e2e
 
 import com.github.tomakehurst.wiremock.WireMockServer
+import com.github.tomakehurst.wiremock.client.WireMock.aResponse
 import com.github.tomakehurst.wiremock.client.WireMock.okJson
 import com.github.tomakehurst.wiremock.client.WireMock.post
 import com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo
@@ -37,6 +38,15 @@ object E2ETestApplication {
                     post(urlPathEqualTo("/token/exchange")).willReturn(
                         okJson("""{ "access_token": "stub-obo-token", "expires_in": 3599, "token_type": "Bearer" }"""),
                     ),
+                )
+            }
+
+    private val tilgangsmaskinenWiremock =
+        WireMockServer(wireMockConfig().dynamicPort())
+            .also(WireMockServer::start)
+            .also {
+                it.stubFor(
+                    post(urlPathEqualTo("/api/v1/kjerne")).willReturn(aResponse().withStatus(204)),
                 )
             }
 
@@ -106,6 +116,8 @@ object E2ETestApplication {
                             "REPLIKABASE_SCHEMA" to TestcontainersReplikadatabase.oracleContainer.username,
                             "GOSYS_BASE_URL" to gosysWiremock.baseUrl(),
                             "GOSYS_SCOPE" to "api://dev-fss.oppgavehandtering.oppgave/.default",
+                            "TILGANGSMASKINEN_BASE_URL" to tilgangsmaskinenWiremock.baseUrl(),
+                            "TILGANGSMASKINEN_SCOPE" to "api://dev-gcp.tilgangsmaskin.populasjonstilgangskontroll/.default",
                             "NAIS_TOKEN_ENDPOINT" to "${texasWiremock.baseUrl()}/token",
                             "NAIS_TOKEN_EXCHANGE_ENDPOINT" to "${texasWiremock.baseUrl()}/token/exchange",
                             "AZURE_APP_CLIENT_ID" to CLIENT_ID,
