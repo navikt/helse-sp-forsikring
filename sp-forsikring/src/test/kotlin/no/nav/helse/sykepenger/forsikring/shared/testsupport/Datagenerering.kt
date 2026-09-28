@@ -14,6 +14,7 @@ import java.math.BigDecimal
 import java.time.Instant
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
+import java.util.*
 
 fun lagIdentitetsnummer(): Identitetsnummer =
     Identitetsnummer.fraString(
@@ -31,6 +32,8 @@ fun lagForsikringsvurdering(
     individuelleForsikringer: List<VurdertIndividuellForsikring> = emptyList(),
     kollektivForsikring: KollektivForsikring? = null,
     vurdertTidspunkt: Instant = Instant.now(),
+    vedtaksperiodeId: UUID = UUID.randomUUID(),
+    behandlingId: UUID = UUID.randomUUID(),
 ): Forsikringsvurdering =
     Forsikringsvurdering.fraLagring(
         id = id,
@@ -42,6 +45,8 @@ fun lagForsikringsvurdering(
         individuelleForsikringer = individuelleForsikringer,
         kollektivForsikring = kollektivForsikring,
         vurdertTidspunkt = vurdertTidspunkt,
+        vedtaksperiodeId = vedtaksperiodeId,
+        behandlingId = behandlingId,
     )
 
 fun lagVurdertIndividuellForsikring(

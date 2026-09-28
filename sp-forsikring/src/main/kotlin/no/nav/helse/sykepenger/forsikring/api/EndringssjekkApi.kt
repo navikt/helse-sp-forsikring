@@ -5,12 +5,15 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.github.navikt.tbd_libs.populasjonstilgang.api.PopulasjonstilgangskontrollProvider
 import com.github.navikt.tbd_libs.populasjonstilgang.api.TilgangskontrollResultat
-import io.ktor.http.*
-import io.ktor.server.auth.*
-import io.ktor.server.auth.jwt.*
-import io.ktor.server.request.*
-import io.ktor.server.response.*
-import io.ktor.server.routing.*
+import io.ktor.http.HttpHeaders
+import io.ktor.http.HttpStatusCode
+import io.ktor.server.auth.authentication
+import io.ktor.server.auth.jwt.JWTPrincipal
+import io.ktor.server.request.receive
+import io.ktor.server.request.uri
+import io.ktor.server.response.respond
+import io.ktor.server.routing.Route
+import io.ktor.server.routing.post
 import no.nav.helse.sykepenger.forsikring.domain.Forsikringsvurdering
 import no.nav.helse.sykepenger.forsikring.domain.Identitetsnummer
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.EndringssjekkService
@@ -162,6 +165,8 @@ private fun EndringssjekkRequest.tilBehovJson(forrigeVurdering: Forsikringsvurde
     behovJsonMapper.writeValueAsString(
         RevurderingBehov(
             fødselsnummer = identitetsnummer,
+            vedtaksperiodeId = vedtaksperiodeId.toString(),
+            behandlingId = behandlingId.toString(),
             yrkesaktivitetstype = forrigeVurdering.yrkesaktivitetstype.name,
             forrigeForsikringsvurderingId = forrigeVurdering.id.value.toString(),
             forsikringsvurdering =
@@ -177,6 +182,8 @@ private val behovJsonMapper = ObjectMapper()
 @JsonPropertyOrder(
     "kilde",
     "fødselsnummer",
+    "vedtaksperiodeId",
+    "behandlingId",
     "yrkesaktivitetstype",
     "forrigeForsikringsvurderingId",
     "Forsikringsvurdering",
@@ -184,6 +191,8 @@ private val behovJsonMapper = ObjectMapper()
 private data class RevurderingBehov(
     val kilde: String = "POST /endringssjekk",
     val fødselsnummer: String,
+    val vedtaksperiodeId: String,
+    val behandlingId: String,
     val yrkesaktivitetstype: String,
     val forrigeForsikringsvurderingId: String,
     @JsonProperty("Forsikringsvurdering") val forsikringsvurdering: Vurderingsgrunnlag,

@@ -37,6 +37,8 @@ fun Route.flexApi(forsikringsvurderingService: ForsikringsvurderingService) {
                             }
                         }.toSet(),
                 skjæringstidspunkt = request.skjæringstidspunkt,
+                vedtaksperiodeId = null,
+                behandlingId = null,
             )
 
         val response =

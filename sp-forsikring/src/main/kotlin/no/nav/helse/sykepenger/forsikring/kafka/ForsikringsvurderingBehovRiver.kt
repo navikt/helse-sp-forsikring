@@ -68,10 +68,15 @@ class ForsikringsvurderingBehovRiver(
                                 .map { it.tilDomene() }
                                 .toSet(),
                         skjæringstidspunkt = melding.forsikringsvurdering.skjæringstidspunkt,
+                        vedtaksperiodeId = melding.vedtaksperiodeId,
+                        behandlingId = melding.behandlingId,
                     )
 
                 RåkopiRepository(transaction).lagre(råkopi)
-                ForsikringsvurderingRepository(transaction).lagre(forsikringsvurdering, packet.toJson())
+                ForsikringsvurderingRepository(transaction).lagre(
+                    forsikringsvurdering = forsikringsvurdering,
+                    behovJson = packet.toJson(),
+                )
 
                 packet["@løsning"] =
                     mapOf(

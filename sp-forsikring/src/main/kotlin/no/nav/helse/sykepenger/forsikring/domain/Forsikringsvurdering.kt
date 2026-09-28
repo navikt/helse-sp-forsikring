@@ -16,6 +16,8 @@ class Forsikringsvurdering private constructor(
     val individuelleForsikringer: List<VurdertIndividuellForsikring>,
     val kollektivForsikring: KollektivForsikring?,
     val vurdertTidspunkt: Instant,
+    val vedtaksperiodeId: UUID?,
+    val behandlingId: UUID?,
 ) {
     init {
         val gyldigeIndividuelleForsikringer = individuelleForsikringer.filter { it.erGyldig() }
@@ -129,6 +131,8 @@ class Forsikringsvurdering private constructor(
             råkopiId: Råkopi.Id,
             kollektiveForsikringer: Set<KollektivForsikring>,
             individuelleForsikringer: List<IndividuellForsikring>,
+            vedtaksperiodeId: UUID?,
+            behandlingId: UUID?,
         ): Forsikringsvurdering =
             Forsikringsvurdering(
                 id = Id.ny(),
@@ -157,6 +161,8 @@ class Forsikringsvurdering private constructor(
                             }
                         }.firstOrNull(),
                 vurdertTidspunkt = Instant.now(),
+                vedtaksperiodeId = vedtaksperiodeId,
+                behandlingId = behandlingId,
             )
 
         fun fraLagring(
@@ -169,6 +175,8 @@ class Forsikringsvurdering private constructor(
             individuelleForsikringer: List<VurdertIndividuellForsikring>,
             kollektivForsikring: KollektivForsikring?,
             vurdertTidspunkt: Instant,
+            vedtaksperiodeId: UUID,
+            behandlingId: UUID,
         ) = Forsikringsvurdering(
             id = id,
             identitetsnummer = identitetsnummer,
@@ -179,6 +187,8 @@ class Forsikringsvurdering private constructor(
             individuelleForsikringer = individuelleForsikringer,
             kollektivForsikring = kollektivForsikring,
             vurdertTidspunkt = vurdertTidspunkt,
+            vedtaksperiodeId = vedtaksperiodeId,
+            behandlingId = behandlingId,
         )
     }
 

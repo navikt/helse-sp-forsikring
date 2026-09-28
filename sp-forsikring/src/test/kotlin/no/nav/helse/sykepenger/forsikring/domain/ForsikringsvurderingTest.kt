@@ -7,6 +7,7 @@ import org.junit.jupiter.api.assertThrows
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.CsvSource
 import java.time.LocalDate
+import java.util.*
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNull
@@ -385,6 +386,8 @@ internal class ForsikringsvurderingTest {
             råkopiId = Råkopi.Id.ny(),
             kollektiveForsikringer = kollektiveForsikringer,
             individuelleForsikringer = individuelleForsikringer,
+            vedtaksperiodeId = UUID.randomUUID(),
+            behandlingId = UUID.randomUUID(),
         )
 
     private fun individuellForsikring(

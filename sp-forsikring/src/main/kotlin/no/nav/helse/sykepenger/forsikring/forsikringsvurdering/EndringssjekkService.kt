@@ -46,6 +46,8 @@ internal class EndringssjekkService(
                     yrkesaktivitetstype = sisteForsikringsvurdering.yrkesaktivitetstype,
                     spesielleYrkesgrupper = sisteForsikringsvurdering.spesielleYrkesgrupper,
                     skjæringstidspunkt = skjæringstidspunkt,
+                    vedtaksperiodeId = vedtaksperiodeId,
+                    behandlingId = behandlingId,
                 )
 
             endringssjekkLoggDao.insert(sisteForsikringsvurdering.id, saksbehandlerIdent, Instant.now())
@@ -56,7 +58,10 @@ internal class EndringssjekkService(
 
             // Råkopien må lagres før vurderingen, siden vurderingen peker på den med fremmednøkler
             RåkopiRepository(transactionalSession).lagre(råkopi)
-            repository.lagre(nyVurdering, behovJson(sisteForsikringsvurdering))
+            repository.lagre(
+                forsikringsvurdering = nyVurdering,
+                behovJson = behovJson(sisteForsikringsvurdering),
+            )
             endretForsikringsvurderingPubliserer.publiser(
                 identitetsnummer = identitetsnummer,
                 skjæringstidspunkt = skjæringstidspunkt,
