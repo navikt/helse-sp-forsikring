@@ -21,7 +21,6 @@ import no.nav.sykepenger.libs.logging.loggWarn
 import tools.jackson.databind.introspect.DefaultAccessorNamingStrategy
 import tools.jackson.module.kotlin.jacksonMapperBuilder
 import java.time.LocalDate
-import java.util.*
 
 internal fun Route.endringssjekkApi(
     endringssjekkService: EndringssjekkService,
@@ -34,8 +33,6 @@ internal fun Route.endringssjekkApi(
             call.authentication.principal<JWTPrincipal>()?.get("NAVident") ?: error("Mangler NAVident i token")
         coMedMdc(
             MdcKey.IDENTITETSNUMMER to request.identitetsnummer,
-            MdcKey.VEDTAKSPERIODE_ID to request.vedtaksperiodeId.toString(),
-            MdcKey.SPLEIS_BEHANDLING_ID to request.behandlingId.toString(),
             MdcKey.SAKSBEHANDLER_IDENT to saksbehandlerIdent,
         ) {
             loggInfo(
@@ -114,8 +111,6 @@ internal fun Route.endringssjekkApi(
                 endringssjekkService.endringssjekk(
                     identitetsnummer = identitetsnummer,
                     skjæringstidspunkt = request.skjæringstidspunkt,
-                    vedtaksperiodeId = request.vedtaksperiodeId,
-                    behandlingId = request.behandlingId,
                     saksbehandlerIdent = saksbehandlerIdent,
                     requestBody = requestBody,
                 )
@@ -153,8 +148,6 @@ internal fun Route.endringssjekkApi(
 data class EndringssjekkRequest(
     val identitetsnummer: String,
     val skjæringstidspunkt: LocalDate,
-    val vedtaksperiodeId: UUID,
-    val behandlingId: UUID,
 )
 
 data class EndringssjekkResponse(

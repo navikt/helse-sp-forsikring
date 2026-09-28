@@ -719,8 +719,6 @@ class ForsikringsvurderingApiTest {
     fun `POST endringssjekk lagrer request-bodyen som utløste endringssjekken`() {
         val identitetsnummer = lagIdentitetsnummer()
         val skjæringstidspunkt = "2026-01-01"
-        val vedtaksperiodeId = UUID.randomUUID()
-        val behandlingId = UUID.randomUUID()
         val forrigeVurdering =
             lagForsikringsvurdering(
                 skjæringstidspunkt = LocalDate.parse(skjæringstidspunkt),
@@ -742,8 +740,6 @@ class ForsikringsvurderingApiTest {
                 identitetsnummer = identitetsnummer.value,
                 skjæringstidspunkt = skjæringstidspunkt,
                 token = brukertoken(),
-                vedtaksperiodeId = vedtaksperiodeId,
-                behandlingId = behandlingId,
             )
 
         assertEquals(200, statusCode) { "Body was: $body" }
@@ -755,8 +751,6 @@ class ForsikringsvurderingApiTest {
         val lagretRequestBody =
             TestcontainersSpForsikringDatabase.hentBehovEllerRequestBody(nyVurderingId).somJson()
 
-        assertEquals(vedtaksperiodeId.toString(), lagretRequestBody["vedtaksperiodeId"].asText())
-        assertEquals(behandlingId.toString(), lagretRequestBody["behandlingId"].asText())
         assertEquals(identitetsnummer.value, lagretRequestBody["identitetsnummer"].asString())
         assertEquals(skjæringstidspunkt, lagretRequestBody["skjæringstidspunkt"].asString())
     }
@@ -771,6 +765,8 @@ class ForsikringsvurderingApiTest {
             lagForsikringsvurdering(
                 skjæringstidspunkt = LocalDate.parse(skjæringstidspunkt),
                 identitetsnummer = identitetsnummer,
+                vedtaksperiodeId = vedtaksperiodeId,
+                behandlingId = behandlingId,
                 individuelleForsikringer =
                     listOf(
                         lagVurdertIndividuellForsikring(
@@ -800,8 +796,6 @@ class ForsikringsvurderingApiTest {
                 identitetsnummer = identitetsnummer.value,
                 skjæringstidspunkt = skjæringstidspunkt,
                 token = brukertoken(),
-                vedtaksperiodeId = vedtaksperiodeId,
-                behandlingId = behandlingId,
             )
 
         assertEquals(200, statusCode) { "Body was: $body" }
@@ -999,8 +993,6 @@ class ForsikringsvurderingApiTest {
     private fun postRevurdering(
         identitetsnummer: String = lagIdentitetsnummer().value,
         skjæringstidspunkt: String = "2026-01-01",
-        vedtaksperiodeId: UUID = UUID.randomUUID(),
-        behandlingId: UUID = UUID.randomUUID(),
         token: String?,
     ): Pair<Int, String> =
         RevurderingApiClient.postRevurdering(
@@ -1008,8 +1000,6 @@ class ForsikringsvurderingApiTest {
             identitetsnummer = identitetsnummer,
             skjæringstidspunkt = skjæringstidspunkt,
             token = token,
-            vedtaksperiodeId = vedtaksperiodeId,
-            behandlingId = behandlingId,
         )
 
     private fun bearerToken(

@@ -18,8 +18,6 @@ object RevurderingApiClient {
         identitetsnummer: String,
         skjæringstidspunkt: String,
         token: String?,
-        vedtaksperiodeId: UUID = UUID.randomUUID(),
-        behandlingId: UUID = UUID.randomUUID(),
     ): Pair<Int, String> =
         Request
             .post("$baseUrl/endringssjekk")
@@ -28,8 +26,6 @@ object RevurderingApiClient {
                     EndringssjekkRequest(
                         identitetsnummer = identitetsnummer,
                         skjæringstidspunkt = LocalDate.parse(skjæringstidspunkt),
-                        vedtaksperiodeId = vedtaksperiodeId,
-                        behandlingId = behandlingId,
                     ),
                 ),
                 ContentType.APPLICATION_JSON,

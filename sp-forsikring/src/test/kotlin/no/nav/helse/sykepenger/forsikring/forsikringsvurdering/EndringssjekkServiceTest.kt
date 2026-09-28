@@ -69,8 +69,6 @@ internal class EndringssjekkServiceTest {
             endringssjekkService.endringssjekk(
                 identitetsnummer = lagIdentitetsnummer(),
                 skjæringstidspunkt = LocalDate.parse("2026-01-01"),
-                vedtaksperiodeId = UUID.randomUUID(),
-                behandlingId = UUID.randomUUID(),
                 saksbehandlerIdent = "Z123456",
                 requestBody = """{"identitetsnummer": "ukjent"}""",
             )
@@ -106,8 +104,6 @@ internal class EndringssjekkServiceTest {
             endringssjekkService.endringssjekk(
                 identitetsnummer = identitetsnummer,
                 skjæringstidspunkt = skjæringstidspunkt,
-                vedtaksperiodeId = UUID.randomUUID(),
-                behandlingId = UUID.randomUUID(),
                 saksbehandlerIdent = "Z123456",
                 requestBody = """{"identitetsnummer": "${identitetsnummer.value}"}""",
             )
@@ -116,6 +112,16 @@ internal class EndringssjekkServiceTest {
         assert(endretVurdering.forsikringsvurdering.id != forrigeVurdering.id) {
             "Forventet en ny forsikringsvurdering-id"
         }
+        assertEquals(
+            forrigeVurdering.vedtaksperiodeId,
+            endretVurdering.forsikringsvurdering.vedtaksperiodeId,
+            "Forventet at den nye vurderingen arver vedtaksperiodeId fra den forrige",
+        )
+        assertEquals(
+            forrigeVurdering.behandlingId,
+            endretVurdering.forsikringsvurdering.behandlingId,
+            "Forventet at den nye vurderingen arver behandlingId fra den forrige",
+        )
         assertTrue(
             subumsjonspubliserer.subsumsjoner.contains(resultat.forsikringsvurdering),
             "Forventet at subsumsjon ble publisert for den nye vurderingen",
@@ -168,8 +174,6 @@ internal class EndringssjekkServiceTest {
             endringssjekkService.endringssjekk(
                 identitetsnummer = identitetsnummer,
                 skjæringstidspunkt = skjæringstidspunkt,
-                vedtaksperiodeId = UUID.randomUUID(),
-                behandlingId = UUID.randomUUID(),
                 saksbehandlerIdent = "Z123456",
                 requestBody = """{"identitetsnummer": "${identitetsnummer.value}"}""",
             )
