@@ -1,31 +1,26 @@
 package no.nav.helse.sykepenger.forsikring.api
 
 import com.auth0.jwk.JwkProviderBuilder
+import com.fasterxml.jackson.databind.SerializationFeature
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
 import com.github.navikt.tbd_libs.populasjonstilgang.api.PopulasjonstilgangskontrollProvider
-import io.ktor.http.HttpHeaders
-import io.ktor.http.HttpStatusCode
-import io.ktor.serialization.jackson3.jackson
-import io.ktor.server.application.Application
-import io.ktor.server.application.install
-import io.ktor.server.auth.authenticate
-import io.ktor.server.auth.authentication
-import io.ktor.server.auth.jwt.JWTPrincipal
-import io.ktor.server.auth.jwt.jwt
-import io.ktor.server.plugins.callid.CallId
-import io.ktor.server.plugins.callid.callIdMdc
-import io.ktor.server.plugins.calllogging.CallLogging
-import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
-import io.ktor.server.plugins.statuspages.StatusPages
-import io.ktor.server.request.path
-import io.ktor.server.request.uri
-import io.ktor.server.response.respond
-import io.ktor.server.routing.routing
+import io.ktor.http.*
+import io.ktor.serialization.jackson.*
+import io.ktor.server.application.*
+import io.ktor.server.auth.*
+import io.ktor.server.auth.jwt.*
+import io.ktor.server.plugins.callid.*
+import io.ktor.server.plugins.calllogging.*
+import io.ktor.server.plugins.contentnegotiation.*
+import io.ktor.server.plugins.statuspages.*
+import io.ktor.server.request.*
+import io.ktor.server.response.*
+import io.ktor.server.routing.*
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.EndringssjekkService
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.ForsikringsvurderingService
 import no.nav.helse.sykepenger.forsikring.kafka.EndretForsikringsvurderingPubliserer
 import no.nav.helse.sykepenger.forsikring.subsumsjon.Subsumsjonspubliserer
 import no.nav.sykepenger.libs.logging.loggError
-import tools.jackson.databind.introspect.DefaultAccessorNamingStrategy
 import java.net.URI
 import java.util.*
 import javax.sql.DataSource
@@ -51,7 +46,8 @@ fun Application.api(
     }
     install(ContentNegotiation) {
         jackson {
-            accessorNaming(DefaultAccessorNamingStrategy.Provider().withFirstCharAcceptance(true, true))
+            registerModule(JavaTimeModule())
+            disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
         }
     }
     install(StatusPages) {

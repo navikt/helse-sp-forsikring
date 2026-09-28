@@ -18,6 +18,7 @@ dependencies {
     implementation(libs.sykepengerLibs.logging)
     implementation(libs.kotliquery)
     implementation(libs.flyway.database.postgresql)
+    implementation(libs.jackson.datatype.jsr310)
     implementation(libs.tbd.libs.access.token.provider.api)
     implementation(libs.tbd.libs.access.token.provider.texas)
     implementation(libs.tbd.libs.retry)

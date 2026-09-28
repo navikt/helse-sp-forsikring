@@ -2,12 +2,7 @@ package no.nav.helse.sykepenger.forsikring.forsikringsvurdering
 
 import kotliquery.TransactionalSession
 import kotliquery.queryOf
-import no.nav.helse.sykepenger.forsikring.domain.Forsikringsvurdering
-import no.nav.helse.sykepenger.forsikring.domain.Identitetsnummer
-import no.nav.helse.sykepenger.forsikring.domain.KollektivForsikring
-import no.nav.helse.sykepenger.forsikring.domain.SpesiellYrkesgruppe
-import no.nav.helse.sykepenger.forsikring.domain.VurdertIndividuellForsikring
-import no.nav.helse.sykepenger.forsikring.domain.Yrkesaktivitetstype
+import no.nav.helse.sykepenger.forsikring.domain.*
 import no.nav.helse.sykepenger.forsikring.råkopi.Råkopi.Id
 import no.nav.helse.sykepenger.forsikring.råkopi.RåkopiIfVedfrivt10
 import org.intellij.lang.annotations.Language
@@ -18,9 +13,9 @@ class ForsikringsvurderingRepository(
 ) {
     fun lagre(
         forsikringsvurdering: Forsikringsvurdering,
-        behovEllerRequestBody: String,
+        behovJson: String,
     ) {
-        lagreForsikringsvurdering(forsikringsvurdering, behovEllerRequestBody)
+        lagreForsikringsvurdering(forsikringsvurdering, behovJson)
         forsikringsvurdering.spesielleYrkesgrupper.forEach { spesiellYrkesgruppe ->
             lagreSpesiellYrkesgruppe(forsikringsvurdering.id, spesiellYrkesgruppe)
         }
@@ -40,10 +35,7 @@ class ForsikringsvurderingRepository(
                    yrkesaktivitetstype,
                    skjæringstidspunkt,
                    kollektiv_forsikring,
-                   vurdert_tidspunkt,
-                   vedtaksperiode_id,
-                   behandling_id,
-                   forrige_forsikringsvurdering_id
+                   vurdert_tidspunkt
             FROM forsikringsvurdering
             WHERE id = :id
         """
@@ -63,12 +55,6 @@ class ForsikringsvurderingRepository(
                                 .stringOrNull("kollektiv_forsikring")
                                 ?.let<String, KollektivForsikring?> { enumValueOf<KollektivForsikring>(it) },
                         vurdertTidspunkt = row.instant("vurdert_tidspunkt"),
-                        vedtaksperiodeId = row.uuid("vedtaksperiode_id"),
-                        behandlingId = row.uuid("behandling_id"),
-                        forrigeForsikringsvurderingId =
-                            row
-                                .uuidOrNull("forrige_forsikringsvurdering_id")
-                                ?.let { Forsikringsvurdering.Id(it) },
                     )
                 }.asSingle,
         )
@@ -87,10 +73,7 @@ class ForsikringsvurderingRepository(
                    yrkesaktivitetstype,
                    skjæringstidspunkt,
                    kollektiv_forsikring,
-                   vurdert_tidspunkt,
-                   vedtaksperiode_id,
-                   behandling_id,
-                   forrige_forsikringsvurdering_id
+                   vurdert_tidspunkt
             FROM forsikringsvurdering
             WHERE identitetsnummer = :identitetsnummer 
                 AND skjæringstidspunkt = :skjaringstidspunkt
@@ -121,12 +104,6 @@ class ForsikringsvurderingRepository(
                             .stringOrNull("kollektiv_forsikring")
                             ?.let<String, KollektivForsikring?> { enumValueOf<KollektivForsikring>(it) },
                     vurdertTidspunkt = row.instant("vurdert_tidspunkt"),
-                    vedtaksperiodeId = row.uuid("vedtaksperiode_id"),
-                    behandlingId = row.uuid("behandling_id"),
-                    forrigeForsikringsvurderingId =
-                        row
-                            .uuidOrNull("forrige_forsikringsvurdering_id")
-                            ?.let { Forsikringsvurdering.Id(it) },
                 )
             }.asSingle,
         )
@@ -180,30 +157,18 @@ class ForsikringsvurderingRepository(
 
     private fun lagreForsikringsvurdering(
         forsikringsvurdering: Forsikringsvurdering,
-        behovEllerRequestBody: String,
+        behovJson: String,
     ) {
-        val vedtaksperiodeId =
-            requireNotNull(forsikringsvurdering.vedtaksperiodeId) {
-                "Kan ikke lagre en forsikringsvurdering uten vedtaksperiodeId"
-            }
-        val behandlingId =
-            requireNotNull(forsikringsvurdering.behandlingId) {
-                "Kan ikke lagre en forsikringsvurdering uten behandlingId"
-            }
-
         @Language("PostgreSQL")
         val statement = """
-            INSERT INTO forsikringsvurdering (id, råkopi_id, behov_eller_request_body, identitetsnummer,
-                                              yrkesaktivitetstype,
+            INSERT INTO forsikringsvurdering (id, råkopi_id, behov, identitetsnummer, yrkesaktivitetstype,
                                               skjæringstidspunkt, kollektiv_forsikring, vurdert_tidspunkt,
                                               har_forsikring, dekning_i_ventetid, dekning_grad, opphørsdato,
-                                              råkopi_IF_VEDFRIVT_10_id, forsikringskategori,
-                                              vedtaksperiode_id, behandling_id, forrige_forsikringsvurdering_id)
-            VALUES (:id, :rakopi_id, :behov_eller_request_body::jsonb, :identitetsnummer, :yrkesaktivitetstype,
+                                              råkopi_IF_VEDFRIVT_10_id, forsikringskategori)
+            VALUES (:id, :rakopi_id, :behov::jsonb, :identitetsnummer, :yrkesaktivitetstype,
                     :skjaeringstidspunkt, :kollektiv_forsikring, :vurdert_tidspunkt,
                     :har_forsikring, :dekning_i_ventetid, :dekning_grad, :opphorsdato,
-                    :rakopi_IF_VEDFRIVT_10_id, :forsikringskategori,
-                    :vedtaksperiode_id, :behandling_id, :forrige_forsikringsvurdering_id)
+                    :rakopi_IF_VEDFRIVT_10_id, :forsikringskategori)
         """
         val dekning = forsikringsvurdering.dekning()
         spForsikringTransactionalSession.run(
@@ -212,7 +177,7 @@ class ForsikringsvurderingRepository(
                 mapOf(
                     "id" to forsikringsvurdering.id.value,
                     "rakopi_id" to forsikringsvurdering.råkopiId.value,
-                    "behov_eller_request_body" to behovEllerRequestBody,
+                    "behov" to behovJson,
                     "identitetsnummer" to forsikringsvurdering.identitetsnummer.value,
                     "yrkesaktivitetstype" to forsikringsvurdering.yrkesaktivitetstype.name,
                     "skjaeringstidspunkt" to forsikringsvurdering.skjæringstidspunkt,
@@ -233,9 +198,6 @@ class ForsikringsvurderingRepository(
                             forsikringsvurdering.harKollektivForsikring() -> "KOLLEKTIV"
                             else -> null
                         },
-                    "vedtaksperiode_id" to vedtaksperiodeId,
-                    "behandling_id" to behandlingId,
-                    "forrige_forsikringsvurdering_id" to forsikringsvurdering.forrigeForsikringsvurderingId?.value,
                 ),
             ).asUpdate,
         )

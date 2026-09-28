@@ -1,8 +1,11 @@
 package no.nav.helse.sykepenger.forsikring.api
 
+import com.fasterxml.jackson.databind.JsonNode
+import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
 import com.github.navikt.tbd_libs.rapids_and_rivers.test_support.TestRapid
-import io.ktor.server.cio.CIO
-import io.ktor.server.engine.embeddedServer
+import io.ktor.server.cio.*
+import io.ktor.server.engine.*
 import kotliquery.TransactionalSession
 import no.nav.helse.sykepenger.forsikring.domain.Forsikringstype
 import no.nav.helse.sykepenger.forsikring.domain.IndividuellForsikringType
@@ -25,8 +28,6 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
-import tools.jackson.databind.JsonNode
-import tools.jackson.module.kotlin.jacksonObjectMapper
 import java.math.BigDecimal
 import java.net.ServerSocket
 import java.time.Instant
@@ -37,7 +38,7 @@ private const val CLIENT_ID = "sp-forsikring-junit"
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class UtbetalingsstatistikkApiTest {
-    private val objectMapper = jacksonObjectMapper()
+    private val objectMapper = ObjectMapper().registerModule(JavaTimeModule())
 
     private val mockOAuth2Server = MockOAuth2Server().also(MockOAuth2Server::start)
     private val fakeTilgangskontroll = FakeTilgangskontroll()
@@ -88,8 +89,8 @@ class UtbetalingsstatistikkApiTest {
 
         assertEquals(200, statusCode) { "Body was: $body" }
         val json = objectMapper.readTree(body)
-        assertEquals("2026-07-02", json["fom"].asString())
-        assertEquals("2026-07-03", json["tom"].asString())
+        assertEquals("2026-07-02", json["fom"].asText())
+        assertEquals("2026-07-03", json["tom"].asText())
 
         val perForsikringstype = json["perForsikringstype"]
         assertEquals(7, perForsikringstype.size())
@@ -137,7 +138,7 @@ class UtbetalingsstatistikkApiTest {
         val perForsikringstype = objectMapper.readTree(body)["perForsikringstype"]
 
         val forventedeNavn = (KollektivForsikring.entries + IndividuellForsikringType.entries).map { it.navn }.sorted()
-        assertEquals(forventedeNavn, perForsikringstype.values().map { it["navn"].asString() })
+        assertEquals(forventedeNavn, perForsikringstype.map { it["navn"].asText() })
     }
 
     @Test
@@ -205,7 +206,7 @@ class UtbetalingsstatistikkApiTest {
         val (statusCode, body) = hentUtbetalteSummer(fom = "2026-07-03", tom = "2026-07-02", token = bearerToken())
 
         assertEquals(400, statusCode) { "Body was: $body" }
-        assertEquals("Ugyldig periode", objectMapper.readTree(body)["title"].asString())
+        assertEquals("Ugyldig periode", objectMapper.readTree(body)["title"].asText())
     }
 
     @Test
@@ -213,7 +214,7 @@ class UtbetalingsstatistikkApiTest {
         val (statusCode, body) = hentUtbetalteSummer(fom = null, tom = "2026-07-02", token = bearerToken())
 
         assertEquals(400, statusCode) { "Body was: $body" }
-        assertEquals("Ugyldig fom", objectMapper.readTree(body)["title"].asString())
+        assertEquals("Ugyldig fom", objectMapper.readTree(body)["title"].asText())
     }
 
     @Test
@@ -221,7 +222,7 @@ class UtbetalingsstatistikkApiTest {
         val (statusCode, body) = hentUtbetalteSummer(fom = "2026-07-02", tom = null, token = bearerToken())
 
         assertEquals(400, statusCode) { "Body was: $body" }
-        assertEquals("Ugyldig tom", objectMapper.readTree(body)["title"].asString())
+        assertEquals("Ugyldig tom", objectMapper.readTree(body)["title"].asText())
     }
 
     @Test
@@ -229,7 +230,7 @@ class UtbetalingsstatistikkApiTest {
         val (statusCode, body) = hentUtbetalteSummer(fom = "02.07.2026", tom = "2026-07-03", token = bearerToken())
 
         assertEquals(400, statusCode) { "Body was: $body" }
-        assertEquals("Ugyldig fom", objectMapper.readTree(body)["title"].asString())
+        assertEquals("Ugyldig fom", objectMapper.readTree(body)["title"].asText())
     }
 
     @Test
@@ -253,9 +254,9 @@ class UtbetalingsstatistikkApiTest {
     ) {
         val unntattNavn = unntatt.map { it.navn }.toSet()
         perForsikringstype
-            .filterNot { it["navn"].asString() in unntattNavn }
+            .filterNot { it["navn"].asText() in unntattNavn }
             .forEach { rad ->
-                val navn = rad["navn"].asString()
+                val navn = rad["navn"].asText()
                 assertBeløp("0", rad["utbetaltIVentetid"], "Forventet 0 i ventetid for $navn")
                 assertBeløp("0", rad["utbetaltUtenomVentetid"], "Forventet 0 utenom ventetid for $navn")
                 assertBeløp("0", rad["totalt"], "Forventet 0 totalt for $navn")
@@ -269,10 +270,10 @@ class UtbetalingsstatistikkApiTest {
     ) = assertEquals(
         0,
         BigDecimal(forventet).compareTo(faktisk.decimalValue()),
-        "$beskrivelse: forventet $forventet, men var ${faktisk.asString()}",
+        "$beskrivelse: forventet $forventet, men var ${faktisk.asText()}",
     )
 
-    private fun JsonNode.finn(forsikringstype: Forsikringstype): JsonNode? = values().singleOrNull { it["navn"].asString() == forsikringstype.navn }
+    private fun JsonNode.finn(forsikringstype: Forsikringstype): JsonNode? = singleOrNull { it["navn"].asText() == forsikringstype.navn }
 
     private fun lagreUtbetaling(
         vedtakFattetTidspunkt: Instant,

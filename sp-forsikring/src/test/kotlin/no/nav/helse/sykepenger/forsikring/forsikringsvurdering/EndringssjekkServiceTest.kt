@@ -4,13 +4,7 @@ import no.nav.helse.sykepenger.forsikring.domain.Forsikringsvurdering
 import no.nav.helse.sykepenger.forsikring.domain.Identitetsnummer
 import no.nav.helse.sykepenger.forsikring.domain.IndividuellForsikringType
 import no.nav.helse.sykepenger.forsikring.kafka.EndretForsikringsvurderingPubliserer
-import no.nav.helse.sykepenger.forsikring.shared.testsupport.TestcontainersReplikadatabase
-import no.nav.helse.sykepenger.forsikring.shared.testsupport.TestcontainersSpForsikringDatabase
-import no.nav.helse.sykepenger.forsikring.shared.testsupport.lagForsikringsvurdering
-import no.nav.helse.sykepenger.forsikring.shared.testsupport.lagIdentitetsnummer
-import no.nav.helse.sykepenger.forsikring.shared.testsupport.lagVurdertIndividuellForsikring
-import no.nav.helse.sykepenger.forsikring.shared.testsupport.lagreRåkopiOgForsikringsvurdering
-import no.nav.helse.sykepenger.forsikring.shared.testsupport.tilInfotrygdFødselsnummer
+import no.nav.helse.sykepenger.forsikring.shared.testsupport.*
 import no.nav.helse.sykepenger.forsikring.subsumsjon.Subsumsjonspubliserer
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -69,9 +63,10 @@ internal class EndringssjekkServiceTest {
             endringssjekkService.endringssjekk(
                 identitetsnummer = lagIdentitetsnummer(),
                 skjæringstidspunkt = LocalDate.parse("2026-01-01"),
+                vedtaksperiodeId = UUID.randomUUID(),
+                behandlingId = UUID.randomUUID(),
                 saksbehandlerIdent = "Z123456",
-                requestBody = """{"identitetsnummer": "ukjent"}""",
-            )
+            ) { error("skal ikke bygge behov når det ikke finnes noen tidligere vurdering") }
 
         assertIs<Endringssjekkresultat.IngenTidligereVurdering>(resultat)
         assertTrue(subumsjonspubliserer.subsumsjoner.isEmpty(), "Forventet at ingen subsumsjoner ble publisert")
@@ -104,29 +99,17 @@ internal class EndringssjekkServiceTest {
             endringssjekkService.endringssjekk(
                 identitetsnummer = identitetsnummer,
                 skjæringstidspunkt = skjæringstidspunkt,
+                vedtaksperiodeId = UUID.randomUUID(),
+                behandlingId = UUID.randomUUID(),
                 saksbehandlerIdent = "Z123456",
-                requestBody = """{"identitetsnummer": "${identitetsnummer.value}"}""",
-            )
+            ) { forrigeForsikringsvurdering ->
+                """{"forrigeForsikringsvurderingId": "${forrigeForsikringsvurdering.id.value}"}"""
+            }
 
         val endretVurdering = assertIs<Endringssjekkresultat.EndretVurdering>(resultat)
         assert(endretVurdering.forsikringsvurdering.id != forrigeVurdering.id) {
             "Forventet en ny forsikringsvurdering-id"
         }
-        assertEquals(
-            forrigeVurdering.vedtaksperiodeId,
-            endretVurdering.forsikringsvurdering.vedtaksperiodeId,
-            "Forventet at den nye vurderingen arver vedtaksperiodeId fra den forrige",
-        )
-        assertEquals(
-            forrigeVurdering.behandlingId,
-            endretVurdering.forsikringsvurdering.behandlingId,
-            "Forventet at den nye vurderingen arver behandlingId fra den forrige",
-        )
-        assertEquals(
-            forrigeVurdering.id,
-            endretVurdering.forsikringsvurdering.forrigeForsikringsvurderingId,
-            "Forventet at den nye vurderingen peker på den forrige vurderingen",
-        )
         assertTrue(
             subumsjonspubliserer.subsumsjoner.contains(resultat.forsikringsvurdering),
             "Forventet at subsumsjon ble publisert for den nye vurderingen",
@@ -179,9 +162,10 @@ internal class EndringssjekkServiceTest {
             endringssjekkService.endringssjekk(
                 identitetsnummer = identitetsnummer,
                 skjæringstidspunkt = skjæringstidspunkt,
+                vedtaksperiodeId = UUID.randomUUID(),
+                behandlingId = UUID.randomUUID(),
                 saksbehandlerIdent = "Z123456",
-                requestBody = """{"identitetsnummer": "${identitetsnummer.value}"}""",
-            )
+            ) { error("skal ikke bygge behov når utfallet er uendret") }
 
         assertIs<Endringssjekkresultat.UendretVurdering>(resultat)
         assert(TestcontainersSpForsikringDatabase.countAlleForsikringsvurderinger() == 1) {
