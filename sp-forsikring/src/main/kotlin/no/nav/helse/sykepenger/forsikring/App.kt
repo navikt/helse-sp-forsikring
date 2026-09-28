@@ -7,7 +7,9 @@ import com.github.navikt.tbd_libs.kafka.ConsumerProducerFactory
 import com.github.navikt.tbd_libs.populasjonstilgang.client.TilgangsmaskinenClient
 import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
-import io.ktor.server.application.*
+import io.ktor.server.application.Application
+import io.ktor.server.application.ApplicationStarted
+import io.ktor.server.application.ApplicationStopped
 import no.nav.helse.rapids_rivers.RapidApplication
 import no.nav.helse.sykepenger.forsikring.api.api
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.ForsikringsvurderingService
@@ -124,6 +126,7 @@ fun launchApplication(
                     Flyway
                         .configure()
                         .dataSource(spForsikringDataSource)
+                        .outOfOrder(true)
                         .cleanDisabled(true)
                         .lockRetryCount(-1)
                         .load()
