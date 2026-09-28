@@ -12,31 +12,27 @@ class IndividuellForsikring(
     val premiegrunnlag: Int,
     val erBetaltNoenGang: Boolean,
 ) {
-    fun vurder(
-        skjæringstidspunkt: LocalDate,
-        yrkesaktivitetstype: Yrkesaktivitetstype,
-        spesielleYrkesgrupper: Set<SpesiellYrkesgruppe>,
-    ): VurdertIndividuellForsikring =
+    fun vurder(input: ForsikringsvurderingInput): VurdertIndividuellForsikring =
         VurdertIndividuellForsikring.fraIndividuellForsikringMedKonklusjon(
             individuellForsikring = this,
             konklusjon =
                 when {
                     // Skjæringstidspunkt må ikke være i opptjeningstid [IF10_FORSFOM, IF10_VIRKDATO)
-                    erInnen28DagerFørVirkningsdato(skjæringstidspunkt) ->
+                    erInnen28DagerFørVirkningsdato(input.skjæringstidspunkt) ->
                         VurdertIndividuellForsikring.Konklusjon.SKJÆRINGSTIDSPUNKT_INNEN_28_DAGER_FØR_VIRKNINGSDATO
 
                     // Skjæringstidspunkt må være etter eller lik virkningsdato
-                    !harVirkningPå(skjæringstidspunkt) ->
+                    !harVirkningPå(input.skjæringstidspunkt) ->
                         VurdertIndividuellForsikring.Konklusjon.SKJÆRINGSTIDSPUNKT_MER_ENN_28_DAGER_FØR_VIRKNINGSDATO
 
                     // Skjæringstidspunkt må være før eller lik opphørsdato (hvis det er en opphørsdato)
-                    erOpphørtPå(skjæringstidspunkt) ->
+                    erOpphørtPå(input.skjæringstidspunkt) ->
                         VurdertIndividuellForsikring.Konklusjon.OPPHØRT_PÅ_SKJÆRINGSTIDSPUNKT
 
                     // Forsikringstypen må passe med yrkesaktivitetstypen og eventuell spesiell yrkesgruppe
                     !type.passerMed(
-                        yrkesaktivitetstype = yrkesaktivitetstype,
-                        spesielleYrkesgrupper = spesielleYrkesgrupper,
+                        yrkesaktivitetstype = input.yrkesaktivitetstype,
+                        spesielleYrkesgrupper = input.spesielleYrkesgrupper,
                     ) ->
                         VurdertIndividuellForsikring.Konklusjon.PASSER_IKKE_MED_SØKNADSTYPE
 

@@ -380,10 +380,13 @@ internal class ForsikringsvurderingTest {
         forrigeForsikringsvurderingId: Forsikringsvurdering.Id? = null,
     ): Forsikringsvurdering =
         Forsikringsvurdering.utførVurdering(
-            identitetsnummer = Identitetsnummer.fraString(FØDSELSNUMMER),
-            yrkesaktivitetstype = yrkesaktivitetstype,
-            spesielleYrkesgrupper = spesielleYrkesgrupper,
-            skjæringstidspunkt = skjæringstidspunkt,
+            input =
+                ForsikringsvurderingInput(
+                    identitetsnummer = Identitetsnummer.fraString(FØDSELSNUMMER),
+                    yrkesaktivitetstype = yrkesaktivitetstype,
+                    spesielleYrkesgrupper = spesielleYrkesgrupper,
+                    skjæringstidspunkt = skjæringstidspunkt,
+                ),
             råkopiId = Råkopi.Id.ny(),
             kollektiveForsikringer = kollektiveForsikringer,
             individuelleForsikringer = individuelleForsikringer,

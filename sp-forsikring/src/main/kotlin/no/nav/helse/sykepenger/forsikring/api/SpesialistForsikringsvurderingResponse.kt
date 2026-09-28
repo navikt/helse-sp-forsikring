@@ -65,7 +65,7 @@ internal fun Forsikringsvurdering.tilSpesialistResponse(
 ): SpesialistForsikringsvurderingResponse =
     SpesialistForsikringsvurderingResponse(
         id = id.value.toString(),
-        identitetsnummer = identitetsnummer.value,
+        identitetsnummer = input.identitetsnummer.value,
         samletDekning =
             dekning()?.let {
                 SpesialistForsikringsvurderingResponse.Dekning(

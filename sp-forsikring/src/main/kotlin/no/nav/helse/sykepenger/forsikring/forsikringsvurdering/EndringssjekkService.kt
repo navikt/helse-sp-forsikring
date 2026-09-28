@@ -55,10 +55,7 @@ internal class EndringssjekkService(
                 // fra den forrige vurderingen. Vi gjør altså endringssjekk kun på grunnlag av endringer i Infotrygd.
                 val (råkopi, nyVurdering) =
                     forsikringsvurderingService.gjørForsikringsvurdering(
-                        identitetsnummer = identitetsnummer,
-                        yrkesaktivitetstype = sisteForsikringsvurdering.yrkesaktivitetstype,
-                        spesielleYrkesgrupper = sisteForsikringsvurdering.spesielleYrkesgrupper,
-                        skjæringstidspunkt = skjæringstidspunkt,
+                        input = sisteForsikringsvurdering.input,
                         vedtaksperiodeId = vedtaksperiodeId,
                         behandlingId = behandlingId,
                         forrigeForsikringsvurderingId = sisteForsikringsvurdering.id,

@@ -98,7 +98,7 @@ class VedtakFattetRiver(
                 utbetalingsdager.map { dag ->
                     FordelingAvBeløpPåUtbetalingsdag.finnFordeling(
                         dag = dag,
-                        yrkesaktivitetstype = forsikringsvurdering.yrkesaktivitetstype,
+                        yrkesaktivitetstype = forsikringsvurdering.input.yrkesaktivitetstype,
                         kollektivForsikring = kollektivForsikring,
                         individuellForsikring = individuellForsikring,
                     )

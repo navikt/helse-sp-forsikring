@@ -7,6 +7,7 @@ import com.github.navikt.tbd_libs.rapids_and_rivers_api.MessageMetadata
 import com.github.navikt.tbd_libs.rapids_and_rivers_api.MessageProblems
 import com.github.navikt.tbd_libs.rapids_and_rivers_api.RapidsConnection
 import io.micrometer.core.instrument.MeterRegistry
+import no.nav.helse.sykepenger.forsikring.domain.ForsikringsvurderingInput
 import no.nav.helse.sykepenger.forsikring.domain.Identitetsnummer
 import no.nav.helse.sykepenger.forsikring.domain.SpesiellYrkesgruppe
 import no.nav.helse.sykepenger.forsikring.domain.Yrkesaktivitetstype
@@ -61,13 +62,16 @@ class ForsikringsvurderingBehovRiver(
             ) { melding, transaction ->
                 val (råkopi, forsikringsvurdering) =
                     forsikringsvurderingService.gjørForsikringsvurdering(
-                        identitetsnummer = Identitetsnummer.fraString(melding.fødselsnummer),
-                        yrkesaktivitetstype = melding.yrkesaktivitetstype.tilDomene(),
-                        spesielleYrkesgrupper =
-                            melding.forsikringsvurdering.spesielleYrkesgrupper
-                                .map { it.tilDomene() }
-                                .toSet(),
-                        skjæringstidspunkt = melding.forsikringsvurdering.skjæringstidspunkt,
+                        input =
+                            ForsikringsvurderingInput(
+                                identitetsnummer = Identitetsnummer.fraString(melding.fødselsnummer),
+                                yrkesaktivitetstype = melding.yrkesaktivitetstype.tilDomene(),
+                                spesielleYrkesgrupper =
+                                    melding.forsikringsvurdering.spesielleYrkesgrupper
+                                        .map { it.tilDomene() }
+                                        .toSet(),
+                                skjæringstidspunkt = melding.forsikringsvurdering.skjæringstidspunkt,
+                            ),
                         vedtaksperiodeId = melding.vedtaksperiodeId,
                         behandlingId = melding.behandlingId,
                         forrigeForsikringsvurderingId = null,

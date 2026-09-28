@@ -1,6 +1,7 @@
 package no.nav.helse.sykepenger.forsikring.shared.testsupport
 
 import no.nav.helse.sykepenger.forsikring.domain.Forsikringsvurdering
+import no.nav.helse.sykepenger.forsikring.domain.ForsikringsvurderingInput
 import no.nav.helse.sykepenger.forsikring.domain.Identitetsnummer
 import no.nav.helse.sykepenger.forsikring.domain.IndividuellForsikringType
 import no.nav.helse.sykepenger.forsikring.domain.KollektivForsikring
@@ -38,10 +39,13 @@ fun lagForsikringsvurdering(
 ): Forsikringsvurdering =
     Forsikringsvurdering.fraLagring(
         id = id,
-        identitetsnummer = identitetsnummer,
-        yrkesaktivitetstype = yrkesaktivitetstype,
-        spesielleYrkesgrupper = spesielleYrkesgrupper,
-        skjæringstidspunkt = skjæringstidspunkt,
+        input =
+            ForsikringsvurderingInput(
+                identitetsnummer = identitetsnummer,
+                yrkesaktivitetstype = yrkesaktivitetstype,
+                spesielleYrkesgrupper = spesielleYrkesgrupper,
+                skjæringstidspunkt = skjæringstidspunkt,
+            ),
         råkopiId = råkopiId,
         individuelleForsikringer = individuelleForsikringer,
         kollektivForsikring = kollektivForsikring,
@@ -195,7 +199,7 @@ fun lagRåkopiFor(forsikringsvurdering: Forsikringsvurdering): Råkopi =
         ifVedfrivt10er =
             forsikringsvurdering.individuelleForsikringer.mapIndexed { indeks, individuellForsikring ->
                 lagRåkopiIfVedfrivt10(
-                    IF01_AGNR_FNR = forsikringsvurdering.identitetsnummer.tilInfotrygdFødselsnummer(),
+                    IF01_AGNR_FNR = forsikringsvurdering.input.identitetsnummer.tilInfotrygdFødselsnummer(),
                     id = individuellForsikring.råkopiIfVedfrivt10Id,
                     IF10_FORSFOM_SEQ = indeks,
                     IF10_VIRKDATO = individuellForsikring.virkningsdato.tilInfotrygddato(),
@@ -216,7 +220,7 @@ fun lagRåkopiFor(forsikringsvurdering: Forsikringsvurdering): Råkopi =
                 .mapIndexedNotNull { indeks, individuellForsikring ->
                     if (individuellForsikring.erBetaltNoenGang) {
                         lagRåkopiIfFkonto12(
-                            IF01_AGNR_FNR = forsikringsvurdering.identitetsnummer.tilInfotrygdFødselsnummer(),
+                            IF01_AGNR_FNR = forsikringsvurdering.input.identitetsnummer.tilInfotrygdFødselsnummer(),
                             IF10_FORSFOM_SEQ = indeks,
                             IF12_BETDATO = individuellForsikring.virkningsdato.tilInfotrygddato(),
                         )

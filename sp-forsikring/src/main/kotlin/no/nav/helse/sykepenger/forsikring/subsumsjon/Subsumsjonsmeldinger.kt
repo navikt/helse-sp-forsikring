@@ -42,7 +42,7 @@ private fun Folketrygdlovenreferanse.tilSubsumsjonsmelding(
     forsikringsvurdering: Forsikringsvurdering,
 ): Subsumsjonsmelding =
     Subsumsjonsmelding(
-        fødselsnummer = forsikringsvurdering.identitetsnummer.value,
+        fødselsnummer = forsikringsvurdering.input.identitetsnummer.value,
         versjonAvKode = versjonAvKode,
         vedtaksperiodeId = vedtaksperiodeId,
         behandlingId = behandlingId,
@@ -54,10 +54,10 @@ private fun Folketrygdlovenreferanse.tilSubsumsjonsmelding(
         bokstav = bokstav,
         input =
             mapOf(
-                "skjæringstidspunkt" to forsikringsvurdering.skjæringstidspunkt,
-                "yrkesaktivitetstype" to forsikringsvurdering.yrkesaktivitetstype,
+                "skjæringstidspunkt" to forsikringsvurdering.input.skjæringstidspunkt,
+                "yrkesaktivitetstype" to forsikringsvurdering.input.yrkesaktivitetstype,
                 "spesielleYrkesgrupper" to
-                    forsikringsvurdering.spesielleYrkesgrupper.map(
+                    forsikringsvurdering.input.spesielleYrkesgrupper.map(
                         SpesiellYrkesgruppe::name,
                     ),
             ),

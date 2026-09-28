@@ -3,6 +3,7 @@ package no.nav.helse.sykepenger.forsikring.forsikringsvurdering
 import kotliquery.TransactionalSession
 import kotliquery.queryOf
 import no.nav.helse.sykepenger.forsikring.domain.Forsikringsvurdering
+import no.nav.helse.sykepenger.forsikring.domain.ForsikringsvurderingInput
 import no.nav.helse.sykepenger.forsikring.domain.Identitetsnummer
 import no.nav.helse.sykepenger.forsikring.domain.KollektivForsikring
 import no.nav.helse.sykepenger.forsikring.domain.SpesiellYrkesgruppe
@@ -21,7 +22,7 @@ class ForsikringsvurderingRepository(
         behovEllerRequestBody: String,
     ) {
         lagreForsikringsvurdering(forsikringsvurdering, behovEllerRequestBody)
-        forsikringsvurdering.spesielleYrkesgrupper.forEach { spesiellYrkesgruppe ->
+        forsikringsvurdering.input.spesielleYrkesgrupper.forEach { spesiellYrkesgruppe ->
             lagreSpesiellYrkesgruppe(forsikringsvurdering.id, spesiellYrkesgruppe)
         }
         forsikringsvurdering.individuelleForsikringer.forEach { individuellForsikring ->
@@ -52,10 +53,13 @@ class ForsikringsvurderingRepository(
                 .map { row ->
                     Forsikringsvurdering.fraLagring(
                         id = id,
-                        identitetsnummer = Identitetsnummer.fraString(row.string("identitetsnummer")),
-                        yrkesaktivitetstype = enumValueOf<Yrkesaktivitetstype>(row.string("yrkesaktivitetstype")),
-                        spesielleYrkesgrupper = spesielleYrkesgrupper,
-                        skjæringstidspunkt = row.localDate("skjæringstidspunkt"),
+                        input =
+                            ForsikringsvurderingInput(
+                                identitetsnummer = Identitetsnummer.fraString(row.string("identitetsnummer")),
+                                yrkesaktivitetstype = enumValueOf<Yrkesaktivitetstype>(row.string("yrkesaktivitetstype")),
+                                spesielleYrkesgrupper = spesielleYrkesgrupper,
+                                skjæringstidspunkt = row.localDate("skjæringstidspunkt"),
+                            ),
                         råkopiId = Id(row.uuid("råkopi_id")),
                         individuelleForsikringer = individuelleForsikringer,
                         kollektivForsikring =
@@ -110,10 +114,13 @@ class ForsikringsvurderingRepository(
                 val individuelleForsikringer = hentIndividuelleForsikringer(forsikringsvurderingId)
                 Forsikringsvurdering.fraLagring(
                     id = forsikringsvurderingId,
-                    identitetsnummer = Identitetsnummer.fraString(row.string("identitetsnummer")),
-                    yrkesaktivitetstype = enumValueOf<Yrkesaktivitetstype>(row.string("yrkesaktivitetstype")),
-                    spesielleYrkesgrupper = spesielleYrkesgrupper,
-                    skjæringstidspunkt = row.localDate("skjæringstidspunkt"),
+                    input =
+                        ForsikringsvurderingInput(
+                            identitetsnummer = Identitetsnummer.fraString(row.string("identitetsnummer")),
+                            yrkesaktivitetstype = enumValueOf<Yrkesaktivitetstype>(row.string("yrkesaktivitetstype")),
+                            spesielleYrkesgrupper = spesielleYrkesgrupper,
+                            skjæringstidspunkt = row.localDate("skjæringstidspunkt"),
+                        ),
                     råkopiId = Id(row.uuid("råkopi_id")),
                     individuelleForsikringer = individuelleForsikringer,
                     kollektivForsikring =
@@ -213,9 +220,9 @@ class ForsikringsvurderingRepository(
                     "id" to forsikringsvurdering.id.value,
                     "rakopi_id" to forsikringsvurdering.råkopiId.value,
                     "behov_eller_request_body" to behovEllerRequestBody,
-                    "identitetsnummer" to forsikringsvurdering.identitetsnummer.value,
-                    "yrkesaktivitetstype" to forsikringsvurdering.yrkesaktivitetstype.name,
-                    "skjaeringstidspunkt" to forsikringsvurdering.skjæringstidspunkt,
+                    "identitetsnummer" to forsikringsvurdering.input.identitetsnummer.value,
+                    "yrkesaktivitetstype" to forsikringsvurdering.input.yrkesaktivitetstype.name,
+                    "skjaeringstidspunkt" to forsikringsvurdering.input.skjæringstidspunkt,
                     "kollektiv_forsikring" to forsikringsvurdering.kollektivForsikring?.name,
                     "vurdert_tidspunkt" to forsikringsvurdering.vurdertTidspunkt,
                     "har_forsikring" to forsikringsvurdering.harForsikring(),

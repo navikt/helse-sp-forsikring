@@ -30,13 +30,13 @@ private fun Forsikringsvurdering.tilForsikringsvurderingBehovJson(): String =
     """
     {
         "@behov": [ "Forsikringsvurdering" ],
-        "fødselsnummer": "${identitetsnummer.value}",
+        "fødselsnummer": "${input.identitetsnummer.value}",
         "vedtaksperiodeId": "$vedtaksperiodeId",
         "behandlingId": "$behandlingId",
-        "yrkesaktivitetstype": "$yrkesaktivitetstype",
+        "yrkesaktivitetstype": "${input.yrkesaktivitetstype}",
         "Forsikringsvurdering": {
             "spesielleYrkesgrupper": [ ${
-        spesielleYrkesgrupper.joinToString(",") {
+        input.spesielleYrkesgrupper.joinToString(",") {
             when (it) {
                 SpesiellYrkesgruppe.FISKER_BLAD_B -> "\"FISKER_BLAD_B\""
                 SpesiellYrkesgruppe.JORDBRUKER -> "\"JORDBRUKER\""
@@ -44,7 +44,7 @@ private fun Forsikringsvurdering.tilForsikringsvurderingBehovJson(): String =
             }
         }
     } ],
-            "skjæringstidspunkt": "$skjæringstidspunkt"
+            "skjæringstidspunkt": "${input.skjæringstidspunkt}"
         }
     }
     """.trimIndent()

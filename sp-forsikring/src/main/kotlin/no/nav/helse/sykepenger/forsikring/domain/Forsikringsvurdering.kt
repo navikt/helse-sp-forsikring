@@ -8,10 +8,7 @@ import java.util.*
 
 class Forsikringsvurdering private constructor(
     val id: Id,
-    val identitetsnummer: Identitetsnummer,
-    val yrkesaktivitetstype: Yrkesaktivitetstype,
-    val spesielleYrkesgrupper: Set<SpesiellYrkesgruppe>,
-    val skjæringstidspunkt: LocalDate,
+    val input: ForsikringsvurderingInput,
     val råkopiId: Råkopi.Id,
     val individuelleForsikringer: List<VurdertIndividuellForsikring>,
     val kollektivForsikring: KollektivForsikring?,
@@ -126,10 +123,7 @@ class Forsikringsvurdering private constructor(
 
     companion object {
         fun utførVurdering(
-            identitetsnummer: Identitetsnummer,
-            yrkesaktivitetstype: Yrkesaktivitetstype,
-            spesielleYrkesgrupper: Set<SpesiellYrkesgruppe>,
-            skjæringstidspunkt: LocalDate,
+            input: ForsikringsvurderingInput,
             råkopiId: Råkopi.Id,
             kollektiveForsikringer: Set<KollektivForsikring>,
             individuelleForsikringer: List<IndividuellForsikring>,
@@ -139,19 +133,9 @@ class Forsikringsvurdering private constructor(
         ): Forsikringsvurdering =
             Forsikringsvurdering(
                 id = Id.ny(),
-                identitetsnummer = identitetsnummer,
-                yrkesaktivitetstype = yrkesaktivitetstype,
-                spesielleYrkesgrupper = spesielleYrkesgrupper,
-                skjæringstidspunkt = skjæringstidspunkt,
+                input = input,
                 råkopiId = råkopiId,
-                individuelleForsikringer =
-                    individuelleForsikringer.map {
-                        it.vurder(
-                            skjæringstidspunkt = skjæringstidspunkt,
-                            yrkesaktivitetstype = yrkesaktivitetstype,
-                            spesielleYrkesgrupper = spesielleYrkesgrupper,
-                        )
-                    },
+                individuelleForsikringer = individuelleForsikringer.map { it.vurder(input) },
                 kollektivForsikring =
                     kollektiveForsikringer
                         .also {
@@ -171,10 +155,7 @@ class Forsikringsvurdering private constructor(
 
         fun fraLagring(
             id: Id,
-            identitetsnummer: Identitetsnummer,
-            yrkesaktivitetstype: Yrkesaktivitetstype,
-            spesielleYrkesgrupper: Set<SpesiellYrkesgruppe>,
-            skjæringstidspunkt: LocalDate,
+            input: ForsikringsvurderingInput,
             råkopiId: Råkopi.Id,
             individuelleForsikringer: List<VurdertIndividuellForsikring>,
             kollektivForsikring: KollektivForsikring?,
@@ -184,10 +165,7 @@ class Forsikringsvurdering private constructor(
             forrigeForsikringsvurderingId: Id?,
         ) = Forsikringsvurdering(
             id = id,
-            identitetsnummer = identitetsnummer,
-            yrkesaktivitetstype = yrkesaktivitetstype,
-            spesielleYrkesgrupper = spesielleYrkesgrupper,
-            skjæringstidspunkt = skjæringstidspunkt,
+            input = input,
             råkopiId = råkopiId,
             individuelleForsikringer = individuelleForsikringer,
             kollektivForsikring = kollektivForsikring,

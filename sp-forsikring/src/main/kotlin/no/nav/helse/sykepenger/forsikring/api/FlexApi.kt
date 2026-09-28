@@ -4,6 +4,7 @@ import io.ktor.server.request.receive
 import io.ktor.server.response.respond
 import io.ktor.server.routing.Route
 import io.ktor.server.routing.post
+import no.nav.helse.sykepenger.forsikring.domain.ForsikringsvurderingInput
 import no.nav.helse.sykepenger.forsikring.domain.Identitetsnummer
 import no.nav.helse.sykepenger.forsikring.domain.SpesiellYrkesgruppe
 import no.nav.helse.sykepenger.forsikring.domain.Yrkesaktivitetstype
@@ -19,24 +20,27 @@ fun Route.flexApi(forsikringsvurderingService: ForsikringsvurderingService) {
 
         val (_, forsikringsvurdering) =
             forsikringsvurderingService.gjørForsikringsvurdering(
-                identitetsnummer = identitetsnummer,
-                yrkesaktivitetstype =
-                    when (request.yrkesaktivitetstype) {
-                        ForsikringsvurderingRequest.Yrkesaktivitetstype.ARBEIDSTAKER -> Yrkesaktivitetstype.ARBEIDSTAKER
-                        ForsikringsvurderingRequest.Yrkesaktivitetstype.FRILANS -> Yrkesaktivitetstype.FRILANS
-                        ForsikringsvurderingRequest.Yrkesaktivitetstype.ARBEIDSLEDIG -> Yrkesaktivitetstype.ARBEIDSLEDIG
-                        ForsikringsvurderingRequest.Yrkesaktivitetstype.SELVSTENDIG -> Yrkesaktivitetstype.SELVSTENDIG
-                    },
-                spesielleYrkesgrupper =
-                    request.spesielleYrkesgrupper
-                        .map { spesiellYrkesgruppeString ->
-                            when (spesiellYrkesgruppeString) {
-                                ForsikringsvurderingRequest.SpesiellYrkesgruppe.FISKER_BLAD_B -> SpesiellYrkesgruppe.FISKER_BLAD_B
-                                ForsikringsvurderingRequest.SpesiellYrkesgruppe.JORDBRUKER -> SpesiellYrkesgruppe.JORDBRUKER
-                                ForsikringsvurderingRequest.SpesiellYrkesgruppe.REINDRIFTER -> SpesiellYrkesgruppe.REINDRIFTER
-                            }
-                        }.toSet(),
-                skjæringstidspunkt = request.skjæringstidspunkt,
+                input =
+                    ForsikringsvurderingInput(
+                        identitetsnummer = identitetsnummer,
+                        yrkesaktivitetstype =
+                            when (request.yrkesaktivitetstype) {
+                                ForsikringsvurderingRequest.Yrkesaktivitetstype.ARBEIDSTAKER -> Yrkesaktivitetstype.ARBEIDSTAKER
+                                ForsikringsvurderingRequest.Yrkesaktivitetstype.FRILANS -> Yrkesaktivitetstype.FRILANS
+                                ForsikringsvurderingRequest.Yrkesaktivitetstype.ARBEIDSLEDIG -> Yrkesaktivitetstype.ARBEIDSLEDIG
+                                ForsikringsvurderingRequest.Yrkesaktivitetstype.SELVSTENDIG -> Yrkesaktivitetstype.SELVSTENDIG
+                            },
+                        spesielleYrkesgrupper =
+                            request.spesielleYrkesgrupper
+                                .map { spesiellYrkesgruppeString ->
+                                    when (spesiellYrkesgruppeString) {
+                                        ForsikringsvurderingRequest.SpesiellYrkesgruppe.FISKER_BLAD_B -> SpesiellYrkesgruppe.FISKER_BLAD_B
+                                        ForsikringsvurderingRequest.SpesiellYrkesgruppe.JORDBRUKER -> SpesiellYrkesgruppe.JORDBRUKER
+                                        ForsikringsvurderingRequest.SpesiellYrkesgruppe.REINDRIFTER -> SpesiellYrkesgruppe.REINDRIFTER
+                                    }
+                                }.toSet(),
+                        skjæringstidspunkt = request.skjæringstidspunkt,
+                    ),
                 vedtaksperiodeId = null,
                 behandlingId = null,
                 forrigeForsikringsvurderingId = null,
