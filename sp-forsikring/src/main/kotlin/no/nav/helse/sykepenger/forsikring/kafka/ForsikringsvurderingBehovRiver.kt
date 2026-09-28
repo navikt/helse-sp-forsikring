@@ -75,7 +75,7 @@ class ForsikringsvurderingBehovRiver(
                 RåkopiRepository(transaction).lagre(råkopi)
                 ForsikringsvurderingRepository(transaction).lagre(
                     forsikringsvurdering = forsikringsvurdering,
-                    behovJson = packet.toJson(),
+                    behovEllerRequestBody = packet.toJson(),
                 )
 
                 packet["@løsning"] =

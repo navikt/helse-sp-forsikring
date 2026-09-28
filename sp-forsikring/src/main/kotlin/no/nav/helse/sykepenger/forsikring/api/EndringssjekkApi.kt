@@ -1,20 +1,16 @@
 package no.nav.helse.sykepenger.forsikring.api
 
-import com.fasterxml.jackson.annotation.JsonProperty
-import com.fasterxml.jackson.annotation.JsonPropertyOrder
-import com.fasterxml.jackson.databind.ObjectMapper
 import com.github.navikt.tbd_libs.populasjonstilgang.api.PopulasjonstilgangskontrollProvider
 import com.github.navikt.tbd_libs.populasjonstilgang.api.TilgangskontrollResultat
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.auth.authentication
 import io.ktor.server.auth.jwt.JWTPrincipal
-import io.ktor.server.request.receive
+import io.ktor.server.request.receiveText
 import io.ktor.server.request.uri
 import io.ktor.server.response.respond
 import io.ktor.server.routing.Route
 import io.ktor.server.routing.post
-import no.nav.helse.sykepenger.forsikring.domain.Forsikringsvurdering
 import no.nav.helse.sykepenger.forsikring.domain.Identitetsnummer
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.EndringssjekkService
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.Endringssjekkresultat
@@ -22,6 +18,8 @@ import no.nav.sykepenger.libs.logging.MdcKey
 import no.nav.sykepenger.libs.logging.coMedMdc
 import no.nav.sykepenger.libs.logging.loggInfo
 import no.nav.sykepenger.libs.logging.loggWarn
+import tools.jackson.databind.introspect.DefaultAccessorNamingStrategy
+import tools.jackson.module.kotlin.jacksonMapperBuilder
 import java.time.LocalDate
 import java.util.*
 
@@ -30,7 +28,8 @@ internal fun Route.endringssjekkApi(
     populasjonstilgangskontrollProvider: PopulasjonstilgangskontrollProvider,
 ) {
     post("/endringssjekk") {
-        val request = call.receive<EndringssjekkRequest>()
+        val requestBody = call.receiveText()
+        val request = objectMapper.readValue(requestBody, EndringssjekkRequest::class.java)
         val saksbehandlerIdent =
             call.authentication.principal<JWTPrincipal>()?.get("NAVident") ?: error("Mangler NAVident i token")
         coMedMdc(
@@ -118,7 +117,8 @@ internal fun Route.endringssjekkApi(
                     vedtaksperiodeId = request.vedtaksperiodeId,
                     behandlingId = request.behandlingId,
                     saksbehandlerIdent = saksbehandlerIdent,
-                ) { forrigeForsikringsvurdering -> request.tilBehovJson(forrigeForsikringsvurdering) }
+                    requestBody = requestBody,
+                )
 
             when (endringssjekkresultat) {
                 is Endringssjekkresultat.IngenTidligereVurdering -> {
@@ -161,44 +161,7 @@ data class EndringssjekkResponse(
     val vurderingErEndret: Boolean,
 )
 
-private fun EndringssjekkRequest.tilBehovJson(forrigeVurdering: Forsikringsvurdering): String =
-    behovJsonMapper.writeValueAsString(
-        RevurderingBehov(
-            fødselsnummer = identitetsnummer,
-            vedtaksperiodeId = vedtaksperiodeId.toString(),
-            behandlingId = behandlingId.toString(),
-            yrkesaktivitetstype = forrigeVurdering.yrkesaktivitetstype.name,
-            forrigeForsikringsvurderingId = forrigeVurdering.id.value.toString(),
-            forsikringsvurdering =
-                RevurderingBehov.Vurderingsgrunnlag(
-                    spesielleYrkesgrupper = forrigeVurdering.spesielleYrkesgrupper.map { it.name },
-                    skjæringstidspunkt = skjæringstidspunkt.toString(),
-                ),
-        ),
-    )
-
-private val behovJsonMapper = ObjectMapper()
-
-@JsonPropertyOrder(
-    "kilde",
-    "fødselsnummer",
-    "vedtaksperiodeId",
-    "behandlingId",
-    "yrkesaktivitetstype",
-    "forrigeForsikringsvurderingId",
-    "Forsikringsvurdering",
-)
-private data class RevurderingBehov(
-    val kilde: String = "POST /endringssjekk",
-    val fødselsnummer: String,
-    val vedtaksperiodeId: String,
-    val behandlingId: String,
-    val yrkesaktivitetstype: String,
-    val forrigeForsikringsvurderingId: String,
-    @JsonProperty("Forsikringsvurdering") val forsikringsvurdering: Vurderingsgrunnlag,
-) {
-    data class Vurderingsgrunnlag(
-        val spesielleYrkesgrupper: List<String>,
-        val skjæringstidspunkt: String,
-    )
-}
+private val objectMapper =
+    jacksonMapperBuilder()
+        .accessorNaming(DefaultAccessorNamingStrategy.Provider().withFirstCharAcceptance(true, true))
+        .build()

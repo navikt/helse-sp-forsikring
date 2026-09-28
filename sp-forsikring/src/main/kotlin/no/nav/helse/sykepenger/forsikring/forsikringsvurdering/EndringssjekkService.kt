@@ -27,7 +27,7 @@ internal class EndringssjekkService(
         vedtaksperiodeId: UUID,
         behandlingId: UUID,
         saksbehandlerIdent: String,
-        behovJson: (forrigeForsikringsvurdering: Forsikringsvurdering) -> String,
+        requestBody: String,
     ): Endringssjekkresultat =
         spForsikringDataSource.inTransaction { transactionalSession ->
             val repository = ForsikringsvurderingRepository(transactionalSession)
@@ -60,7 +60,7 @@ internal class EndringssjekkService(
             RåkopiRepository(transactionalSession).lagre(råkopi)
             repository.lagre(
                 forsikringsvurdering = nyVurdering,
-                behovJson = behovJson(sisteForsikringsvurdering),
+                behovEllerRequestBody = requestBody,
             )
             endretForsikringsvurderingPubliserer.publiser(
                 identitetsnummer = identitetsnummer,

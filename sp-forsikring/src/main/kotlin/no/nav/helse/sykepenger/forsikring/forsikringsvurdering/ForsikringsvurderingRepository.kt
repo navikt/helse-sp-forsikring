@@ -18,9 +18,9 @@ class ForsikringsvurderingRepository(
 ) {
     fun lagre(
         forsikringsvurdering: Forsikringsvurdering,
-        behovJson: String,
+        behovEllerRequestBody: String,
     ) {
-        lagreForsikringsvurdering(forsikringsvurdering, behovJson)
+        lagreForsikringsvurdering(forsikringsvurdering, behovEllerRequestBody)
         forsikringsvurdering.spesielleYrkesgrupper.forEach { spesiellYrkesgruppe ->
             lagreSpesiellYrkesgruppe(forsikringsvurdering.id, spesiellYrkesgruppe)
         }
@@ -170,7 +170,7 @@ class ForsikringsvurderingRepository(
 
     private fun lagreForsikringsvurdering(
         forsikringsvurdering: Forsikringsvurdering,
-        behovJson: String,
+        behovEllerRequestBody: String,
     ) {
         val vedtaksperiodeId =
             requireNotNull(forsikringsvurdering.vedtaksperiodeId) {
@@ -183,12 +183,13 @@ class ForsikringsvurderingRepository(
 
         @Language("PostgreSQL")
         val statement = """
-            INSERT INTO forsikringsvurdering (id, råkopi_id, behov, identitetsnummer, yrkesaktivitetstype,
+            INSERT INTO forsikringsvurdering (id, råkopi_id, behov_eller_request_body, identitetsnummer,
+                                              yrkesaktivitetstype,
                                               skjæringstidspunkt, kollektiv_forsikring, vurdert_tidspunkt,
                                               har_forsikring, dekning_i_ventetid, dekning_grad, opphørsdato,
                                               råkopi_IF_VEDFRIVT_10_id, forsikringskategori,
                                               vedtaksperiode_id, behandling_id)
-            VALUES (:id, :rakopi_id, :behov::jsonb, :identitetsnummer, :yrkesaktivitetstype,
+            VALUES (:id, :rakopi_id, :behov_eller_request_body::jsonb, :identitetsnummer, :yrkesaktivitetstype,
                     :skjaeringstidspunkt, :kollektiv_forsikring, :vurdert_tidspunkt,
                     :har_forsikring, :dekning_i_ventetid, :dekning_grad, :opphorsdato,
                     :rakopi_IF_VEDFRIVT_10_id, :forsikringskategori,
@@ -201,7 +202,7 @@ class ForsikringsvurderingRepository(
                 mapOf(
                     "id" to forsikringsvurdering.id.value,
                     "rakopi_id" to forsikringsvurdering.råkopiId.value,
-                    "behov" to behovJson,
+                    "behov_eller_request_body" to behovEllerRequestBody,
                     "identitetsnummer" to forsikringsvurdering.identitetsnummer.value,
                     "yrkesaktivitetstype" to forsikringsvurdering.yrkesaktivitetstype.name,
                     "skjaeringstidspunkt" to forsikringsvurdering.skjæringstidspunkt,

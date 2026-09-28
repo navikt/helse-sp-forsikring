@@ -6,8 +6,8 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
 import com.github.navikt.tbd_libs.populasjonstilgang.api.TilgangSomMangler
 import com.github.navikt.tbd_libs.populasjonstilgang.api.TilgangskontrollResultat
 import com.github.navikt.tbd_libs.rapids_and_rivers.test_support.TestRapid
-import io.ktor.server.cio.*
-import io.ktor.server.engine.*
+import io.ktor.server.cio.CIO
+import io.ktor.server.engine.embeddedServer
 import no.nav.helse.sykepenger.forsikring.domain.IndividuellForsikringType
 import no.nav.helse.sykepenger.forsikring.domain.KollektivForsikring
 import no.nav.helse.sykepenger.forsikring.domain.SpesiellYrkesgruppe
@@ -15,10 +15,21 @@ import no.nav.helse.sykepenger.forsikring.domain.VurdertIndividuellForsikring
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.ForsikringsvurderingService
 import no.nav.helse.sykepenger.forsikring.kafka.RapidEndretForsikringsvurderingPubliserer
 import no.nav.helse.sykepenger.forsikring.kafka.RapidSubsumsjonspubliserer
-import no.nav.helse.sykepenger.forsikring.shared.testsupport.*
+import no.nav.helse.sykepenger.forsikring.shared.testsupport.FakeTilgangskontroll
+import no.nav.helse.sykepenger.forsikring.shared.testsupport.TestcontainersReplikadatabase
+import no.nav.helse.sykepenger.forsikring.shared.testsupport.TestcontainersSpForsikringDatabase
+import no.nav.helse.sykepenger.forsikring.shared.testsupport.lagForsikringsvurdering
+import no.nav.helse.sykepenger.forsikring.shared.testsupport.lagIdentitetsnummer
+import no.nav.helse.sykepenger.forsikring.shared.testsupport.lagVurdertIndividuellForsikring
+import no.nav.helse.sykepenger.forsikring.shared.testsupport.lagreRåkopiOgForsikringsvurdering
+import no.nav.helse.sykepenger.forsikring.shared.testsupport.tilInfotrygdFødselsnummer
 import no.nav.security.mock.oauth2.MockOAuth2Server
 import org.junit.jupiter.api.AfterAll
-import org.junit.jupiter.api.Assertions.*
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertFalse
+import org.junit.jupiter.api.Assertions.assertNotNull
+import org.junit.jupiter.api.Assertions.assertNull
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
@@ -706,9 +717,11 @@ class ForsikringsvurderingApiTest {
     }
 
     @Test
-    fun `POST endringssjekk lagrer behovet som utløste endringssjekken`() {
+    fun `POST endringssjekk lagrer request-bodyen som utløste endringssjekken`() {
         val identitetsnummer = lagIdentitetsnummer()
         val skjæringstidspunkt = "2026-01-01"
+        val vedtaksperiodeId = UUID.randomUUID()
+        val behandlingId = UUID.randomUUID()
         val forrigeVurdering =
             lagForsikringsvurdering(
                 skjæringstidspunkt = LocalDate.parse(skjæringstidspunkt),
@@ -730,9 +743,23 @@ class ForsikringsvurderingApiTest {
                 identitetsnummer = identitetsnummer.value,
                 skjæringstidspunkt = skjæringstidspunkt,
                 token = brukertoken(),
+                vedtaksperiodeId = vedtaksperiodeId,
+                behandlingId = behandlingId,
             )
 
         assertEquals(200, statusCode) { "Body was: $body" }
+
+        val nyVurderingId =
+            publiserteMeldinger(eventNavn = "endret_forsikringsvurdering")
+                .single()["forsikringsvurderingId"]
+                .asString()
+        val lagretRequestBody =
+            TestcontainersSpForsikringDatabase.hentBehovEllerRequestBody(nyVurderingId).somJson()
+
+        assertEquals(identitetsnummer.value, lagretRequestBody["identitetsnummer"].asText())
+        assertEquals(skjæringstidspunkt, lagretRequestBody["skjæringstidspunkt"].asText())
+        assertEquals(vedtaksperiodeId.toString(), lagretRequestBody["vedtaksperiodeId"].asText())
+        assertEquals(behandlingId.toString(), lagretRequestBody["behandlingId"].asText())
     }
 
     @Test

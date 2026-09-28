@@ -272,7 +272,8 @@ internal class SlettPersonRiverTest {
             conn
                 .prepareStatement(
                     """
-                INSERT INTO forsikringsvurdering (id, råkopi_id, behov, identitetsnummer, yrkesaktivitetstype,
+                INSERT INTO forsikringsvurdering (id, råkopi_id, behov_eller_request_body, identitetsnummer,
+                                                  yrkesaktivitetstype,
                                                   skjæringstidspunkt, vurdert_tidspunkt, har_forsikring,
                                                   vedtaksperiode_id, behandling_id)
                 VALUES (?, ?, ?::jsonb, ?, 'SELVSTENDIG', DATE '2026-01-01', ?, ?, ?, ?)

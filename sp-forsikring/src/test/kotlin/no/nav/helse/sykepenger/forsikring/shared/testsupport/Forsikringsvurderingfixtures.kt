@@ -21,7 +21,7 @@ fun lagreRåkopiOgForsikringsvurdering(
         RåkopiRepository(transaction).lagre(råkopi)
         ForsikringsvurderingRepository(transaction).lagre(
             forsikringsvurdering = forsikringsvurdering,
-            behovJson = forsikringsvurdering.tilForsikringsvurderingBehovJson(),
+            behovEllerRequestBody = forsikringsvurdering.tilForsikringsvurderingBehovJson(),
         )
     }
 }
