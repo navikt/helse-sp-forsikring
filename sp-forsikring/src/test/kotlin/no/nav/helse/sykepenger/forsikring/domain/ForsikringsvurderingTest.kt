@@ -377,6 +377,7 @@ internal class ForsikringsvurderingTest {
         skjæringstidspunkt: LocalDate = SKJÆRINGSTIDSPUNKT,
         kollektiveForsikringer: Set<KollektivForsikring> = emptySet(),
         individuelleForsikringer: List<IndividuellForsikring> = emptyList(),
+        forrigeForsikringsvurderingId: Forsikringsvurdering.Id? = null,
     ): Forsikringsvurdering =
         Forsikringsvurdering.utførVurdering(
             identitetsnummer = Identitetsnummer.fraString(FØDSELSNUMMER),
@@ -388,6 +389,7 @@ internal class ForsikringsvurderingTest {
             individuelleForsikringer = individuelleForsikringer,
             vedtaksperiodeId = UUID.randomUUID(),
             behandlingId = UUID.randomUUID(),
+            forrigeForsikringsvurderingId = forrigeForsikringsvurderingId,
         )
 
     private fun individuellForsikring(

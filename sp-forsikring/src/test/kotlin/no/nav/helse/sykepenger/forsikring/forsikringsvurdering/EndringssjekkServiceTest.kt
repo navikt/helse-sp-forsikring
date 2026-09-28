@@ -122,6 +122,11 @@ internal class EndringssjekkServiceTest {
             endretVurdering.forsikringsvurdering.behandlingId,
             "Forventet at den nye vurderingen arver behandlingId fra den forrige",
         )
+        assertEquals(
+            forrigeVurdering.id,
+            endretVurdering.forsikringsvurdering.forrigeForsikringsvurderingId,
+            "Forventet at den nye vurderingen peker på den forrige vurderingen",
+        )
         assertTrue(
             subumsjonspubliserer.subsumsjoner.contains(resultat.forsikringsvurdering),
             "Forventet at subsumsjon ble publisert for den nye vurderingen",

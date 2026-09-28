@@ -34,6 +34,7 @@ fun lagForsikringsvurdering(
     vurdertTidspunkt: Instant = Instant.now(),
     vedtaksperiodeId: UUID = UUID.randomUUID(),
     behandlingId: UUID = UUID.randomUUID(),
+    forrigeForsikringsvurderingId: Forsikringsvurdering.Id? = null,
 ): Forsikringsvurdering =
     Forsikringsvurdering.fraLagring(
         id = id,
@@ -47,6 +48,7 @@ fun lagForsikringsvurdering(
         vurdertTidspunkt = vurdertTidspunkt,
         vedtaksperiodeId = vedtaksperiodeId,
         behandlingId = behandlingId,
+        forrigeForsikringsvurderingId = forrigeForsikringsvurderingId,
     )
 
 fun lagVurdertIndividuellForsikring(

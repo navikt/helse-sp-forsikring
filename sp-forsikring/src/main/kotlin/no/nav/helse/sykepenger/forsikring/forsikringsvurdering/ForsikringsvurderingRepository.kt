@@ -42,7 +42,8 @@ class ForsikringsvurderingRepository(
                    kollektiv_forsikring,
                    vurdert_tidspunkt,
                    vedtaksperiode_id,
-                   behandling_id
+                   behandling_id,
+                   forrige_forsikringsvurdering_id
             FROM forsikringsvurdering
             WHERE id = :id
         """
@@ -64,6 +65,10 @@ class ForsikringsvurderingRepository(
                         vurdertTidspunkt = row.instant("vurdert_tidspunkt"),
                         vedtaksperiodeId = row.uuid("vedtaksperiode_id"),
                         behandlingId = row.uuid("behandling_id"),
+                        forrigeForsikringsvurderingId =
+                            row
+                                .uuidOrNull("forrige_forsikringsvurdering_id")
+                                ?.let { Forsikringsvurdering.Id(it) },
                     )
                 }.asSingle,
         )
@@ -84,7 +89,8 @@ class ForsikringsvurderingRepository(
                    kollektiv_forsikring,
                    vurdert_tidspunkt,
                    vedtaksperiode_id,
-                   behandling_id
+                   behandling_id,
+                   forrige_forsikringsvurdering_id
             FROM forsikringsvurdering
             WHERE identitetsnummer = :identitetsnummer 
                 AND skjæringstidspunkt = :skjaringstidspunkt
@@ -117,6 +123,10 @@ class ForsikringsvurderingRepository(
                     vurdertTidspunkt = row.instant("vurdert_tidspunkt"),
                     vedtaksperiodeId = row.uuid("vedtaksperiode_id"),
                     behandlingId = row.uuid("behandling_id"),
+                    forrigeForsikringsvurderingId =
+                        row
+                            .uuidOrNull("forrige_forsikringsvurdering_id")
+                            ?.let { Forsikringsvurdering.Id(it) },
                 )
             }.asSingle,
         )
@@ -188,12 +198,12 @@ class ForsikringsvurderingRepository(
                                               skjæringstidspunkt, kollektiv_forsikring, vurdert_tidspunkt,
                                               har_forsikring, dekning_i_ventetid, dekning_grad, opphørsdato,
                                               råkopi_IF_VEDFRIVT_10_id, forsikringskategori,
-                                              vedtaksperiode_id, behandling_id)
+                                              vedtaksperiode_id, behandling_id, forrige_forsikringsvurdering_id)
             VALUES (:id, :rakopi_id, :behov_eller_request_body::jsonb, :identitetsnummer, :yrkesaktivitetstype,
                     :skjaeringstidspunkt, :kollektiv_forsikring, :vurdert_tidspunkt,
                     :har_forsikring, :dekning_i_ventetid, :dekning_grad, :opphorsdato,
                     :rakopi_IF_VEDFRIVT_10_id, :forsikringskategori,
-                    :vedtaksperiode_id, :behandling_id)
+                    :vedtaksperiode_id, :behandling_id, :forrige_forsikringsvurdering_id)
         """
         val dekning = forsikringsvurdering.dekning()
         spForsikringTransactionalSession.run(
@@ -225,6 +235,7 @@ class ForsikringsvurderingRepository(
                         },
                     "vedtaksperiode_id" to vedtaksperiodeId,
                     "behandling_id" to behandlingId,
+                    "forrige_forsikringsvurdering_id" to forsikringsvurdering.forrigeForsikringsvurderingId?.value,
                 ),
             ).asUpdate,
         )

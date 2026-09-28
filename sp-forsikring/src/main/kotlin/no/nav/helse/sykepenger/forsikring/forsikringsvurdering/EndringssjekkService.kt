@@ -61,6 +61,7 @@ internal class EndringssjekkService(
                         skjæringstidspunkt = skjæringstidspunkt,
                         vedtaksperiodeId = vedtaksperiodeId,
                         behandlingId = behandlingId,
+                        forrigeForsikringsvurderingId = sisteForsikringsvurdering.id,
                     )
 
                 endringssjekkLoggDao.insert(sisteForsikringsvurdering.id, saksbehandlerIdent, Instant.now())

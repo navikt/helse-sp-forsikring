@@ -70,6 +70,7 @@ class ForsikringsvurderingBehovRiver(
                         skjæringstidspunkt = melding.forsikringsvurdering.skjæringstidspunkt,
                         vedtaksperiodeId = melding.vedtaksperiodeId,
                         behandlingId = melding.behandlingId,
+                        forrigeForsikringsvurderingId = null,
                     )
 
                 RåkopiRepository(transaction).lagre(råkopi)

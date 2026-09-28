@@ -26,6 +26,7 @@ class ForsikringsvurderingService(
         skjæringstidspunkt: LocalDate,
         vedtaksperiodeId: UUID?,
         behandlingId: UUID?,
+        forrigeForsikringsvurderingId: Forsikringsvurdering.Id?,
     ): Pair<Råkopi, Forsikringsvurdering> {
         // Ta en ny råkopi av data fra replikabasen
         val råkopi = råkopiService.hentNyRåkopi(identitetsnummer)
@@ -45,6 +46,7 @@ class ForsikringsvurderingService(
                 individuelleForsikringer = individuelleForsikringer,
                 vedtaksperiodeId = vedtaksperiodeId,
                 behandlingId = behandlingId,
+                forrigeForsikringsvurderingId = forrigeForsikringsvurderingId,
             )
         return Pair(råkopi, forsikringsvurdering)
     }
