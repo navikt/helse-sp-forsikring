@@ -1,13 +1,10 @@
 package no.nav.helse.sykepenger.forsikring.api
 
-import com.fasterxml.jackson.databind.JsonNode
-import com.fasterxml.jackson.databind.ObjectMapper
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
 import com.github.navikt.tbd_libs.populasjonstilgang.api.TilgangSomMangler
 import com.github.navikt.tbd_libs.populasjonstilgang.api.TilgangskontrollResultat
 import com.github.navikt.tbd_libs.rapids_and_rivers.test_support.TestRapid
-import io.ktor.server.cio.*
-import io.ktor.server.engine.*
+import io.ktor.server.cio.CIO
+import io.ktor.server.engine.embeddedServer
 import no.nav.helse.sykepenger.forsikring.domain.IndividuellForsikringType
 import no.nav.helse.sykepenger.forsikring.domain.KollektivForsikring
 import no.nav.helse.sykepenger.forsikring.domain.SpesiellYrkesgruppe
@@ -15,15 +12,28 @@ import no.nav.helse.sykepenger.forsikring.domain.VurdertIndividuellForsikring
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.ForsikringsvurderingService
 import no.nav.helse.sykepenger.forsikring.kafka.RapidEndretForsikringsvurderingPubliserer
 import no.nav.helse.sykepenger.forsikring.kafka.RapidSubsumsjonspubliserer
-import no.nav.helse.sykepenger.forsikring.shared.testsupport.*
+import no.nav.helse.sykepenger.forsikring.shared.testsupport.FakeTilgangskontroll
+import no.nav.helse.sykepenger.forsikring.shared.testsupport.TestcontainersReplikadatabase
+import no.nav.helse.sykepenger.forsikring.shared.testsupport.TestcontainersSpForsikringDatabase
+import no.nav.helse.sykepenger.forsikring.shared.testsupport.lagForsikringsvurdering
+import no.nav.helse.sykepenger.forsikring.shared.testsupport.lagIdentitetsnummer
+import no.nav.helse.sykepenger.forsikring.shared.testsupport.lagVurdertIndividuellForsikring
+import no.nav.helse.sykepenger.forsikring.shared.testsupport.lagreRåkopiOgForsikringsvurdering
+import no.nav.helse.sykepenger.forsikring.shared.testsupport.tilInfotrygdFødselsnummer
 import no.nav.security.mock.oauth2.MockOAuth2Server
 import org.junit.jupiter.api.AfterAll
-import org.junit.jupiter.api.Assertions.*
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertFalse
+import org.junit.jupiter.api.Assertions.assertNotNull
+import org.junit.jupiter.api.Assertions.assertNull
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.ValueSource
+import tools.jackson.databind.JsonNode
+import tools.jackson.module.kotlin.jacksonObjectMapper
 import java.net.ServerSocket
 import java.time.LocalDate
 import java.util.*
@@ -205,18 +215,18 @@ class ForsikringsvurderingApiTest {
 
         assertEquals(200, statusCode) { "Body was: $body" }
         val json = body.somJson()
-        assertEquals(identitetsnummer.value, json["identitetsnummer"].asText())
+        assertEquals(identitetsnummer.value, json["identitetsnummer"].asString())
         assertNotNull(json.asTextOrNull("vurdertTidspunkt")) { "Forventet vurdertTidspunkt, fikk: $body" }
         assertEquals(80, json["samletDekning"]["grad"].asInt())
         assertEquals(1, json["samletDekning"]["fraDag"].asInt())
         assertTrue(json["kollektivForsikring"].isNull) { "Forventet ingen kollektiv forsikring, fikk: $body" }
 
         val forsikring = json["individuelleForsikringer"].single()
-        assertEquals(IndividuellForsikringType.SELVSTENDIG_80_PROSENT_FRA_DAG_1.navn, forsikring["navn"].asText())
+        assertEquals(IndividuellForsikringType.SELVSTENDIG_80_PROSENT_FRA_DAG_1.navn, forsikring["navn"].asString())
         assertEquals("2025-06-01", forsikring.asTextOrNull("virkningsdato"))
         assertNull(forsikring.asTextOrNull("opphørsdato"))
         assertTrue(forsikring["lagtTilGrunn"].asBoolean()) { "Forventet lagtTilGrunn=true, fikk: $body" }
-        assertEquals("Lagt til grunn", forsikring["konklusjon"]["forklaring"].asText())
+        assertEquals("Lagt til grunn", forsikring["konklusjon"]["forklaring"].asString())
         assertFolketrygdlovenreferanse(
             forventetKapittel = 8,
             forventetParagrafIKapittel = 36,
@@ -251,7 +261,7 @@ class ForsikringsvurderingApiTest {
         assertEquals(17, json["samletDekning"]["fraDag"].asInt())
         assertEquals(
             IndividuellForsikringType.SELVSTENDIG_100_PROSENT_FRA_DAG_17.navn,
-            json["individuelleForsikringer"].single()["navn"].asText(),
+            json["individuelleForsikringer"].single()["navn"].asString(),
         )
         assertFolketrygdlovenreferanse(
             forventetKapittel = 8,
@@ -298,7 +308,7 @@ class ForsikringsvurderingApiTest {
         assertEquals(1, json["samletDekning"]["fraDag"].asInt())
 
         val kollektivForsikring = json["kollektivForsikring"]
-        assertEquals(KollektivForsikring.FISKER_BLAD_B.navn, kollektivForsikring["navn"].asText())
+        assertEquals(KollektivForsikring.FISKER_BLAD_B.navn, kollektivForsikring["navn"].asString())
         assertFolketrygdlovenreferanse(
             forventetKapittel = 8,
             forventetParagrafIKapittel = 36,
@@ -342,7 +352,7 @@ class ForsikringsvurderingApiTest {
         val forsikring = json["individuelleForsikringer"].single()
         assertFalse(forsikring["lagtTilGrunn"].asBoolean()) { "Forventet lagtTilGrunn=false, fikk: $body" }
         val konklusjon = forsikring["konklusjon"]
-        assertEquals("Forsikringen er innvilget, men ikke betalt ennå", konklusjon["forklaring"].asText())
+        assertEquals("Forsikringen er innvilget, men ikke betalt ennå", konklusjon["forklaring"].asString())
         assertTrue(konklusjon["folketrygdlovenreferanse"].isNull) { "Forventet ingen referanse i konklusjonen, fikk: $body" }
     }
 
@@ -370,7 +380,7 @@ class ForsikringsvurderingApiTest {
         val forsikring = json["individuelleForsikringer"].single()
         assertFalse(forsikring["lagtTilGrunn"].asBoolean()) { "Forventet lagtTilGrunn=false, fikk: $body" }
         val konklusjon = forsikring["konklusjon"]
-        assertEquals("Forsikringen passer ikke med søknadstypen", konklusjon["forklaring"].asText())
+        assertEquals("Forsikringen passer ikke med søknadstypen", konklusjon["forklaring"].asString())
         assertTrue(konklusjon["folketrygdlovenreferanse"].isNull) { "Forventet ingen referanse i konklusjonen, fikk: $body" }
     }
 
@@ -404,7 +414,7 @@ class ForsikringsvurderingApiTest {
         assertEquals("2025-12-31", forsikring.asTextOrNull("opphørsdato"))
         assertFalse(forsikring["lagtTilGrunn"].asBoolean()) { "Forventet lagtTilGrunn=false, fikk: $body" }
         val konklusjon = forsikring["konklusjon"]
-        assertEquals("Forsikringen opphørte før skjæringstidspunktet", konklusjon["forklaring"].asText())
+        assertEquals("Forsikringen opphørte før skjæringstidspunktet", konklusjon["forklaring"].asString())
         assertFolketrygdlovenreferanse(
             forventetKapittel = 8,
             forventetParagrafIKapittel = 37,
@@ -439,7 +449,7 @@ class ForsikringsvurderingApiTest {
         assertFalse(forsikring["lagtTilGrunn"].asBoolean()) { "Forventet lagtTilGrunn=false, fikk: $body" }
         assertEquals(
             "Forsikringen var ikke ennå gyldig på skjæringstidspunktet",
-            forsikring["konklusjon"]["forklaring"].asText(),
+            forsikring["konklusjon"]["forklaring"].asString(),
         )
     }
 
@@ -473,7 +483,7 @@ class ForsikringsvurderingApiTest {
         val json = body.somJson()
         assertEquals(80, json["samletDekning"]["grad"].asInt())
 
-        val forsikringer = json["individuelleForsikringer"].associateBy { it["navn"].asText() }
+        val forsikringer = json["individuelleForsikringer"].values().associateBy { it["navn"].asString() }
         assertEquals(2, forsikringer.size) { "Forventet to individuelle forsikringer, fikk: $body" }
 
         val gjeldende = forsikringer.getValue(IndividuellForsikringType.SELVSTENDIG_80_PROSENT_FRA_DAG_1.navn)
@@ -481,7 +491,7 @@ class ForsikringsvurderingApiTest {
 
         val ekskludert = forsikringer.getValue(IndividuellForsikringType.SELVSTENDIG_100_PROSENT_FRA_DAG_17.navn)
         assertFalse(ekskludert["lagtTilGrunn"].asBoolean()) { "Forventet lagtTilGrunn=false, fikk: $body" }
-        assertEquals("Forsikringen opphørte før skjæringstidspunktet", ekskludert["konklusjon"]["forklaring"].asText())
+        assertEquals("Forsikringen opphørte før skjæringstidspunktet", ekskludert["konklusjon"]["forklaring"].asString())
     }
 
     @Test
@@ -534,7 +544,7 @@ class ForsikringsvurderingApiTest {
         assertEquals(1, json["samletDekning"]["fraDag"].asInt())
         assertEquals(
             IndividuellForsikringType.SELVSTENDIG_JORDBRUKER_100_PROSENT_FRA_DAG_1.navn,
-            json["individuelleForsikringer"].single()["navn"].asText(),
+            json["individuelleForsikringer"].single()["navn"].asString(),
         )
         assertFalse(json["kollektivForsikring"].isNull) { "Forventet kollektiv forsikring, fikk: $body" }
     }
@@ -564,13 +574,13 @@ class ForsikringsvurderingApiTest {
         assertFalse(forsikring["lagtTilGrunn"].asBoolean()) { "Forventet lagtTilGrunn=false, fikk: $body" }
         assertEquals(
             "Forsikringen var ikke ennå gyldig på skjæringstidspunktet",
-            forsikring["konklusjon"]["forklaring"].asText(),
+            forsikring["konklusjon"]["forklaring"].asString(),
         )
     }
 
     @Test
     fun `POST endringssjekk returnerer 400 om det ikke finnes en forsikringsvurdering for fødselsnummer på skjæringstidspunkt`() {
-        val (statusCode, body) = postRevurdering(token = brukertoken())
+        val (statusCode, body) = postEndringssjekk(token = brukertoken())
 
         assertEquals(400, statusCode) { "Body was: $body" }
     }
@@ -607,7 +617,7 @@ class ForsikringsvurderingApiTest {
         )
 
         val (statusCode, body) =
-            postRevurdering(
+            postEndringssjekk(
                 identitetsnummer = identitetsnummer.value,
                 skjæringstidspunkt = skjæringstidspunkt,
                 token = brukertoken(),
@@ -657,7 +667,7 @@ class ForsikringsvurderingApiTest {
         )
 
         val (statusCode, body) =
-            postRevurdering(
+            postEndringssjekk(
                 identitetsnummer = identitetsnummer.value,
                 skjæringstidspunkt = skjæringstidspunkt,
                 token = brukertoken(),
@@ -694,7 +704,7 @@ class ForsikringsvurderingApiTest {
 
         // Replikabasen er tom, altså har brukeren ingen forsikring lenger
         val (statusCode, body) =
-            postRevurdering(
+            postEndringssjekk(
                 identitetsnummer = identitetsnummer.value,
                 skjæringstidspunkt = skjæringstidspunkt,
                 token = brukertoken(),
@@ -706,7 +716,7 @@ class ForsikringsvurderingApiTest {
     }
 
     @Test
-    fun `POST endringssjekk lagrer behovet som utløste endringssjekken`() {
+    fun `POST endringssjekk lagrer request-bodyen som utløste endringssjekken`() {
         val identitetsnummer = lagIdentitetsnummer()
         val skjæringstidspunkt = "2026-01-01"
         val forrigeVurdering =
@@ -726,13 +736,23 @@ class ForsikringsvurderingApiTest {
 
         // Replikabasen er tom, altså har brukeren ingen forsikring lenger, og vi får en ny vurdering
         val (statusCode, body) =
-            postRevurdering(
+            postEndringssjekk(
                 identitetsnummer = identitetsnummer.value,
                 skjæringstidspunkt = skjæringstidspunkt,
                 token = brukertoken(),
             )
 
         assertEquals(200, statusCode) { "Body was: $body" }
+
+        val nyVurderingId =
+            publiserteMeldinger(eventNavn = "endret_forsikringsvurdering")
+                .single()["forsikringsvurderingId"]
+                .asString()
+        val lagretRequestBody =
+            TestcontainersSpForsikringDatabase.hentBehovEllerRequestBody(nyVurderingId).somJson()
+
+        assertEquals(identitetsnummer.value, lagretRequestBody["identitetsnummer"].asString())
+        assertEquals(skjæringstidspunkt, lagretRequestBody["skjæringstidspunkt"].asString())
     }
 
     @Test
@@ -745,6 +765,8 @@ class ForsikringsvurderingApiTest {
             lagForsikringsvurdering(
                 skjæringstidspunkt = LocalDate.parse(skjæringstidspunkt),
                 identitetsnummer = identitetsnummer,
+                vedtaksperiodeId = vedtaksperiodeId,
+                behandlingId = behandlingId,
                 individuelleForsikringer =
                     listOf(
                         lagVurdertIndividuellForsikring(
@@ -770,12 +792,10 @@ class ForsikringsvurderingApiTest {
         )
 
         val (statusCode, body) =
-            postRevurdering(
+            postEndringssjekk(
                 identitetsnummer = identitetsnummer.value,
                 skjæringstidspunkt = skjæringstidspunkt,
                 token = brukertoken(),
-                vedtaksperiodeId = vedtaksperiodeId,
-                behandlingId = behandlingId,
             )
 
         assertEquals(200, statusCode) { "Body was: $body" }
@@ -810,7 +830,7 @@ class ForsikringsvurderingApiTest {
         lagreRåkopiOgForsikringsvurdering(forrigeVurdering)
 
         val (statusCode, body) =
-            postRevurdering(
+            postEndringssjekk(
                 identitetsnummer = identitetsnummer.value,
                 skjæringstidspunkt = skjæringstidspunkt,
                 token = brukertoken(),
@@ -858,7 +878,7 @@ class ForsikringsvurderingApiTest {
         )
 
         val (statusCode, body) =
-            postRevurdering(
+            postEndringssjekk(
                 identitetsnummer = identitetsnummer.value,
                 skjæringstidspunkt = skjæringstidspunkt,
                 token = brukertoken(),
@@ -870,7 +890,7 @@ class ForsikringsvurderingApiTest {
 
     @Test
     fun `POST endringssjekk returnerer 400 når identitetsnummer er ugyldig`() {
-        val (statusCode, body) = postRevurdering(identitetsnummer = "123", token = brukertoken())
+        val (statusCode, body) = postEndringssjekk(identitetsnummer = "123", token = brukertoken())
 
         assertEquals(400, statusCode) { "Body was: $body" }
     }
@@ -879,11 +899,11 @@ class ForsikringsvurderingApiTest {
     fun `POST endringssjekk returnerer 403 når populasjonstilgangskontrollen sier ManglerTilgang`() {
         fakeTilgangskontroll.resultat = TilgangskontrollResultat.ManglerTilgang(TilgangSomMangler.EgenAnsatt)
 
-        val (statusCode, body) = postRevurdering(token = brukertoken())
+        val (statusCode, body) = postEndringssjekk(token = brukertoken())
 
         assertEquals(403, statusCode) { "Body was: $body" }
         val json = body.somJson()
-        assertEquals("Mangler tilgang til person", json["title"].asText())
+        assertEquals("Mangler tilgang til person", json["title"].asString())
         assertEquals(403, json["status"].asInt())
     }
 
@@ -891,11 +911,11 @@ class ForsikringsvurderingApiTest {
     fun `POST endringssjekk returnerer 400 når populasjonstilgangskontrollen sier IdentIkkeFunnet`() {
         fakeTilgangskontroll.resultat = TilgangskontrollResultat.IdentIkkeFunnet
 
-        val (statusCode, body) = postRevurdering(token = brukertoken())
+        val (statusCode, body) = postEndringssjekk(token = brukertoken())
 
         assertEquals(400, statusCode) { "Body was: $body" }
         val json = body.somJson()
-        assertEquals("Person ikke funnet", json["title"].asText())
+        assertEquals("Person ikke funnet", json["title"].asString())
         assertEquals(400, json["status"].asInt())
     }
 
@@ -903,11 +923,11 @@ class ForsikringsvurderingApiTest {
     fun `POST endringssjekk returnerer 500 når populasjonstilgangskontrollen sier UventetFeil`() {
         fakeTilgangskontroll.resultat = TilgangskontrollResultat.UventetFeil("noe gikk galt i tilgangsmaskinen")
 
-        val (statusCode, body) = postRevurdering(token = brukertoken())
+        val (statusCode, body) = postEndringssjekk(token = brukertoken())
 
         assertEquals(500, statusCode) { "Body was: $body" }
         val json = body.somJson()
-        assertEquals("Uventet feil", json["title"].asText())
+        assertEquals("Uventet feil", json["title"].asString())
         assertEquals(500, json["status"].asInt())
     }
 
@@ -932,7 +952,7 @@ class ForsikringsvurderingApiTest {
         fakeTilgangskontroll.resultat = TilgangskontrollResultat.ManglerTilgang(TilgangSomMangler.StrengtFortroligAdresse)
 
         val (statusCode, body) =
-            postRevurdering(
+            postEndringssjekk(
                 identitetsnummer = identitetsnummer.value,
                 skjæringstidspunkt = skjæringstidspunkt,
                 token = brukertoken(),
@@ -950,12 +970,12 @@ class ForsikringsvurderingApiTest {
 
     @Test
     fun `POST endringssjekk returnerer 401 uten autentiseringstoken`() {
-        val (statusCode, _) = postRevurdering(token = null)
+        val (statusCode, _) = postEndringssjekk(token = null)
 
         assertEquals(401, statusCode)
     }
 
-    private fun publiserteMeldinger(eventNavn: String): List<tools.jackson.databind.JsonNode> =
+    private fun publiserteMeldinger(eventNavn: String): List<JsonNode> =
         (0 until testRapid.inspektør.size)
             .map { testRapid.inspektør.message(it) }
             .filter { it["@event_name"].asString() == eventNavn }
@@ -970,20 +990,16 @@ class ForsikringsvurderingApiTest {
             claims = mapOf("idtyp" to "app"),
         )
 
-    private fun postRevurdering(
+    private fun postEndringssjekk(
         identitetsnummer: String = lagIdentitetsnummer().value,
         skjæringstidspunkt: String = "2026-01-01",
-        vedtaksperiodeId: UUID = UUID.randomUUID(),
-        behandlingId: UUID = UUID.randomUUID(),
         token: String?,
     ): Pair<Int, String> =
-        RevurderingApiClient.postRevurdering(
+        EndringssjekkApiClient.postEndringssjekk(
             baseUrl = serverUrl,
             identitetsnummer = identitetsnummer,
             skjæringstidspunkt = skjæringstidspunkt,
             token = token,
-            vedtaksperiodeId = vedtaksperiodeId,
-            behandlingId = behandlingId,
         )
 
     private fun bearerToken(
@@ -1027,11 +1043,11 @@ class ForsikringsvurderingApiTest {
         )
 }
 
-private val testJsonMapper = ObjectMapper().registerModule(JavaTimeModule())
+private val testJsonMapper = jacksonObjectMapper()
 
 private fun String.somJson(): JsonNode = testJsonMapper.readTree(this)
 
-private fun JsonNode.asTextOrNull(feltnavn: String): String? = this[feltnavn]?.takeUnless { it.isNull }?.asText()
+private fun JsonNode.asTextOrNull(feltnavn: String): String? = this[feltnavn]?.takeUnless { it.isNull }?.asString()
 
 private fun assertFolketrygdlovenreferanse(
     forventetKapittel: Int,
@@ -1045,5 +1061,5 @@ private fun assertFolketrygdlovenreferanse(
     assertEquals(forventetKapittel, faktisk["kapittel"].asInt())
     assertEquals(forventetParagrafIKapittel, faktisk["paragrafIKapittel"].asInt())
     assertEquals(forventetLedd, faktisk["ledd"].takeUnless { it.isNull }?.asInt())
-    assertEquals(forventetBokstav, faktisk["bokstav"].takeUnless { it.isNull }?.asText())
+    assertEquals(forventetBokstav, faktisk["bokstav"].takeUnless { it.isNull }?.asString())
 }

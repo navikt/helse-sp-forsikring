@@ -6,9 +6,10 @@ import no.nav.helse.sykepenger.forsikring.kafka.EndretForsikringsvurderingPublis
 import no.nav.helse.sykepenger.forsikring.råkopi.RåkopiRepository
 import no.nav.helse.sykepenger.forsikring.shared.util.inTransaction
 import no.nav.helse.sykepenger.forsikring.subsumsjon.Subsumsjonspubliserer
+import no.nav.sykepenger.libs.logging.MdcKey
+import no.nav.sykepenger.libs.logging.medMdc
 import java.time.Instant
 import java.time.LocalDate
-import java.util.*
 import javax.sql.DataSource
 
 /**
@@ -24,10 +25,8 @@ internal class EndringssjekkService(
     fun endringssjekk(
         identitetsnummer: Identitetsnummer,
         skjæringstidspunkt: LocalDate,
-        vedtaksperiodeId: UUID,
-        behandlingId: UUID,
         saksbehandlerIdent: String,
-        behovJson: (forrigeForsikringsvurdering: Forsikringsvurdering) -> String,
+        requestBody: String,
     ): Endringssjekkresultat =
         spForsikringDataSource.inTransaction { transactionalSession ->
             val repository = ForsikringsvurderingRepository(transactionalSession)
@@ -38,36 +37,57 @@ internal class EndringssjekkService(
                     skjæringstidspunkt = skjæringstidspunkt,
                 ) ?: return@inTransaction Endringssjekkresultat.IngenTidligereVurdering
 
-            // Yrkesaktivitetstype og spesielle yrkesgrupper er ikke en del av forespørselen, og arves derfor
-            // fra den forrige vurderingen. Vi revurderer altså kun på grunnlag av endringer i Infotrygd.
-            val (råkopi, nyVurdering) =
-                forsikringsvurderingService.gjørForsikringsvurdering(
-                    identitetsnummer = identitetsnummer,
-                    yrkesaktivitetstype = sisteForsikringsvurdering.yrkesaktivitetstype,
-                    spesielleYrkesgrupper = sisteForsikringsvurdering.spesielleYrkesgrupper,
-                    skjæringstidspunkt = skjæringstidspunkt,
+            // Den nye vurderingen gjelder samme vedtaksperiode og behandling som den forrige
+            val vedtaksperiodeId =
+                requireNotNull(sisteForsikringsvurdering.vedtaksperiodeId) {
+                    "Forrige forsikringsvurdering mangler vedtaksperiodeId"
+                }
+            val behandlingId =
+                requireNotNull(sisteForsikringsvurdering.behandlingId) {
+                    "Forrige forsikringsvurdering mangler behandlingId"
+                }
+
+            medMdc(
+                MdcKey.VEDTAKSPERIODE_ID to vedtaksperiodeId.toString(),
+                MdcKey.SPLEIS_BEHANDLING_ID to behandlingId.toString(),
+            ) {
+                // Yrkesaktivitetstype og spesielle yrkesgrupper er ikke en del av forespørselen, og arves derfor
+                // fra den forrige vurderingen. Vi gjør altså endringssjekk kun på grunnlag av endringer i Infotrygd.
+                val (råkopi, nyVurdering) =
+                    forsikringsvurderingService.gjørForsikringsvurdering(
+                        identitetsnummer = identitetsnummer,
+                        yrkesaktivitetstype = sisteForsikringsvurdering.yrkesaktivitetstype,
+                        spesielleYrkesgrupper = sisteForsikringsvurdering.spesielleYrkesgrupper,
+                        skjæringstidspunkt = skjæringstidspunkt,
+                        vedtaksperiodeId = vedtaksperiodeId,
+                        behandlingId = behandlingId,
+                        forrigeForsikringsvurderingId = sisteForsikringsvurdering.id,
+                    )
+
+                endringssjekkLoggDao.insert(sisteForsikringsvurdering.id, saksbehandlerIdent, Instant.now())
+
+                if (sisteForsikringsvurdering.harSammeUtfallSom(nyVurdering)) {
+                    return@medMdc Endringssjekkresultat.UendretVurdering
+                }
+
+                // Råkopien må lagres før vurderingen, siden vurderingen peker på den med fremmednøkler
+                RåkopiRepository(transactionalSession).lagre(råkopi)
+                repository.lagre(
+                    forsikringsvurdering = nyVurdering,
+                    behovEllerRequestBody = requestBody,
                 )
-
-            endringssjekkLoggDao.insert(sisteForsikringsvurdering.id, saksbehandlerIdent, Instant.now())
-
-            if (sisteForsikringsvurdering.harSammeUtfallSom(nyVurdering)) {
-                return@inTransaction Endringssjekkresultat.UendretVurdering
+                endretForsikringsvurderingPubliserer.publiser(
+                    identitetsnummer = identitetsnummer,
+                    skjæringstidspunkt = skjæringstidspunkt,
+                    forsikringsvurderingId = nyVurdering.id.value,
+                )
+                subsumsjonspubliserer.publiser(
+                    forsikringsvurdering = nyVurdering,
+                    vedtaksperiodeId = vedtaksperiodeId,
+                    behandlingId = behandlingId,
+                )
+                Endringssjekkresultat.EndretVurdering(nyVurdering)
             }
-
-            // Råkopien må lagres før vurderingen, siden vurderingen peker på den med fremmednøkler
-            RåkopiRepository(transactionalSession).lagre(råkopi)
-            repository.lagre(nyVurdering, behovJson(sisteForsikringsvurdering))
-            endretForsikringsvurderingPubliserer.publiser(
-                identitetsnummer = identitetsnummer,
-                skjæringstidspunkt = skjæringstidspunkt,
-                forsikringsvurderingId = nyVurdering.id.value,
-            )
-            subsumsjonspubliserer.publiser(
-                forsikringsvurdering = nyVurdering,
-                vedtaksperiodeId = vedtaksperiodeId,
-                behandlingId = behandlingId,
-            )
-            Endringssjekkresultat.EndretVurdering(nyVurdering)
         }
 }
 

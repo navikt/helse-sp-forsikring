@@ -16,6 +16,9 @@ class Forsikringsvurdering private constructor(
     val individuelleForsikringer: List<VurdertIndividuellForsikring>,
     val kollektivForsikring: KollektivForsikring?,
     val vurdertTidspunkt: Instant,
+    val vedtaksperiodeId: UUID?,
+    val behandlingId: UUID?,
+    val forrigeForsikringsvurderingId: Id?,
 ) {
     init {
         val gyldigeIndividuelleForsikringer = individuelleForsikringer.filter { it.erGyldig() }
@@ -72,7 +75,8 @@ class Forsikringsvurdering private constructor(
      * Sammenligner utfallet av to vurderinger av samme person og skjæringstidspunkt, for å avgjøre om en ny
      * vurdering gir et annet resultat enn en tidligere lagret vurdering.
      *
-     * Identifikatorer ([id], [råkopiId], [VurdertIndividuellForsikring.råkopiIfVedfrivt10Id]) og [vurdertTidspunkt]
+     * Identifikatorer ([id], [råkopiId], [forrigeForsikringsvurderingId],
+     * [VurdertIndividuellForsikring.råkopiIfVedfrivt10Id]) og [vurdertTidspunkt]
      * inngår ikke, siden de alltid er nye for hver vurdering. Det samme gjelder felter som ikke påvirker utfallet
      * (premiegrunnlag og betalingsstatus), som endrer seg i Infotrygd uten at vurderingen endrer seg.
      */
@@ -129,6 +133,9 @@ class Forsikringsvurdering private constructor(
             råkopiId: Råkopi.Id,
             kollektiveForsikringer: Set<KollektivForsikring>,
             individuelleForsikringer: List<IndividuellForsikring>,
+            vedtaksperiodeId: UUID?,
+            behandlingId: UUID?,
+            forrigeForsikringsvurderingId: Id?,
         ): Forsikringsvurdering =
             Forsikringsvurdering(
                 id = Id.ny(),
@@ -157,6 +164,9 @@ class Forsikringsvurdering private constructor(
                             }
                         }.firstOrNull(),
                 vurdertTidspunkt = Instant.now(),
+                vedtaksperiodeId = vedtaksperiodeId,
+                behandlingId = behandlingId,
+                forrigeForsikringsvurderingId = forrigeForsikringsvurderingId,
             )
 
         fun fraLagring(
@@ -169,6 +179,9 @@ class Forsikringsvurdering private constructor(
             individuelleForsikringer: List<VurdertIndividuellForsikring>,
             kollektivForsikring: KollektivForsikring?,
             vurdertTidspunkt: Instant,
+            vedtaksperiodeId: UUID,
+            behandlingId: UUID,
+            forrigeForsikringsvurderingId: Id?,
         ) = Forsikringsvurdering(
             id = id,
             identitetsnummer = identitetsnummer,
@@ -179,6 +192,9 @@ class Forsikringsvurdering private constructor(
             individuelleForsikringer = individuelleForsikringer,
             kollektivForsikring = kollektivForsikring,
             vurdertTidspunkt = vurdertTidspunkt,
+            vedtaksperiodeId = vedtaksperiodeId,
+            behandlingId = behandlingId,
+            forrigeForsikringsvurderingId = forrigeForsikringsvurderingId,
         )
     }
 

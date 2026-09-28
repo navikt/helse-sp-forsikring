@@ -20,8 +20,8 @@ fun lagreRåkopiOgForsikringsvurdering(
     TestcontainersSpForsikringDatabase.dataSource.inTransaction { transaction ->
         RåkopiRepository(transaction).lagre(råkopi)
         ForsikringsvurderingRepository(transaction).lagre(
-            forsikringsvurdering,
-            forsikringsvurdering.tilForsikringsvurderingBehovJson(),
+            forsikringsvurdering = forsikringsvurdering,
+            behovEllerRequestBody = forsikringsvurdering.tilForsikringsvurderingBehovJson(),
         )
     }
 }
@@ -31,6 +31,8 @@ private fun Forsikringsvurdering.tilForsikringsvurderingBehovJson(): String =
     {
         "@behov": [ "Forsikringsvurdering" ],
         "fødselsnummer": "${identitetsnummer.value}",
+        "vedtaksperiodeId": "$vedtaksperiodeId",
+        "behandlingId": "$behandlingId",
         "yrkesaktivitetstype": "$yrkesaktivitetstype",
         "Forsikringsvurdering": {
             "spesielleYrkesgrupper": [ ${

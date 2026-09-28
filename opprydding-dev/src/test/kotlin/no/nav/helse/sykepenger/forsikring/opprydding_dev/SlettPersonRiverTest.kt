@@ -272,17 +272,33 @@ internal class SlettPersonRiverTest {
             conn
                 .prepareStatement(
                     """
-                INSERT INTO forsikringsvurdering (id, råkopi_id, behov, identitetsnummer, yrkesaktivitetstype,
-                                                  skjæringstidspunkt, vurdert_tidspunkt, har_forsikring)
-                VALUES (?, ?, ?::jsonb, ?, 'SELVSTENDIG', DATE '2026-01-01', ?, ?)
+                INSERT INTO forsikringsvurdering (id, råkopi_id, behov_eller_request_body, identitetsnummer,
+                                                  yrkesaktivitetstype,
+                                                  skjæringstidspunkt, vurdert_tidspunkt, har_forsikring,
+                                                  vedtaksperiode_id, behandling_id)
+                VALUES (?, ?, ?::jsonb, ?, 'SELVSTENDIG', DATE '2026-01-01', ?, ?, ?, ?)
                 """,
                 ).use { stmt ->
+                    val vedtaksperiodeId = UUID.randomUUID()
+                    val behandlingId = UUID.randomUUID()
                     stmt.setObject(1, id)
                     stmt.setObject(2, råkopiId)
-                    stmt.setString(3, """{"fødselsnummer": "$fødselsnummer", "@behov": ["Forsikringsvurdering"]}""")
+                    stmt.setString(
+                        3,
+                        """
+                        {
+                          "fødselsnummer": "$fødselsnummer",
+                          "vedtaksperiodeId": "$vedtaksperiodeId",
+                          "behandlingId": "$behandlingId",
+                          "@behov": ["Forsikringsvurdering"]
+                        }
+                        """.trimIndent(),
+                    )
                     stmt.setString(4, fødselsnummer)
                     stmt.setTimestamp(5, Timestamp.from(Instant.now()))
                     stmt.setBoolean(6, false)
+                    stmt.setObject(7, vedtaksperiodeId)
+                    stmt.setObject(8, behandlingId)
                     stmt.executeUpdate()
                 }
         }

@@ -144,15 +144,16 @@ object TestcontainersSpForsikringDatabase {
         }
     }
 
-    fun hentBehov(forsikringsvurderingId: String): String {
+    fun hentBehovEllerRequestBody(forsikringsvurderingId: String): String {
         @Language("PostgreSQL")
-        val statement = "SELECT behov FROM forsikringsvurdering WHERE id = :forsikringsvurderingId::uuid"
+        val statement =
+            "SELECT behov_eller_request_body FROM forsikringsvurdering WHERE id = :forsikringsvurderingId::uuid"
         return sessionOf(dataSource).use { session ->
             session.run(
                 queryOf(
                     statement,
                     mapOf("forsikringsvurderingId" to forsikringsvurderingId),
-                ).map { it.string("behov") }.asSingle,
+                ).map { it.string("behov_eller_request_body") }.asSingle,
             )!!
         }
     }
