@@ -31,7 +31,7 @@ internal class RapidEndretForsikringsvurderingPublisererTest {
         assertEquals(1, rapid.inspektør.size)
         val melding = rapid.inspektør.message(0)
         assertEquals("endret_forsikringsvurdering", melding["@event_name"].asString())
-        assertEquals("01020312345", melding["identitetsnummer"].asString())
+        assertEquals("01020312345", melding["fødselsnummer"].asString())
         assertEquals("2026-01-01", melding["skjæringstidspunkt"].asString())
         assertEquals(forsikringsvurderingId.toString(), melding["forsikringsvurderingId"].asString())
     }

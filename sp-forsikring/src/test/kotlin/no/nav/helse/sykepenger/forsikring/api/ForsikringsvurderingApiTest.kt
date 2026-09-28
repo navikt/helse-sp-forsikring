@@ -842,7 +842,7 @@ class ForsikringsvurderingApiTest {
         assertEquals(1, meldinger.size) { "Forventet én publisert endret_forsikringsvurdering-melding" }
 
         val melding = meldinger.single()
-        assertEquals(identitetsnummer.value, melding["identitetsnummer"].asString())
+        assertEquals(identitetsnummer.value, melding["fødselsnummer"].asString())
         assertEquals(skjæringstidspunkt, melding["skjæringstidspunkt"].asString())
     }
 

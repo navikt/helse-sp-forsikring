@@ -23,7 +23,7 @@ class RapidEndretForsikringsvurderingPubliserer(
     ) {
         val melding =
             EndretForsikringsvurderingMelding(
-                identitetsnummer = identitetsnummer.value,
+                fødselsnummer = identitetsnummer.value,
                 skjæringstidspunkt = skjæringstidspunkt.toString(),
                 forsikringsvurderingId = forsikringsvurderingId.toString(),
             ).tilJson()
@@ -37,7 +37,7 @@ class RapidEndretForsikringsvurderingPubliserer(
 }
 
 data class EndretForsikringsvurderingMelding(
-    val identitetsnummer: String,
+    val fødselsnummer: String,
     val skjæringstidspunkt: String,
     val forsikringsvurderingId: String,
 ) {
