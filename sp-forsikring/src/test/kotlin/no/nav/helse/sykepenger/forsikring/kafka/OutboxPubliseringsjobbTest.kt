@@ -42,11 +42,7 @@ internal class OutboxPubliseringsjobbTest {
         assertEquals(eventName, publisert.path("@event_name").asString())
         assertEquals(key, rapid.inspektør.key(0))
 
-        val nesteMeldingIOutbox =
-            dataSource.inTransaction { transaction ->
-                val outboxRepository = PgOutboxRepository(transaction)
-                outboxRepository.hent()
-            }
+        val nesteMeldingIOutbox = dataSource.inTransaction { transaction -> PgOutboxRepository(transaction).pop() }
         assertNull(nesteMeldingIOutbox)
     }
 
@@ -68,12 +64,8 @@ internal class OutboxPubliseringsjobbTest {
 
         assertEquals(3, rapid.inspektør.size)
 
-        val nesteKonvolutt =
-            dataSource.inTransaction { transaction ->
-                val outboxRepository = PgOutboxRepository(transaction)
-                outboxRepository.hent()
-            }
-        assertNull(nesteKonvolutt)
+        val nesteMeldingIOutbox = dataSource.inTransaction { transaction -> PgOutboxRepository(transaction).pop() }
+        assertNull(nesteMeldingIOutbox)
     }
 
     @Test
@@ -98,14 +90,9 @@ internal class OutboxPubliseringsjobbTest {
 
         jobb.kjørEnRunde()
 
-        val nesteKonvolutt =
-            dataSource.inTransaction { transaction ->
-                val outboxRepository = PgOutboxRepository(transaction)
-                outboxRepository.hent()
-            }
-
-        assertEquals("en", nesteKonvolutt?.key)
-        assertEquals("""{"@event_name": "første_event"}""", nesteKonvolutt?.melding)
+        val nesteMeldingIOutbox = dataSource.inTransaction { transaction -> PgOutboxRepository(transaction).pop() }
+        assertEquals("en", nesteMeldingIOutbox?.key)
+        assertEquals("""{"@event_name": "første_event"}""", nesteMeldingIOutbox?.melding)
     }
 
     private class SvikterVedPubliseringRapid : RapidsConnection() {

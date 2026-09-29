@@ -10,23 +10,7 @@ import kotlin.test.assertEquals
 
 internal class RapidEndretForsikringsvurderingPublisererTest {
     private val publiserer = RapidEndretForsikringsvurderingPubliserer
-    private val outboxRepository =
-        object : OutboxRepository {
-            val outbox = mutableListOf<OutboxRepository.OutboxKonvolutt>()
-
-            override fun hent(): OutboxRepository.OutboxKonvolutt? = outbox.maxByOrNull { it.id }
-
-            override fun leggTil(
-                key: String,
-                melding: String,
-            ) {
-                outbox.add(OutboxRepository.OutboxKonvolutt(outbox.size.toLong(), key, melding))
-            }
-
-            override fun fjern(id: Long) {
-                outbox.removeIf { it.id == id }
-            }
-        }
+    private val outboxRepository = InMemoryOutboxRepository()
 
     @Test
     fun `publiserer melding med forventet innhold`() {
@@ -40,9 +24,9 @@ internal class RapidEndretForsikringsvurderingPublisererTest {
             forsikringsvurderingId = forsikringsvurderingId,
         )
 
-        assertEquals(1, outboxRepository.outbox.size)
+        assertEquals(1, outboxRepository.alle().size)
 
-        val konvolutt = outboxRepository.outbox[0]
+        val konvolutt = outboxRepository.alle()[0]
         val melding = konvolutt.melding.somJson()
         assertEquals(identitetsnummer.value, konvolutt.key)
         assertEquals("endret_forsikringsvurdering", melding["@event_name"].asString())

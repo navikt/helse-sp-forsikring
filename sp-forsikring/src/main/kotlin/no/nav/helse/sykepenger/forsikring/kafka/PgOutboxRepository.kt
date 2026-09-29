@@ -2,14 +2,12 @@ package no.nav.helse.sykepenger.forsikring.kafka
 
 import kotliquery.TransactionalSession
 import kotliquery.queryOf
+import no.nav.helse.sykepenger.forsikring.kafka.OutboxRepository.OutboxKonvolutt
 
 class PgOutboxRepository(
     private val transaction: TransactionalSession,
 ) : OutboxRepository {
-    override fun leggTil(
-        key: String,
-        melding: String,
-    ) {
+    override fun leggTil(konvolutt: OutboxKonvolutt) {
         transaction.run(
             queryOf(
                 // language=postgresql
@@ -18,40 +16,34 @@ class PgOutboxRepository(
                 VALUES (:key, :melding::jsonb);
                 """.trimIndent(),
                 mapOf(
-                    "key" to key,
-                    "melding" to melding,
+                    "key" to konvolutt.key,
+                    "melding" to konvolutt.melding,
                 ),
             ).asUpdate,
         )
     }
 
-    fun pop(): OutboxRepository.OutboxKonvolutt? {
-        val konvolutt = hent() ?: return null
-        fjern(konvolutt.id)
-        return konvolutt
-    }
+    override fun pop(): OutboxKonvolutt? {
+        val (id, konvolutt) =
+            transaction.run(
+                queryOf(
+                    // language=postgresql
+                    """
+                    SELECT * 
+                    FROM outbox
+                    ORDER BY id 
+                    LIMIT 1
+                    FOR UPDATE;
+                    """.trimIndent(),
+                ).map { row ->
+                    row.long("id") to
+                        OutboxKonvolutt(
+                            key = row.string("key"),
+                            melding = row.string("melding"),
+                        )
+                }.asSingle,
+            ) ?: return null
 
-    override fun hent(): OutboxRepository.OutboxKonvolutt? =
-        transaction.run(
-            queryOf(
-                // language=postgresql
-                """
-                SELECT * 
-                FROM outbox
-                ORDER BY id 
-                LIMIT 1
-                FOR UPDATE;
-                """.trimIndent(),
-            ).map { row ->
-                OutboxRepository.OutboxKonvolutt(
-                    id = row.long("id"),
-                    key = row.string("key"),
-                    melding = row.string("melding"),
-                )
-            }.asSingle,
-        )
-
-    override fun fjern(id: Long) {
         transaction.run(
             queryOf(
                 // language=postgresql
@@ -62,5 +54,7 @@ class PgOutboxRepository(
                 mapOf("id" to id),
             ).asUpdate,
         )
+
+        return konvolutt
     }
 }
