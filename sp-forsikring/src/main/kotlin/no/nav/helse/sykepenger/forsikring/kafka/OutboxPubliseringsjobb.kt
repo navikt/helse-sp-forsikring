@@ -36,7 +36,7 @@ internal class OutboxPubliseringsjobb(
     internal fun kjørEnRunde() {
         try {
             do {
-                var konvolutt: PgOutboxRepository.OutboxKonvolutt? = null
+                var konvolutt: OutboxRepository.OutboxKonvolutt? = null
                 dataSource.inTransaction { transaction ->
                     val outboxRepository = PgOutboxRepository(transaction)
                     konvolutt = outboxRepository.hent()

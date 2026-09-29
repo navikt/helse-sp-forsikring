@@ -12,15 +12,15 @@ internal class RapidEndretForsikringsvurderingPublisererTest {
     private val publiserer = RapidEndretForsikringsvurderingPubliserer
     private val outboxRepository =
         object : OutboxRepository {
-            val outbox = mutableListOf<PgOutboxRepository.OutboxKonvolutt>()
+            val outbox = mutableListOf<OutboxRepository.OutboxKonvolutt>()
 
-            override fun hent(): PgOutboxRepository.OutboxKonvolutt? = outbox.maxByOrNull { it.id }
+            override fun hent(): OutboxRepository.OutboxKonvolutt? = outbox.maxByOrNull { it.id }
 
             override fun leggTil(
                 key: String,
                 melding: String,
             ) {
-                outbox.add(PgOutboxRepository.OutboxKonvolutt(outbox.size.toLong(), key, melding))
+                outbox.add(OutboxRepository.OutboxKonvolutt(outbox.size.toLong(), key, melding))
             }
 
             override fun fjern(id: Long) {

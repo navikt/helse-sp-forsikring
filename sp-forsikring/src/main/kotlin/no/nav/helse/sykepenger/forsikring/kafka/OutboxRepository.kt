@@ -1,7 +1,7 @@
 package no.nav.helse.sykepenger.forsikring.kafka
 
 interface OutboxRepository {
-    fun hent(): PgOutboxRepository.OutboxKonvolutt?
+    fun hent(): OutboxKonvolutt?
 
     fun leggTil(
         key: String,
@@ -9,4 +9,10 @@ interface OutboxRepository {
     )
 
     fun fjern(id: Long)
+
+    data class OutboxKonvolutt(
+        val id: Long,
+        val key: String,
+        val melding: String,
+    )
 }

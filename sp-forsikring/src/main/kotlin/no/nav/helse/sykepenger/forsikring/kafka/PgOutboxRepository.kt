@@ -25,13 +25,13 @@ class PgOutboxRepository(
         )
     }
 
-    fun pop(): OutboxKonvolutt? {
+    fun pop(): OutboxRepository.OutboxKonvolutt? {
         val konvolutt = hent() ?: return null
         fjern(konvolutt.id)
         return konvolutt
     }
 
-    override fun hent(): OutboxKonvolutt? =
+    override fun hent(): OutboxRepository.OutboxKonvolutt? =
         transaction.run(
             queryOf(
                 // language=postgresql
@@ -43,7 +43,7 @@ class PgOutboxRepository(
                 FOR UPDATE;
                 """.trimIndent(),
             ).map { row ->
-                OutboxKonvolutt(
+                OutboxRepository.OutboxKonvolutt(
                     id = row.long("id"),
                     key = row.string("key"),
                     melding = row.string("melding"),
@@ -63,10 +63,4 @@ class PgOutboxRepository(
             ).asUpdate,
         )
     }
-
-    data class OutboxKonvolutt(
-        val id: Long,
-        val key: String,
-        val melding: String,
-    )
 }
