@@ -106,7 +106,7 @@ class ForsikringsvurderingBehovRiver(
                 )
 
                 loggInfo("Legger løsning på Forsikringsvurdering-behov i outbox", "løsning" to løsningJson)
-                outboxRepository.leggTil(identitetsnummer.value, løsningJson)
+                outboxRepository.push(identitetsnummer.value, løsningJson)
             }
         } catch (err: Exception) {
             // Logg feilen og gå videre. Meldingen hoppes over siden vi ikke kaster exception ut av onPacket().

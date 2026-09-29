@@ -77,7 +77,7 @@ class ForsikringsvurderingResultatBehovRiver(
                 val outboxRepository = PgOutboxRepository(transaction)
 
                 loggInfo("Legger løsning på ForsikringsvurderingResultat-behov i outbox", "løsning" to løsningJson)
-                outboxRepository.leggTil(
+                outboxRepository.push(
                     key = melding.fødselsnummer,
                     melding = løsningJson,
                 )

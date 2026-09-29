@@ -7,7 +7,7 @@ import no.nav.helse.sykepenger.forsikring.kafka.OutboxRepository.OutboxKonvolutt
 class PgOutboxRepository(
     private val transaction: TransactionalSession,
 ) : OutboxRepository {
-    override fun leggTil(konvolutt: OutboxKonvolutt) {
+    override fun push(konvolutt: OutboxKonvolutt) {
         transaction.run(
             queryOf(
                 // language=postgresql
@@ -23,7 +23,7 @@ class PgOutboxRepository(
         )
     }
 
-    override fun pop(): OutboxKonvolutt? {
+    override fun popFirst(): OutboxKonvolutt? {
         val (id, konvolutt) =
             transaction.run(
                 queryOf(

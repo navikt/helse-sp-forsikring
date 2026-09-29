@@ -52,7 +52,7 @@ internal class OutboxPubliseringsjobb(
             val konvolutt =
                 dataSource.inTransaction { transaction ->
                     PgOutboxRepository(transaction)
-                        .pop()
+                        .popFirst()
                         ?.also { rapidsConnection.publish(it.key, it.melding) }
                 }
         } while (konvolutt != null)

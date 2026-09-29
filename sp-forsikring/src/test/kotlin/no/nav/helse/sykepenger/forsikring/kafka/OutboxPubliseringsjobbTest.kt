@@ -32,7 +32,7 @@ internal class OutboxPubliseringsjobbTest {
 
         dataSource.inTransaction { transaction ->
             val outboxRepository = PgOutboxRepository(transaction)
-            outboxRepository.leggTil(key, melding)
+            outboxRepository.push(key, melding)
         }
 
         jobb.kjørEnRunde()
@@ -42,7 +42,7 @@ internal class OutboxPubliseringsjobbTest {
         assertEquals(eventName, publisert.path("@event_name").asString())
         assertEquals(key, rapid.inspektør.key(0))
 
-        val nesteMeldingIOutbox = dataSource.inTransaction { transaction -> PgOutboxRepository(transaction).pop() }
+        val nesteMeldingIOutbox = dataSource.inTransaction { transaction -> PgOutboxRepository(transaction).popFirst() }
         assertNull(nesteMeldingIOutbox)
     }
 
@@ -53,9 +53,9 @@ internal class OutboxPubliseringsjobbTest {
 
         dataSource.inTransaction { transaction ->
             val outboxRepository = PgOutboxRepository(transaction)
-            outboxRepository.leggTil("en", """{"@event_name":"første_event"}""")
-            outboxRepository.leggTil("en", """{"@event_name":"andre_event"}""")
-            outboxRepository.leggTil("en", """{"@event_name":"tredje_event"}""")
+            outboxRepository.push("en", """{"@event_name":"første_event"}""")
+            outboxRepository.push("en", """{"@event_name":"andre_event"}""")
+            outboxRepository.push("en", """{"@event_name":"tredje_event"}""")
         }
 
         jobb.kjørEnRunde()
@@ -64,7 +64,7 @@ internal class OutboxPubliseringsjobbTest {
 
         assertEquals(3, rapid.inspektør.size)
 
-        val nesteMeldingIOutbox = dataSource.inTransaction { transaction -> PgOutboxRepository(transaction).pop() }
+        val nesteMeldingIOutbox = dataSource.inTransaction { transaction -> PgOutboxRepository(transaction).popFirst() }
         assertNull(nesteMeldingIOutbox)
     }
 
@@ -85,12 +85,12 @@ internal class OutboxPubliseringsjobbTest {
 
         dataSource.inTransaction { transaction ->
             val outboxRepository = PgOutboxRepository(transaction)
-            outboxRepository.leggTil("en", """{"@event_name": "første_event"}""")
+            outboxRepository.push("en", """{"@event_name": "første_event"}""")
         }
 
         jobb.kjørEnRunde()
 
-        val nesteMeldingIOutbox = dataSource.inTransaction { transaction -> PgOutboxRepository(transaction).pop() }
+        val nesteMeldingIOutbox = dataSource.inTransaction { transaction -> PgOutboxRepository(transaction).popFirst() }
         assertEquals("en", nesteMeldingIOutbox?.key)
         assertEquals("""{"@event_name": "første_event"}""", nesteMeldingIOutbox?.melding)
     }

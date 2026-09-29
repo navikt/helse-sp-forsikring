@@ -24,7 +24,7 @@ class RapidSubsumsjonspubliserer(
             ).map(Subsumsjonsmelding::tilJson)
             .forEach { subsumsjonsmelding ->
                 loggInfo("Legger subsubmsjonsmelding i outbox", "subsumsjonsmelding" to subsumsjonsmelding)
-                outboxRepository.leggTil(
+                outboxRepository.push(
                     key = forsikringsvurdering.input.identitetsnummer.value,
                     melding = subsumsjonsmelding,
                 )

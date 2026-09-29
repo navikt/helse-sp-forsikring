@@ -30,7 +30,7 @@ object RapidEndretForsikringsvurderingPubliserer : EndretForsikringsvurderingPub
             "Legger endret forsikringsvurdering melding i outbox",
             "melding" to melding,
         )
-        outboxRepository.leggTil(identitetsnummer.value, melding)
+        outboxRepository.push(identitetsnummer.value, melding)
     }
 }
 
