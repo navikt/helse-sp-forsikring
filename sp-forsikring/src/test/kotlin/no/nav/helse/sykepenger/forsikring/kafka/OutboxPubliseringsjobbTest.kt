@@ -126,14 +126,20 @@ internal class OutboxPubliseringsjobbTest {
     }
 
     private class SvikterVedPubliseringRapid : RapidsConnection() {
-        override fun publish(message: String): Unit = error("Kafka er nede")
+        override fun publish(message: String) {
+            publish(listOf(OutgoingMessage(message)))
+        }
 
         override fun publish(
             key: String,
             message: String,
-        ): Unit = error("Kafka er nede")
+        ) {
+            publish(listOf(OutgoingMessage(message, key)))
+        }
 
-        override fun publish(messages: List<OutgoingMessage>): Pair<List<SentMessage>, List<FailedMessage>> = error("Kafka er nede")
+        override fun publish(messages: List<OutgoingMessage>): Pair<List<SentMessage>, List<FailedMessage>> =
+            emptyList<SentMessage>() to
+                messages.mapIndexed { index, message -> FailedMessage(index, message, RuntimeException("Kafka er nede")) }
 
         override fun rapidName() = "svikter-rapid"
 

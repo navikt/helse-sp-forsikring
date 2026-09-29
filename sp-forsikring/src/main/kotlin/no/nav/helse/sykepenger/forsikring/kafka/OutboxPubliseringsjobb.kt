@@ -1,5 +1,6 @@
 package no.nav.helse.sykepenger.forsikring.kafka
 
+import com.github.navikt.tbd_libs.rapids_and_rivers_api.OutgoingMessage
 import com.github.navikt.tbd_libs.rapids_and_rivers_api.RapidsConnection
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -59,7 +60,13 @@ internal class OutboxPubliseringsjobb(
                 dataSource.inTransaction { transaction ->
                     PgOutboxRepository(transaction)
                         .popFirst()
-                        ?.also { rapidsConnection.publish(it.key, it.melding) }
+                        ?.also {
+                            val (_, feiledeMeldinger) =
+                                rapidsConnection.publish(
+                                    listOf(OutgoingMessage(body = it.melding, key = it.key)),
+                                )
+                            feiledeMeldinger.firstOrNull()?.apply { throw error }
+                        }
                 }
         } while (konvolutt != null)
     }
