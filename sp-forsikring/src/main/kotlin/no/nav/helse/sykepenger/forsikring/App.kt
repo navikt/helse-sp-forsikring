@@ -14,6 +14,7 @@ import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.Forsikringsvurder
 import no.nav.helse.sykepenger.forsikring.gosys.GosysOppgaveClient
 import no.nav.helse.sykepenger.forsikring.kafka.ForsikringsvurderingBehovRiver
 import no.nav.helse.sykepenger.forsikring.kafka.ForsikringsvurderingResultatBehovRiver
+import no.nav.helse.sykepenger.forsikring.kafka.OutboxPubliseringsjobb
 import no.nav.helse.sykepenger.forsikring.kafka.RapidEndretForsikringsvurderingPubliserer
 import no.nav.helse.sykepenger.forsikring.kafka.RapidSubsumsjonspubliserer
 import no.nav.helse.sykepenger.forsikring.kafka.SelvstendigIngenDagerIgjenRiver
@@ -94,15 +95,8 @@ fun launchApplication(
                 withKtorModule { ktorOppsett() }
             },
         ).apply {
-            val subsumsjonspubliserer =
-                RapidSubsumsjonspubliserer(
-                    messageContext = this,
-                    versjonAvKode = versjonAvKode,
-                )
-            val endretForsikringsvurderingPubliserer =
-                RapidEndretForsikringsvurderingPubliserer(
-                    messageContext = this,
-                )
+            val subsumsjonspubliserer = RapidSubsumsjonspubliserer(versjonAvKode = versjonAvKode)
+            val endretForsikringsvurderingPubliserer = RapidEndretForsikringsvurderingPubliserer
 
             val populasjonstilgangskontrollProvider =
                 TilgangsmaskinenClient(
@@ -166,6 +160,12 @@ fun launchApplication(
                 rapidsConnection = this,
                 gosysOppgaveClient = gosysOppgaveClient,
                 spForsikringDataSource = spForsikringDataSource,
+            )
+            register(
+                OutboxPubliseringsjobb(
+                    rapidsConnection = this,
+                    dataSource = spForsikringDataSource,
+                ),
             )
         }.start()
 }

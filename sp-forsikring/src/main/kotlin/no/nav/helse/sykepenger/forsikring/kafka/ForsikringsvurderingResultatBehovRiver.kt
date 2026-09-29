@@ -74,8 +74,13 @@ class ForsikringsvurderingResultatBehovRiver(
                     )
 
                 val løsningJson = packet.toJson()
-                loggInfo("Svarer på ForsikringsvurderingResultat-behov med løsning", "løsning" to løsningJson)
-                context.publish(løsningJson)
+                val outboxRepository = PgOutboxRepository(transaction)
+
+                loggInfo("Legger løsning på ForsikringsvurderingResultat-behov i outbox", "løsning" to løsningJson)
+                outboxRepository.leggTil(
+                    key = melding.fødselsnummer,
+                    melding = løsningJson,
+                )
             }
         } catch (err: Exception) {
             // Logg feilen og gå videre. Meldingen hoppes over siden vi ikke kaster exception ut av onPacket().

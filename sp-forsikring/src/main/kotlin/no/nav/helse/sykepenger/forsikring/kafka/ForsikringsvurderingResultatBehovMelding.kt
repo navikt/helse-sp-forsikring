@@ -6,6 +6,7 @@ import java.util.*
 data class ForsikringsvurderingResultatBehovMelding(
     @JsonProperty("ForsikringsvurderingResultat")
     val forsikringsvurderingResultat: ForsikringsvurderingResultat,
+    val fødselsnummer: String,
 ) {
     data class ForsikringsvurderingResultat(
         val forsikringsvurderingId: UUID,

@@ -3,6 +3,7 @@ package no.nav.helse.sykepenger.forsikring.forsikringsvurdering
 import no.nav.helse.sykepenger.forsikring.domain.Forsikringsvurdering
 import no.nav.helse.sykepenger.forsikring.domain.Identitetsnummer
 import no.nav.helse.sykepenger.forsikring.kafka.EndretForsikringsvurderingPubliserer
+import no.nav.helse.sykepenger.forsikring.kafka.PgOutboxRepository
 import no.nav.helse.sykepenger.forsikring.råkopi.RåkopiRepository
 import no.nav.helse.sykepenger.forsikring.shared.util.inTransaction
 import no.nav.helse.sykepenger.forsikring.subsumsjon.Subsumsjonspubliserer
@@ -73,12 +74,16 @@ internal class EndringssjekkService(
                     forsikringsvurdering = nyVurdering,
                     behovEllerRequestBody = requestBody,
                 )
+
+                val outboxRepository = PgOutboxRepository(transactionalSession)
                 endretForsikringsvurderingPubliserer.publiser(
+                    outboxRepository = outboxRepository,
                     identitetsnummer = identitetsnummer,
                     skjæringstidspunkt = skjæringstidspunkt,
                     forsikringsvurderingId = nyVurdering.id.value,
                 )
                 subsumsjonspubliserer.publiser(
+                    outboxRepository = outboxRepository,
                     forsikringsvurdering = nyVurdering,
                     vedtaksperiodeId = vedtaksperiodeId,
                     behandlingId = behandlingId,

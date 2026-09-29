@@ -2,7 +2,6 @@ package no.nav.helse.sykepenger.forsikring.kafka
 
 import com.fasterxml.jackson.annotation.JsonInclude
 import com.fasterxml.jackson.annotation.JsonProperty
-import com.github.navikt.tbd_libs.rapids_and_rivers_api.MessageContext
 import no.nav.helse.sykepenger.forsikring.domain.Identitetsnummer
 import no.nav.sykepenger.libs.logging.loggInfo
 import tools.jackson.databind.introspect.DefaultAccessorNamingStrategy
@@ -13,10 +12,9 @@ import java.time.LocalDateTime
 import java.time.ZoneId
 import java.util.*
 
-class RapidEndretForsikringsvurderingPubliserer(
-    private val messageContext: MessageContext,
-) : EndretForsikringsvurderingPubliserer {
+object RapidEndretForsikringsvurderingPubliserer : EndretForsikringsvurderingPubliserer {
     override fun publiser(
+        outboxRepository: OutboxRepository,
         identitetsnummer: Identitetsnummer,
         skjæringstidspunkt: LocalDate,
         forsikringsvurderingId: UUID,
@@ -29,10 +27,10 @@ class RapidEndretForsikringsvurderingPubliserer(
             ).tilJson()
 
         loggInfo(
-            "Sender endret forsikringsvurdering melding",
+            "Legger endret forsikringsvurdering melding i outbox",
             "melding" to melding,
         )
-        messageContext.publish(melding)
+        outboxRepository.leggTil(identitetsnummer.value, melding)
     }
 }
 

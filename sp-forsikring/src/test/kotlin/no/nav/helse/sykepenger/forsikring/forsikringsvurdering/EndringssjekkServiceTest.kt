@@ -4,6 +4,7 @@ import no.nav.helse.sykepenger.forsikring.domain.Forsikringsvurdering
 import no.nav.helse.sykepenger.forsikring.domain.Identitetsnummer
 import no.nav.helse.sykepenger.forsikring.domain.IndividuellForsikringType
 import no.nav.helse.sykepenger.forsikring.kafka.EndretForsikringsvurderingPubliserer
+import no.nav.helse.sykepenger.forsikring.kafka.OutboxRepository
 import no.nav.helse.sykepenger.forsikring.shared.testsupport.TestcontainersReplikadatabase
 import no.nav.helse.sykepenger.forsikring.shared.testsupport.TestcontainersSpForsikringDatabase
 import no.nav.helse.sykepenger.forsikring.shared.testsupport.lagForsikringsvurdering
@@ -26,6 +27,7 @@ internal class EndringssjekkServiceTest {
             val subsumsjoner = mutableListOf<Forsikringsvurdering>()
 
             override fun publiser(
+                outboxRepository: OutboxRepository,
                 forsikringsvurdering: Forsikringsvurdering,
                 vedtaksperiodeId: UUID,
                 behandlingId: UUID,
@@ -39,6 +41,7 @@ internal class EndringssjekkServiceTest {
             val publiserteMeldinger = mutableListOf<Triple<String, LocalDate, UUID>>()
 
             override fun publiser(
+                outboxRepository: OutboxRepository,
                 identitetsnummer: Identitetsnummer,
                 skjæringstidspunkt: LocalDate,
                 forsikringsvurderingId: UUID,

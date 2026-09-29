@@ -60,11 +60,12 @@ class ForsikringsvurderingBehovRiver(
             packet.medParsetMeldingOgTransaction<ForsikringsvurderingBehovMelding>(
                 dataSource = spForsikringDataSource,
             ) { melding, transaction ->
+                val identitetsnummer = Identitetsnummer.fraString(melding.fødselsnummer)
                 val (råkopi, forsikringsvurdering) =
                     forsikringsvurderingService.gjørForsikringsvurdering(
                         input =
                             ForsikringsvurderingInput(
-                                identitetsnummer = Identitetsnummer.fraString(melding.fødselsnummer),
+                                identitetsnummer = identitetsnummer,
                                 yrkesaktivitetstype = melding.yrkesaktivitetstype.tilDomene(),
                                 spesielleYrkesgrupper =
                                     melding.forsikringsvurdering.spesielleYrkesgrupper
@@ -93,17 +94,19 @@ class ForsikringsvurderingBehovRiver(
 
                 val løsningJson = packet.toJson()
 
+                val outboxRepository = PgOutboxRepository(transaction)
+
                 RapidSubsumsjonspubliserer(
-                    messageContext = context,
                     versjonAvKode = versjonAvKode,
                 ).publiser(
+                    outboxRepository = outboxRepository,
                     forsikringsvurdering = forsikringsvurdering,
                     vedtaksperiodeId = melding.vedtaksperiodeId,
                     behandlingId = melding.behandlingId,
                 )
 
-                loggInfo("Svarer på Forsikringsvurdering-behov med løsning", "løsning" to løsningJson)
-                context.publish(løsningJson)
+                loggInfo("Legger løsning på Forsikringsvurdering-behov i outbox", "løsning" to løsningJson)
+                outboxRepository.leggTil(identitetsnummer.value, løsningJson)
             }
         } catch (err: Exception) {
             // Logg feilen og gå videre. Meldingen hoppes over siden vi ikke kaster exception ut av onPacket().

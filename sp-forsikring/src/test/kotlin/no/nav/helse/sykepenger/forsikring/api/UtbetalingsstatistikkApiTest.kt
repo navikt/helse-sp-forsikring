@@ -1,8 +1,8 @@
 package no.nav.helse.sykepenger.forsikring.api
 
 import com.github.navikt.tbd_libs.rapids_and_rivers.test_support.TestRapid
-import io.ktor.server.cio.CIO
-import io.ktor.server.engine.embeddedServer
+import io.ktor.server.cio.*
+import io.ktor.server.engine.*
 import kotliquery.TransactionalSession
 import no.nav.helse.sykepenger.forsikring.domain.Forsikringstype
 import no.nav.helse.sykepenger.forsikring.domain.IndividuellForsikringType
@@ -55,8 +55,8 @@ class UtbetalingsstatistikkApiTest {
                 clientId = CLIENT_ID,
                 issuerUrl = mockOAuth2Server.issuerUrl("default").toString(),
                 jwkProviderUri = mockOAuth2Server.jwksUrl("default").toString(),
-                subsumsjonspubliserer = RapidSubsumsjonspubliserer(testRapid, versjonAvKode = "test"),
-                endretForsikringsvurderingPubliserer = RapidEndretForsikringsvurderingPubliserer(testRapid),
+                subsumsjonspubliserer = RapidSubsumsjonspubliserer(versjonAvKode = "test"),
+                endretForsikringsvurderingPubliserer = RapidEndretForsikringsvurderingPubliserer,
                 populasjonstilgangskontrollProvider = fakeTilgangskontroll,
             )
         }.start(wait = false)

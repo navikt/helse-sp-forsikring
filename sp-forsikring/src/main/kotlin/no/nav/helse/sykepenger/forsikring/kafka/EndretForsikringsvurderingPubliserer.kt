@@ -6,6 +6,7 @@ import java.util.*
 
 interface EndretForsikringsvurderingPubliserer {
     fun publiser(
+        outboxRepository: OutboxRepository,
         identitetsnummer: Identitetsnummer,
         skjæringstidspunkt: LocalDate,
         forsikringsvurderingId: UUID,
