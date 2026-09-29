@@ -50,6 +50,11 @@ internal class ForsikringsvurderingBehovRiverTest {
 
         rapid.sendTestMessage(testmelding)
 
+        OutboxPubliseringsjobb(
+            dataSource = TestcontainersSpForsikringDatabase.dataSource,
+            rapidsConnection = rapid,
+        ).kjørEnRunde()
+
         assertEquals(1, rapid.inspektør.size)
         assertJsonEquals(
             expectedJson = testmelding,
@@ -81,6 +86,11 @@ internal class ForsikringsvurderingBehovRiverTest {
             }
             """.trimIndent(),
         )
+
+        OutboxPubliseringsjobb(
+            dataSource = TestcontainersSpForsikringDatabase.dataSource,
+            rapidsConnection = rapid,
+        ).kjørEnRunde()
 
         assertEquals(1, rapid.inspektør.size)
         val løsningMelding = rapid.inspektør.message(0)
@@ -128,6 +138,11 @@ internal class ForsikringsvurderingBehovRiverTest {
             }
             """.trimIndent(),
         )
+
+        OutboxPubliseringsjobb(
+            dataSource = TestcontainersSpForsikringDatabase.dataSource,
+            rapidsConnection = rapid,
+        ).kjørEnRunde()
 
         assertEquals(1, rapid.inspektør.size)
         val forsikringsvurderingId = rapid.inspektør.message(0)["@løsning"]["Forsikringsvurdering"]["forsikringsvurderingId"]?.asString()
@@ -220,6 +235,11 @@ internal class ForsikringsvurderingBehovRiverTest {
             """.trimIndent(),
         )
 
+        OutboxPubliseringsjobb(
+            dataSource = TestcontainersSpForsikringDatabase.dataSource,
+            rapidsConnection = rapid,
+        ).kjørEnRunde()
+
         assertEquals(1, rapid.inspektør.size)
         val løsningMelding = rapid.inspektør.message(0)
         val forsikringsvurderingId = løsningMelding["@løsning"]["Forsikringsvurdering"]["forsikringsvurderingId"]?.asString()
@@ -258,6 +278,11 @@ internal class ForsikringsvurderingBehovRiverTest {
             }
             """.trimIndent(),
         )
+
+        OutboxPubliseringsjobb(
+            dataSource = TestcontainersSpForsikringDatabase.dataSource,
+            rapidsConnection = rapid,
+        ).kjørEnRunde()
 
         assertEquals(1, rapid.inspektør.size)
         val forsikringsvurderingId = rapid.inspektør.message(0)["@løsning"]["Forsikringsvurdering"]["forsikringsvurderingId"].asString()

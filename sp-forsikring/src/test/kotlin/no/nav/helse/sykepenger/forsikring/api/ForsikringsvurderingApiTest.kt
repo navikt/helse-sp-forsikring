@@ -10,23 +10,13 @@ import no.nav.helse.sykepenger.forsikring.domain.KollektivForsikring
 import no.nav.helse.sykepenger.forsikring.domain.SpesiellYrkesgruppe
 import no.nav.helse.sykepenger.forsikring.domain.VurdertIndividuellForsikring
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.ForsikringsvurderingService
+import no.nav.helse.sykepenger.forsikring.kafka.OutboxPubliseringsjobb
 import no.nav.helse.sykepenger.forsikring.kafka.RapidEndretForsikringsvurderingPubliserer
 import no.nav.helse.sykepenger.forsikring.kafka.RapidSubsumsjonspubliserer
-import no.nav.helse.sykepenger.forsikring.shared.testsupport.FakeTilgangskontroll
-import no.nav.helse.sykepenger.forsikring.shared.testsupport.TestcontainersReplikadatabase
-import no.nav.helse.sykepenger.forsikring.shared.testsupport.TestcontainersSpForsikringDatabase
-import no.nav.helse.sykepenger.forsikring.shared.testsupport.lagForsikringsvurdering
-import no.nav.helse.sykepenger.forsikring.shared.testsupport.lagIdentitetsnummer
-import no.nav.helse.sykepenger.forsikring.shared.testsupport.lagVurdertIndividuellForsikring
-import no.nav.helse.sykepenger.forsikring.shared.testsupport.lagreRåkopiOgForsikringsvurdering
-import no.nav.helse.sykepenger.forsikring.shared.testsupport.tilInfotrygdFødselsnummer
+import no.nav.helse.sykepenger.forsikring.shared.testsupport.*
 import no.nav.security.mock.oauth2.MockOAuth2Server
 import org.junit.jupiter.api.AfterAll
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertFalse
-import org.junit.jupiter.api.Assertions.assertNotNull
-import org.junit.jupiter.api.Assertions.assertNull
-import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
@@ -491,7 +481,10 @@ class ForsikringsvurderingApiTest {
 
         val ekskludert = forsikringer.getValue(IndividuellForsikringType.SELVSTENDIG_100_PROSENT_FRA_DAG_17.navn)
         assertFalse(ekskludert["lagtTilGrunn"].asBoolean()) { "Forventet lagtTilGrunn=false, fikk: $body" }
-        assertEquals("Forsikringen opphørte før skjæringstidspunktet", ekskludert["konklusjon"]["forklaring"].asString())
+        assertEquals(
+            "Forsikringen opphørte før skjæringstidspunktet",
+            ekskludert["konklusjon"]["forklaring"].asString(),
+        )
     }
 
     @Test
@@ -949,7 +942,8 @@ class ForsikringsvurderingApiTest {
             ),
         )
         // Replikabasen er tom, altså ville endringssjekken normalt funnet en endring
-        fakeTilgangskontroll.resultat = TilgangskontrollResultat.ManglerTilgang(TilgangSomMangler.StrengtFortroligAdresse)
+        fakeTilgangskontroll.resultat =
+            TilgangskontrollResultat.ManglerTilgang(TilgangSomMangler.StrengtFortroligAdresse)
 
         val (statusCode, body) =
             postEndringssjekk(
@@ -995,12 +989,18 @@ class ForsikringsvurderingApiTest {
         skjæringstidspunkt: String = "2026-01-01",
         token: String?,
     ): Pair<Int, String> =
-        EndringssjekkApiClient.postEndringssjekk(
-            baseUrl = serverUrl,
-            identitetsnummer = identitetsnummer,
-            skjæringstidspunkt = skjæringstidspunkt,
-            token = token,
-        )
+        EndringssjekkApiClient
+            .postEndringssjekk(
+                baseUrl = serverUrl,
+                identitetsnummer = identitetsnummer,
+                skjæringstidspunkt = skjæringstidspunkt,
+                token = token,
+            ).also {
+                OutboxPubliseringsjobb(
+                    rapidsConnection = testRapid,
+                    dataSource = TestcontainersSpForsikringDatabase.dataSource,
+                ).kjørEnRunde()
+            }
 
     private fun bearerToken(
         issuerId: String = "default",

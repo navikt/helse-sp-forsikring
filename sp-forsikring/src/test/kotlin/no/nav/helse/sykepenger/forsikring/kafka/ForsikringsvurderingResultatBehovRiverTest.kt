@@ -45,6 +45,11 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
         val testmelding = forsikringsvurderingResultatBehovMelding(forsikringsvurderingId)
         rapid.sendTestMessage(testmelding)
 
+        OutboxPubliseringsjobb(
+            dataSource = TestcontainersSpForsikringDatabase.dataSource,
+            rapidsConnection = rapid,
+        ).kjørEnRunde()
+
         assertEquals(1, rapid.inspektør.size)
         assertJsonEquals(
             expectedJson = testmelding,
@@ -1051,6 +1056,11 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
             """.trimIndent(),
         )
 
+        OutboxPubliseringsjobb(
+            dataSource = TestcontainersSpForsikringDatabase.dataSource,
+            rapidsConnection = rapid,
+        ).kjørEnRunde()
+
         return popForsikringsvurderingIdFraLøsning()
     }
 
@@ -1059,6 +1069,10 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
         forventetForsikringsvurderingResultatLøsning: (String) -> String,
     ) {
         rapid.sendTestMessage(forsikringsvurderingBehovJson)
+        OutboxPubliseringsjobb(
+            dataSource = TestcontainersSpForsikringDatabase.dataSource,
+            rapidsConnection = rapid,
+        ).kjørEnRunde()
         val forsikringsvurderingId = popForsikringsvurderingIdFraLøsning()
         sendForsikringsvurderingResultatBehov(forsikringsvurderingId)
         forventLøsning(forventetForsikringsvurderingResultatLøsning(forsikringsvurderingId))
@@ -1072,6 +1086,10 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
 
     private fun sendForsikringsvurderingResultatBehov(forsikringsvurderingId: String) {
         rapid.sendTestMessage(forsikringsvurderingResultatBehovMelding(forsikringsvurderingId))
+        OutboxPubliseringsjobb(
+            dataSource = TestcontainersSpForsikringDatabase.dataSource,
+            rapidsConnection = rapid,
+        ).kjørEnRunde()
     }
 
     private fun forsikringsvurderingResultatBehovMelding(forsikringsvurderingId: String): String =
@@ -1081,7 +1099,8 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
             "@behov": [ "ForsikringsvurderingResultat" ],
             "ForsikringsvurderingResultat" : {
                 "forsikringsvurderingId" : "$forsikringsvurderingId"
-            }
+            },
+            "fødselsnummer": "01020312345"
         }
         """.trimIndent()
 

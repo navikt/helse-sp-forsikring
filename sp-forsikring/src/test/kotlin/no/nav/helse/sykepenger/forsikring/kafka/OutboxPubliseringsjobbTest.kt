@@ -9,10 +9,18 @@ import no.nav.helse.sykepenger.forsikring.shared.testsupport.TestcontainersSpFor
 import no.nav.helse.sykepenger.forsikring.shared.util.inTransaction
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNull
+import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.parallel.Isolated
 
+@Isolated
 internal class OutboxPubliseringsjobbTest {
     private val dataSource = TestcontainersSpForsikringDatabase.dataSource
+
+    @BeforeEach
+    fun setUp() {
+        TestcontainersSpForsikringDatabase.reset()
+    }
 
     @Test
     fun `plukker opp upubliserte meldinger, publiserer dem og markerer dem som publisert`() {
