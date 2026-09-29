@@ -25,7 +25,7 @@ internal class OutboxPubliseringsjobbTest {
     @Test
     fun `plukker opp upubliserte meldinger, publiserer dem og markerer dem som publisert`() {
         val rapid = TestRapid()
-        val jobb = OutboxPubliseringsjobb(dataSource = dataSource, rapidsConnection = rapid)
+        val jobb = OutboxPubliseringsjobb(dataSource = dataSource, rapidsConnection = rapid, leaderElection = { true })
         val eventName = "test_event"
         val melding = """{"@event_name":"$eventName"}"""
         val key = "key"
@@ -49,7 +49,7 @@ internal class OutboxPubliseringsjobbTest {
     @Test
     fun `flere meldinger publiseres i rekkefølge`() {
         val rapid = TestRapid()
-        val jobb = OutboxPubliseringsjobb(dataSource = dataSource, rapidsConnection = rapid)
+        val jobb = OutboxPubliseringsjobb(dataSource = dataSource, rapidsConnection = rapid, leaderElection = { true })
 
         dataSource.inTransaction { transaction ->
             val outboxRepository = PgOutboxRepository(transaction)
@@ -71,7 +71,7 @@ internal class OutboxPubliseringsjobbTest {
     @Test
     fun `ingen upubliserte meldinger gir ingen publisering`() {
         val rapid = TestRapid()
-        val jobb = OutboxPubliseringsjobb(rapidsConnection = rapid, dataSource = dataSource)
+        val jobb = OutboxPubliseringsjobb(rapidsConnection = rapid, dataSource = dataSource, leaderElection = { true })
 
         jobb.kjørEnRunde()
 
@@ -79,9 +79,39 @@ internal class OutboxPubliseringsjobbTest {
     }
 
     @Test
+    fun `publiserer ikke når poden ikke er leader`() {
+        val rapid = TestRapid()
+        val jobb = OutboxPubliseringsjobb(rapidsConnection = rapid, dataSource = dataSource, leaderElection = { false })
+
+        dataSource.inTransaction { transaction ->
+            PgOutboxRepository(transaction).push("en", """{"@event_name":"første_event"}""")
+        }
+
+        jobb.kjørEnRundeHvisLeader()
+
+        assertEquals(0, rapid.inspektør.size)
+        val nesteMeldingIOutbox = dataSource.inTransaction { transaction -> PgOutboxRepository(transaction).popFirst() }
+        assertEquals("en", nesteMeldingIOutbox?.key)
+    }
+
+    @Test
+    fun `publiserer når poden er leader`() {
+        val rapid = TestRapid()
+        val jobb = OutboxPubliseringsjobb(rapidsConnection = rapid, dataSource = dataSource, leaderElection = { true })
+
+        dataSource.inTransaction { transaction ->
+            PgOutboxRepository(transaction).push("en", """{"@event_name":"første_event"}""")
+        }
+
+        jobb.kjørEnRundeHvisLeader()
+
+        assertEquals(1, rapid.inspektør.size)
+    }
+
+    @Test
     fun `feil under publisering markerer ikke meldingen som publisert, og jobben kastes ikke videre`() {
         val sviktendeRapid = SvikterVedPubliseringRapid()
-        val jobb = OutboxPubliseringsjobb(sviktendeRapid, dataSource)
+        val jobb = OutboxPubliseringsjobb(sviktendeRapid, dataSource, leaderElection = { true })
 
         dataSource.inTransaction { transaction ->
             val outboxRepository = PgOutboxRepository(transaction)

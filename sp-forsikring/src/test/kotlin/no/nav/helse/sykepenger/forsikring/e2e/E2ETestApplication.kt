@@ -2,6 +2,7 @@ package no.nav.helse.sykepenger.forsikring.e2e
 
 import com.github.tomakehurst.wiremock.WireMockServer
 import com.github.tomakehurst.wiremock.client.WireMock.aResponse
+import com.github.tomakehurst.wiremock.client.WireMock.get
 import com.github.tomakehurst.wiremock.client.WireMock.okJson
 import com.github.tomakehurst.wiremock.client.WireMock.post
 import com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo
@@ -47,6 +48,19 @@ object E2ETestApplication {
             .also {
                 it.stubFor(
                     post(urlPathEqualTo("/api/v1/kjerne")).willReturn(aResponse().withStatus(204)),
+                )
+            }
+
+    private const val HOSTNAME = "sp-forsikring-e2e-pod"
+
+    private val electorWiremock =
+        WireMockServer(wireMockConfig().dynamicPort())
+            .also(WireMockServer::start)
+            .also {
+                it.stubFor(
+                    get(urlPathEqualTo("/")).willReturn(
+                        okJson("""{ "name": "$HOSTNAME", "last_update": "2026-01-01T00:00:00Z" }"""),
+                    ),
                 )
             }
 
@@ -130,6 +144,8 @@ object E2ETestApplication {
                             "KAFKA_CONSUMER_GROUP_ID" to KAFKA_CONSUMER_GROUP_ID,
                             "KAFKA_RAPID_TOPIC" to "tbd.rapid.v1",
                             "KAFKA_RESET_POLICY" to "earliest",
+                            "ELECTOR_GET_URL" to "${electorWiremock.baseUrl()}/",
+                            "HOSTNAME" to HOSTNAME,
                         ),
                     kafkaConfig = TestcontainersRapid.kafkaConfig,
                 )

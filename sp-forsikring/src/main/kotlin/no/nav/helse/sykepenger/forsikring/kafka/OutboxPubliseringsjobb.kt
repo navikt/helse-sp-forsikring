@@ -9,6 +9,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import no.nav.helse.sykepenger.forsikring.leaderelection.LeaderElection
 import no.nav.helse.sykepenger.forsikring.shared.util.inTransaction
 import no.nav.sykepenger.libs.logging.loggError
 import no.nav.sykepenger.libs.logging.loggInfo
@@ -18,6 +19,7 @@ import kotlin.time.Duration.Companion.seconds
 internal class OutboxPubliseringsjobb(
     private val rapidsConnection: RapidsConnection,
     private val dataSource: DataSource,
+    private val leaderElection: LeaderElection,
 ) : RapidsConnection.StatusListener {
     private var job: Job? = null
 
@@ -26,7 +28,7 @@ internal class OutboxPubliseringsjobb(
         job =
             CoroutineScope(Dispatchers.IO).launch {
                 while (isActive) {
-                    kjørEnRunde()
+                    kjørEnRundeHvisLeader()
                     delay(0.5.seconds)
                 }
             }
@@ -37,6 +39,10 @@ internal class OutboxPubliseringsjobb(
         runBlocking {
             job?.cancelAndJoin()
         }
+    }
+
+    internal fun kjørEnRundeHvisLeader() {
+        if (leaderElection.isLeader()) kjørEnRunde()
     }
 
     internal fun kjørEnRunde() {

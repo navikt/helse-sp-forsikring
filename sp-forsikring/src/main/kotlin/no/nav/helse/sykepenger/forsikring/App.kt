@@ -24,6 +24,7 @@ import no.nav.helse.sykepenger.forsikring.kafka.RapidSubsumsjonspubliserer
 import no.nav.helse.sykepenger.forsikring.kafka.SelvstendigIngenDagerIgjenRiver
 import no.nav.helse.sykepenger.forsikring.kafka.SelvstendigUtbetaltEtterVentetidRiver
 import no.nav.helse.sykepenger.forsikring.kafka.VedtakFattetRiver
+import no.nav.helse.sykepenger.forsikring.leaderelection.NaisLeaderElection
 import no.nav.sykepenger.libs.logging.loggInfo
 import org.flywaydb.core.Flyway
 import java.net.URI
@@ -173,6 +174,11 @@ fun launchApplication(
                 OutboxPubliseringsjobb(
                     rapidsConnection = this,
                     dataSource = spForsikringDataSource,
+                    leaderElection =
+                        NaisLeaderElection(
+                            electorGetUrl = env.getValue("ELECTOR_GET_URL"),
+                            hostname = env.getValue("HOSTNAME"),
+                        ),
                 ),
             )
         }.start()
