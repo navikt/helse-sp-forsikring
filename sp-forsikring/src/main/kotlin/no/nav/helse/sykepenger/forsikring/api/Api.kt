@@ -23,6 +23,7 @@ import io.ktor.server.routing.routing
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.EndringssjekkService
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.ForsikringsvurderingService
 import no.nav.helse.sykepenger.forsikring.kafka.EndretForsikringsvurderingPubliserer
+import no.nav.helse.sykepenger.forsikring.kafka.OutboxRepositoryFactory
 import no.nav.helse.sykepenger.forsikring.subsumsjon.Subsumsjonspubliserer
 import no.nav.sykepenger.libs.logging.loggError
 import tools.jackson.databind.introspect.DefaultAccessorNamingStrategy
@@ -39,6 +40,7 @@ fun Application.api(
     subsumsjonspubliserer: Subsumsjonspubliserer,
     endretForsikringsvurderingPubliserer: EndretForsikringsvurderingPubliserer,
     populasjonstilgangskontrollProvider: PopulasjonstilgangskontrollProvider,
+    outboxRepositoryFactory: OutboxRepositoryFactory,
 ) {
     install(CallId) {
         retrieveFromHeader(HttpHeaders.XRequestId)
@@ -119,6 +121,7 @@ fun Application.api(
                         forsikringsvurderingService = forsikringsvurderingService,
                         subsumsjonspubliserer = subsumsjonspubliserer,
                         endretForsikringsvurderingPubliserer = endretForsikringsvurderingPubliserer,
+                        outboxRepositoryFactory = outboxRepositoryFactory,
                     ),
                 populasjonstilgangskontrollProvider = populasjonstilgangskontrollProvider,
             )

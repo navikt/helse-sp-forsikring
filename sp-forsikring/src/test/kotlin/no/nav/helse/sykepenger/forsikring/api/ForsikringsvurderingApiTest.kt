@@ -2,21 +2,31 @@ package no.nav.helse.sykepenger.forsikring.api
 
 import com.github.navikt.tbd_libs.populasjonstilgang.api.TilgangSomMangler
 import com.github.navikt.tbd_libs.populasjonstilgang.api.TilgangskontrollResultat
-import com.github.navikt.tbd_libs.rapids_and_rivers.test_support.TestRapid
-import io.ktor.server.cio.*
-import io.ktor.server.engine.*
+import io.ktor.server.cio.CIO
+import io.ktor.server.engine.embeddedServer
 import no.nav.helse.sykepenger.forsikring.domain.IndividuellForsikringType
 import no.nav.helse.sykepenger.forsikring.domain.KollektivForsikring
 import no.nav.helse.sykepenger.forsikring.domain.SpesiellYrkesgruppe
 import no.nav.helse.sykepenger.forsikring.domain.VurdertIndividuellForsikring
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.ForsikringsvurderingService
-import no.nav.helse.sykepenger.forsikring.kafka.OutboxPubliseringsjobb
+import no.nav.helse.sykepenger.forsikring.kafka.InMemoryOutboxRepository
 import no.nav.helse.sykepenger.forsikring.kafka.RapidEndretForsikringsvurderingPubliserer
 import no.nav.helse.sykepenger.forsikring.kafka.RapidSubsumsjonspubliserer
-import no.nav.helse.sykepenger.forsikring.shared.testsupport.*
+import no.nav.helse.sykepenger.forsikring.shared.testsupport.FakeTilgangskontroll
+import no.nav.helse.sykepenger.forsikring.shared.testsupport.TestcontainersReplikadatabase
+import no.nav.helse.sykepenger.forsikring.shared.testsupport.TestcontainersSpForsikringDatabase
+import no.nav.helse.sykepenger.forsikring.shared.testsupport.lagForsikringsvurdering
+import no.nav.helse.sykepenger.forsikring.shared.testsupport.lagIdentitetsnummer
+import no.nav.helse.sykepenger.forsikring.shared.testsupport.lagVurdertIndividuellForsikring
+import no.nav.helse.sykepenger.forsikring.shared.testsupport.lagreRåkopiOgForsikringsvurdering
+import no.nav.helse.sykepenger.forsikring.shared.testsupport.tilInfotrygdFødselsnummer
 import no.nav.security.mock.oauth2.MockOAuth2Server
 import org.junit.jupiter.api.AfterAll
-import org.junit.jupiter.api.Assertions.*
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertFalse
+import org.junit.jupiter.api.Assertions.assertNotNull
+import org.junit.jupiter.api.Assertions.assertNull
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
@@ -38,7 +48,7 @@ class ForsikringsvurderingApiTest {
     private val port = ServerSocket(0).use { it.localPort }
     private val serverUrl = "http://localhost:$port"
 
-    private val testRapid = TestRapid()
+    private val outbox = InMemoryOutboxRepository()
 
     private val embeddedServer =
         embeddedServer(CIO, port = port) {
@@ -51,6 +61,7 @@ class ForsikringsvurderingApiTest {
                 subsumsjonspubliserer = RapidSubsumsjonspubliserer(versjonAvKode = "test"),
                 endretForsikringsvurderingPubliserer = RapidEndretForsikringsvurderingPubliserer,
                 populasjonstilgangskontrollProvider = fakeTilgangskontroll,
+                outboxRepositoryFactory = { outbox },
             )
         }.start(wait = false)
 
@@ -58,7 +69,7 @@ class ForsikringsvurderingApiTest {
     fun reset() {
         TestcontainersReplikadatabase.reset()
         TestcontainersSpForsikringDatabase.reset()
-        testRapid.reset()
+        outbox.tøm()
         fakeTilgangskontroll.resultat = TilgangskontrollResultat.Ok
     }
 
@@ -878,7 +889,7 @@ class ForsikringsvurderingApiTest {
             )
 
         assertEquals(200, statusCode) { "Body was: $body" }
-        assertEquals(0, testRapid.inspektør.size) { "Forventet ingen publiserte meldinger" }
+        assertEquals(0, outbox.alle().size) { "Forventet ingen publiserte meldinger" }
     }
 
     @Test
@@ -959,7 +970,7 @@ class ForsikringsvurderingApiTest {
         assertEquals(1, TestcontainersSpForsikringDatabase.countAlleRåkopier()) {
             "Forventet at ingen ny råkopi ble lagret når tilgang avslås"
         }
-        assertEquals(0, testRapid.inspektør.size) { "Forventet ingen publiserte meldinger når tilgang avslås" }
+        assertEquals(0, outbox.alle().size) { "Forventet ingen publiserte meldinger når tilgang avslås" }
     }
 
     @Test
@@ -970,8 +981,8 @@ class ForsikringsvurderingApiTest {
     }
 
     private fun publiserteMeldinger(eventNavn: String): List<JsonNode> =
-        (0 until testRapid.inspektør.size)
-            .map { testRapid.inspektør.message(it) }
+        outbox
+            .meldinger()
             .filter { it["@event_name"].asString() == eventNavn }
 
     private fun m2mToken(
@@ -995,12 +1006,7 @@ class ForsikringsvurderingApiTest {
                 identitetsnummer = identitetsnummer,
                 skjæringstidspunkt = skjæringstidspunkt,
                 token = token,
-            ).also {
-                OutboxPubliseringsjobb(
-                    rapidsConnection = testRapid,
-                    dataSource = TestcontainersSpForsikringDatabase.dataSource,
-                ).kjørEnRunde()
-            }
+            )
 
     private fun bearerToken(
         issuerId: String = "default",

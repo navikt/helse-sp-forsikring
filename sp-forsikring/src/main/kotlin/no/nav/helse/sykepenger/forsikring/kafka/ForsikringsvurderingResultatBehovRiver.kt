@@ -18,6 +18,7 @@ import javax.sql.DataSource
 class ForsikringsvurderingResultatBehovRiver(
     rapidsConnection: RapidsConnection,
     private val spForsikringDataSource: DataSource,
+    private val outboxRepositoryFactory: OutboxRepositoryFactory,
 ) : River.PacketListener {
     init {
         River(rapidsConnection)
@@ -74,7 +75,7 @@ class ForsikringsvurderingResultatBehovRiver(
                     )
 
                 val løsningJson = packet.toJson()
-                val outboxRepository = PgOutboxRepository(transaction)
+                val outboxRepository = outboxRepositoryFactory.lag(transaction)
 
                 loggInfo("Legger løsning på ForsikringsvurderingResultat-behov i outbox", "løsning" to løsningJson)
                 outboxRepository.push(

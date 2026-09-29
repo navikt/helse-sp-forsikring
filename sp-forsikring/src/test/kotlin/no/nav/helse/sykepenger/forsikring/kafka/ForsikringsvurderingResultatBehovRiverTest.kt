@@ -17,6 +17,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 
 internal class ForsikringsvurderingResultatBehovRiverTest {
+    private val outbox = InMemoryOutboxRepository()
     private val rapid =
         TestRapid().apply {
             ForsikringsvurderingBehovRiver(
@@ -24,10 +25,12 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
                 replikabaseDataSource = TestcontainersReplikadatabase.dataSource,
                 spForsikringDataSource = TestcontainersSpForsikringDatabase.dataSource,
                 versjonAvKode = "",
+                outboxRepositoryFactory = { outbox },
             )
             ForsikringsvurderingResultatBehovRiver(
                 rapidsConnection = this,
                 spForsikringDataSource = TestcontainersSpForsikringDatabase.dataSource,
+                outboxRepositoryFactory = { outbox },
             )
         }
 
@@ -35,7 +38,7 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
     fun beforeEach() {
         TestcontainersReplikadatabase.reset()
         TestcontainersSpForsikringDatabase.reset()
-        rapid.reset()
+        outbox.tøm()
     }
 
     @Test
@@ -45,15 +48,10 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
         val testmelding = forsikringsvurderingResultatBehovMelding(forsikringsvurderingId)
         rapid.sendTestMessage(testmelding)
 
-        OutboxPubliseringsjobb(
-            dataSource = TestcontainersSpForsikringDatabase.dataSource,
-            rapidsConnection = rapid,
-        ).kjørEnRunde()
-
-        assertEquals(1, rapid.inspektør.size)
+        assertEquals(1, outbox.alle().size)
         assertJsonEquals(
             expectedJson = testmelding,
-            actualJsonNode = rapid.inspektør.message(0),
+            actualJsonNode = outbox.meldinger()[0],
             bortsettFraStier =
                 TestRapid.GENERERTE_JSONSTIER +
                     setOf(
@@ -166,8 +164,8 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
 
         sendForsikringsvurderingResultatBehov(forsikringsvurderingId)
 
-        assertEquals(1, rapid.inspektør.size)
-        val returnertId = rapid.inspektør.message(0)["@løsning"]["ForsikringsvurderingResultat"]["forsikringsvurderingId"]?.asString()
+        assertEquals(1, outbox.alle().size)
+        val returnertId = outbox.meldinger()[0]["@løsning"]["ForsikringsvurderingResultat"]["forsikringsvurderingId"]?.asString()
         assertNotNull(returnertId) { "Manglet forsikringsvurderingId i løsning" }
         assertEquals(forsikringsvurderingId, returnertId)
     }
@@ -316,7 +314,7 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
             sendForsikringsvurderingResultatBehov(ukjentId)
         }
 
-        assertEquals(0, rapid.inspektør.size)
+        assertEquals(0, outbox.alle().size)
     }
 
     @Test
@@ -335,7 +333,7 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
             """.trimIndent(),
         )
 
-        assertEquals(0, rapid.inspektør.size)
+        assertEquals(0, outbox.alle().size)
     }
 
     @Test
@@ -351,7 +349,7 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
             """.trimIndent(),
         )
 
-        assertEquals(0, rapid.inspektør.size)
+        assertEquals(0, outbox.alle().size)
     }
 
     @ParameterizedTest(name = "{0} særskilt {1} infotrygd-type {2} -> {3} fra dag {4} kategori {5}", quoteTextArguments = false)
@@ -507,7 +505,7 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
         )
 
         // Vurderingen er ugyldig, og riveren hopper over meldingen i stedet for å svare med en løsning
-        assertEquals(0, rapid.inspektør.size)
+        assertEquals(0, outbox.alle().size)
     }
 
     @Test
@@ -1056,11 +1054,6 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
             """.trimIndent(),
         )
 
-        OutboxPubliseringsjobb(
-            dataSource = TestcontainersSpForsikringDatabase.dataSource,
-            rapidsConnection = rapid,
-        ).kjørEnRunde()
-
         return popForsikringsvurderingIdFraLøsning()
     }
 
@@ -1069,27 +1062,19 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
         forventetForsikringsvurderingResultatLøsning: (String) -> String,
     ) {
         rapid.sendTestMessage(forsikringsvurderingBehovJson)
-        OutboxPubliseringsjobb(
-            dataSource = TestcontainersSpForsikringDatabase.dataSource,
-            rapidsConnection = rapid,
-        ).kjørEnRunde()
         val forsikringsvurderingId = popForsikringsvurderingIdFraLøsning()
         sendForsikringsvurderingResultatBehov(forsikringsvurderingId)
         forventLøsning(forventetForsikringsvurderingResultatLøsning(forsikringsvurderingId))
     }
 
     private fun popForsikringsvurderingIdFraLøsning(): String {
-        val forsikringsvurderingId = rapid.inspektør.message(rapid.inspektør.size - 1)["@løsning"]["Forsikringsvurdering"]["forsikringsvurderingId"].asString()
-        rapid.reset()
+        val forsikringsvurderingId = outbox.meldinger().last()["@løsning"]["Forsikringsvurdering"]["forsikringsvurderingId"].asString()
+        outbox.tøm()
         return forsikringsvurderingId
     }
 
     private fun sendForsikringsvurderingResultatBehov(forsikringsvurderingId: String) {
         rapid.sendTestMessage(forsikringsvurderingResultatBehovMelding(forsikringsvurderingId))
-        OutboxPubliseringsjobb(
-            dataSource = TestcontainersSpForsikringDatabase.dataSource,
-            rapidsConnection = rapid,
-        ).kjørEnRunde()
     }
 
     private fun forsikringsvurderingResultatBehovMelding(forsikringsvurderingId: String): String =
@@ -1105,8 +1090,8 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
         """.trimIndent()
 
     private fun forventLøsning(forventetLøsning: String) {
-        assertEquals(1, rapid.inspektør.size)
-        val løsningMelding = rapid.inspektør.message(0)
+        assertEquals(1, outbox.alle().size)
+        val løsningMelding = outbox.meldinger()[0]
         assertJsonEquals(
             expectedJson = forventetLøsning,
             actualJsonNode = løsningMelding["@løsning"]["ForsikringsvurderingResultat"],
@@ -1114,20 +1099,20 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
     }
 
     private fun forventVilleHattForsikringOmDenVarBetalt(forventet: Boolean) {
-        assertEquals(1, rapid.inspektør.size)
+        assertEquals(1, outbox.alle().size)
         val faktisk =
-            rapid.inspektør
-                .message(0)["@løsning"]["ForsikringsvurderingResultat"]["villeHattForsikringOmDenVarBetalt"]
+            outbox
+                .meldinger()[0]["@løsning"]["ForsikringsvurderingResultat"]["villeHattForsikringOmDenVarBetalt"]
                 ?.asBoolean()
         assertNotNull(faktisk) { "Manglet villeHattForsikringOmDenVarBetalt i løsning" }
         assertEquals(forventet, faktisk)
     }
 
     private fun forventHarForsikringSomIkkePasserMedSøknadstype(forventet: Boolean) {
-        assertEquals(1, rapid.inspektør.size)
+        assertEquals(1, outbox.alle().size)
         val faktisk =
-            rapid.inspektør
-                .message(0)["@løsning"]["ForsikringsvurderingResultat"]["harForsikringSomIkkePasserMedSøknadstype"]
+            outbox
+                .meldinger()[0]["@løsning"]["ForsikringsvurderingResultat"]["harForsikringSomIkkePasserMedSøknadstype"]
                 ?.asBoolean()
         assertNotNull(faktisk) { "Manglet harForsikringSomIkkePasserMedSøknadstype i løsning" }
         assertEquals(forventet, faktisk)

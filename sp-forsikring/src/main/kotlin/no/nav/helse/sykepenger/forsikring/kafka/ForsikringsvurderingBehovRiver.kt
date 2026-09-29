@@ -24,6 +24,7 @@ class ForsikringsvurderingBehovRiver(
     replikabaseDataSource: DataSource,
     private val spForsikringDataSource: DataSource,
     private val versjonAvKode: String,
+    private val outboxRepositoryFactory: OutboxRepositoryFactory,
 ) : River.PacketListener {
     init {
         River(rapidsConnection)
@@ -94,7 +95,7 @@ class ForsikringsvurderingBehovRiver(
 
                 val løsningJson = packet.toJson()
 
-                val outboxRepository = PgOutboxRepository(transaction)
+                val outboxRepository = outboxRepositoryFactory.lag(transaction)
 
                 RapidSubsumsjonspubliserer(
                     versjonAvKode = versjonAvKode,

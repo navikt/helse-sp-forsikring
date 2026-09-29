@@ -7,7 +7,9 @@ import com.github.navikt.tbd_libs.kafka.ConsumerProducerFactory
 import com.github.navikt.tbd_libs.populasjonstilgang.client.TilgangsmaskinenClient
 import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
-import io.ktor.server.application.*
+import io.ktor.server.application.Application
+import io.ktor.server.application.ApplicationStarted
+import io.ktor.server.application.ApplicationStopped
 import no.nav.helse.rapids_rivers.RapidApplication
 import no.nav.helse.sykepenger.forsikring.api.api
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.ForsikringsvurderingService
@@ -15,6 +17,8 @@ import no.nav.helse.sykepenger.forsikring.gosys.GosysOppgaveClient
 import no.nav.helse.sykepenger.forsikring.kafka.ForsikringsvurderingBehovRiver
 import no.nav.helse.sykepenger.forsikring.kafka.ForsikringsvurderingResultatBehovRiver
 import no.nav.helse.sykepenger.forsikring.kafka.OutboxPubliseringsjobb
+import no.nav.helse.sykepenger.forsikring.kafka.OutboxRepositoryFactory
+import no.nav.helse.sykepenger.forsikring.kafka.PgOutboxRepository
 import no.nav.helse.sykepenger.forsikring.kafka.RapidEndretForsikringsvurderingPubliserer
 import no.nav.helse.sykepenger.forsikring.kafka.RapidSubsumsjonspubliserer
 import no.nav.helse.sykepenger.forsikring.kafka.SelvstendigIngenDagerIgjenRiver
@@ -97,6 +101,7 @@ fun launchApplication(
         ).apply {
             val subsumsjonspubliserer = RapidSubsumsjonspubliserer(versjonAvKode = versjonAvKode)
             val endretForsikringsvurderingPubliserer = RapidEndretForsikringsvurderingPubliserer
+            val outboxRepositoryFactory = OutboxRepositoryFactory(::PgOutboxRepository)
 
             val populasjonstilgangskontrollProvider =
                 TilgangsmaskinenClient(
@@ -115,6 +120,7 @@ fun launchApplication(
                     subsumsjonspubliserer = subsumsjonspubliserer,
                     endretForsikringsvurderingPubliserer = endretForsikringsvurderingPubliserer,
                     populasjonstilgangskontrollProvider = populasjonstilgangskontrollProvider,
+                    outboxRepositoryFactory = outboxRepositoryFactory,
                 )
 
                 monitor.subscribe(ApplicationStarted) {
@@ -141,10 +147,12 @@ fun launchApplication(
                 replikabaseDataSource = replikabaseDataSource,
                 spForsikringDataSource = spForsikringDataSource,
                 versjonAvKode = versjonAvKode,
+                outboxRepositoryFactory = outboxRepositoryFactory,
             )
             ForsikringsvurderingResultatBehovRiver(
                 rapidsConnection = this,
                 spForsikringDataSource = spForsikringDataSource,
+                outboxRepositoryFactory = outboxRepositoryFactory,
             )
             SelvstendigUtbetaltEtterVentetidRiver(
                 rapidsConnection = this,

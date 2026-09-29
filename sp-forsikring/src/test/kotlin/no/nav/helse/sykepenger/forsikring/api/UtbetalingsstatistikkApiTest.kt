@@ -1,13 +1,13 @@
 package no.nav.helse.sykepenger.forsikring.api
 
-import com.github.navikt.tbd_libs.rapids_and_rivers.test_support.TestRapid
-import io.ktor.server.cio.*
-import io.ktor.server.engine.*
+import io.ktor.server.cio.CIO
+import io.ktor.server.engine.embeddedServer
 import kotliquery.TransactionalSession
 import no.nav.helse.sykepenger.forsikring.domain.Forsikringstype
 import no.nav.helse.sykepenger.forsikring.domain.IndividuellForsikringType
 import no.nav.helse.sykepenger.forsikring.domain.KollektivForsikring
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.ForsikringsvurderingService
+import no.nav.helse.sykepenger.forsikring.kafka.InMemoryOutboxRepository
 import no.nav.helse.sykepenger.forsikring.kafka.RapidEndretForsikringsvurderingPubliserer
 import no.nav.helse.sykepenger.forsikring.kafka.RapidSubsumsjonspubliserer
 import no.nav.helse.sykepenger.forsikring.shared.testsupport.FakeTilgangskontroll
@@ -45,8 +45,6 @@ class UtbetalingsstatistikkApiTest {
     private val port = ServerSocket(0).use { it.localPort }
     private val serverUrl = "http://localhost:$port"
 
-    private val testRapid = TestRapid()
-
     private val embeddedServer =
         embeddedServer(CIO, port = port) {
             api(
@@ -58,6 +56,7 @@ class UtbetalingsstatistikkApiTest {
                 subsumsjonspubliserer = RapidSubsumsjonspubliserer(versjonAvKode = "test"),
                 endretForsikringsvurderingPubliserer = RapidEndretForsikringsvurderingPubliserer,
                 populasjonstilgangskontrollProvider = fakeTilgangskontroll,
+                outboxRepositoryFactory = { InMemoryOutboxRepository() },
             )
         }.start(wait = false)
 

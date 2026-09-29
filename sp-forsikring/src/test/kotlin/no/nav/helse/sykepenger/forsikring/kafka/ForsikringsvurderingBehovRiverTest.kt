@@ -14,6 +14,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 
 internal class ForsikringsvurderingBehovRiverTest {
+    private val outbox = InMemoryOutboxRepository()
     private val rapid =
         TestRapid().apply {
             ForsikringsvurderingBehovRiver(
@@ -21,6 +22,7 @@ internal class ForsikringsvurderingBehovRiverTest {
                 replikabaseDataSource = TestcontainersReplikadatabase.dataSource,
                 spForsikringDataSource = TestcontainersSpForsikringDatabase.dataSource,
                 versjonAvKode = "",
+                outboxRepositoryFactory = { outbox },
             )
         }
 
@@ -28,7 +30,7 @@ internal class ForsikringsvurderingBehovRiverTest {
     fun beforeEach() {
         TestcontainersReplikadatabase.reset()
         TestcontainersSpForsikringDatabase.reset()
-        rapid.reset()
+        outbox.tøm()
     }
 
     @Test
@@ -50,15 +52,10 @@ internal class ForsikringsvurderingBehovRiverTest {
 
         rapid.sendTestMessage(testmelding)
 
-        OutboxPubliseringsjobb(
-            dataSource = TestcontainersSpForsikringDatabase.dataSource,
-            rapidsConnection = rapid,
-        ).kjørEnRunde()
-
-        assertEquals(1, rapid.inspektør.size)
+        assertEquals(1, outbox.alle().size)
         assertJsonEquals(
             expectedJson = testmelding,
-            actualJsonNode = rapid.inspektør.message(0),
+            actualJsonNode = outbox.meldinger()[0],
             bortsettFraStier =
                 TestRapid.GENERERTE_JSONSTIER +
                     setOf(
@@ -87,13 +84,8 @@ internal class ForsikringsvurderingBehovRiverTest {
             """.trimIndent(),
         )
 
-        OutboxPubliseringsjobb(
-            dataSource = TestcontainersSpForsikringDatabase.dataSource,
-            rapidsConnection = rapid,
-        ).kjørEnRunde()
-
-        assertEquals(1, rapid.inspektør.size)
-        val løsningMelding = rapid.inspektør.message(0)
+        assertEquals(1, outbox.alle().size)
+        val løsningMelding = outbox.meldinger()[0]
         val forsikringsvurderingId = løsningMelding["@løsning"]["Forsikringsvurdering"]["forsikringsvurderingId"]?.asString()
         assertNotNull(forsikringsvurderingId) { "Manglet forsikringsvurderingId" }
         assertDoesNotThrow("forsikringsvurderingId \"${forsikringsvurderingId}\" kunne ikke tolkes som en UUID") {
@@ -139,13 +131,8 @@ internal class ForsikringsvurderingBehovRiverTest {
             """.trimIndent(),
         )
 
-        OutboxPubliseringsjobb(
-            dataSource = TestcontainersSpForsikringDatabase.dataSource,
-            rapidsConnection = rapid,
-        ).kjørEnRunde()
-
-        assertEquals(1, rapid.inspektør.size)
-        val forsikringsvurderingId = rapid.inspektør.message(0)["@løsning"]["Forsikringsvurdering"]["forsikringsvurderingId"]?.asString()
+        assertEquals(1, outbox.alle().size)
+        val forsikringsvurderingId = outbox.meldinger()[0]["@løsning"]["Forsikringsvurdering"]["forsikringsvurderingId"]?.asString()
         assertNotNull(forsikringsvurderingId) { "Manglet forsikringsvurderingId" }
 
         assertEquals(antallRåkopierFør + 1, TestcontainersSpForsikringDatabase.countAlleRåkopier())
@@ -181,7 +168,7 @@ internal class ForsikringsvurderingBehovRiverTest {
             )
         }
 
-        assertEquals(0, rapid.inspektør.size)
+        assertEquals(0, outbox.alle().size)
         assertEquals(antallRåkopierFør, TestcontainersSpForsikringDatabase.countAlleRåkopier())
         assertEquals(antallForsikringsvurderingerFør, TestcontainersSpForsikringDatabase.countAlleForsikringsvurderinger())
     }
@@ -235,13 +222,8 @@ internal class ForsikringsvurderingBehovRiverTest {
             """.trimIndent(),
         )
 
-        OutboxPubliseringsjobb(
-            dataSource = TestcontainersSpForsikringDatabase.dataSource,
-            rapidsConnection = rapid,
-        ).kjørEnRunde()
-
-        assertEquals(1, rapid.inspektør.size)
-        val løsningMelding = rapid.inspektør.message(0)
+        assertEquals(1, outbox.alle().size)
+        val løsningMelding = outbox.meldinger()[0]
         val forsikringsvurderingId = løsningMelding["@løsning"]["Forsikringsvurdering"]["forsikringsvurderingId"]?.asString()
         assertNotNull(forsikringsvurderingId) { "Manglet forsikringsvurderingId" }
         assertEquals(1, TestcontainersSpForsikringDatabase.countRåkopi(forsikringsvurderingId))
@@ -279,13 +261,8 @@ internal class ForsikringsvurderingBehovRiverTest {
             """.trimIndent(),
         )
 
-        OutboxPubliseringsjobb(
-            dataSource = TestcontainersSpForsikringDatabase.dataSource,
-            rapidsConnection = rapid,
-        ).kjørEnRunde()
-
-        assertEquals(1, rapid.inspektør.size)
-        val forsikringsvurderingId = rapid.inspektør.message(0)["@løsning"]["Forsikringsvurdering"]["forsikringsvurderingId"].asString()
+        assertEquals(1, outbox.alle().size)
+        val forsikringsvurderingId = outbox.meldinger()[0]["@løsning"]["Forsikringsvurdering"]["forsikringsvurderingId"].asString()
         val ekskluderinger = TestcontainersSpForsikringDatabase.hentEkskluderinger(UUID.fromString(forsikringsvurderingId))
         assertEquals(4, ekskluderinger.size)
         assertEquals("SKJÆRINGSTIDSPUNKT_INNEN_28_DAGER_FØR_VIRKNINGSDATO", ekskluderinger[1])
