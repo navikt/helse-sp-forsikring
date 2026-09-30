@@ -2,7 +2,7 @@
 flyway = "13.7.0"
 coroutines = "1.11.0"
 ktor = "3.6.0"
-tbd-libs = "20260917.2152"
+tbd-libs = "20260930.1309"
 sasGradlePlugins = "20260930.1152"
 testcontainers = "2.0.5"
 
