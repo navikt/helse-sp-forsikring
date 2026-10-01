@@ -20,5 +20,5 @@ updates:
     cooldown:
       default-days: 7
       exclude:
-        - "no.nav.helse.sas.*"
+        - "no.nav.sykepenger.*"
         - "com.github.navikt.tbd-libs:*"
