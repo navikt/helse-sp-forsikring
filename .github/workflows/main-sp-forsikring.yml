@@ -16,7 +16,7 @@ on:
       - '!.github/workflows/standard-dependency-submission.yml'
       # Ressursene som deployes av denne workflowen
       - '.nais/sp-forsikring.yaml'
-      - '.nais/sp-forsikring-vars-*.yaml'
+      - '.nais/sp-forsikring.*.yaml'
       - '.nais/dev-spleis-testdata-replikabase-policy.yaml'
       # Spesielt for denne tjenesten ellers
       - '!.github/workflows/standard-pr.yml'
@@ -40,14 +40,14 @@ permissions:
 jobs:
   bygg-og-test:
     name: Bygg og test
-    uses: navikt/sykepenger-github-workflows/.github/workflows/bygg-og-test-med-gradle.yml@2f6844aa5e6852c64522681b3edb09c99445ad59 # v1.0.1
+    uses: navikt/sykepenger-github-workflows/.github/workflows/bygg-og-test-med-gradle.yml@a3796daf68dadd20000651bc347190c71acda4ba # v1.0.7
     permissions:
       contents: read
 
   bygg-image:
     name: Bygg image
     needs: bygg-og-test
-    uses: navikt/sykepenger-github-workflows/.github/workflows/bygg-modul-image-med-jib.yml@2f6844aa5e6852c64522681b3edb09c99445ad59 # v1.0.1
+    uses: navikt/sykepenger-github-workflows/.github/workflows/bygg-modul-image-med-jib.yml@a3796daf68dadd20000651bc347190c71acda4ba # v1.0.7
     with:
       modul: sp-forsikring
     permissions:
@@ -59,12 +59,12 @@ jobs:
   deploy-dev:
     name: Deploy til dev
     needs: bygg-image
-    uses: navikt/sykepenger-github-workflows/.github/workflows/deploy.yml@2f6844aa5e6852c64522681b3edb09c99445ad59 # v1.0.1
+    uses: navikt/sykepenger-github-workflows/.github/workflows/deploy-v2.yml@a3796daf68dadd20000651bc347190c71acda4ba # v1.0.7
     with:
-      CLUSTER: dev-gcp
-      RESOURCE: .nais/sp-forsikring.yaml,.nais/dev-spleis-testdata-replikabase-policy.yaml
-      VARS: .nais/sp-forsikring-vars-dev.yaml
-      WORKLOAD_IMAGE: ${{ needs.bygg-image.outputs.image_ref }}
+      manifest: .nais/sp-forsikring.yaml
+      environment: dev-gcp
+      image: ${{ needs.bygg-image.outputs.image_ref }}
+      extra_manifests: .nais/dev-spleis-testdata-replikabase-policy.yaml
     permissions:
       contents: read
       id-token: write # for nais login
@@ -72,12 +72,11 @@ jobs:
   deploy-prod:
     name: Deploy til prod
     needs: bygg-image
-    uses: navikt/sykepenger-github-workflows/.github/workflows/deploy.yml@2f6844aa5e6852c64522681b3edb09c99445ad59 # v1.0.1
+    uses: navikt/sykepenger-github-workflows/.github/workflows/deploy-v2.yml@a3796daf68dadd20000651bc347190c71acda4ba # v1.0.7
     with:
-      CLUSTER: prod-gcp
-      RESOURCE: .nais/sp-forsikring.yaml
-      VARS: .nais/sp-forsikring-vars-prod.yaml
-      WORKLOAD_IMAGE: ${{ needs.bygg-image.outputs.image_ref }}
+      manifest: .nais/sp-forsikring.yaml
+      environment: prod-gcp
+      image: ${{ needs.bygg-image.outputs.image_ref }}
     permissions:
       contents: read
       id-token: write # for nais login

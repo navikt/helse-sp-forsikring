@@ -1,0 +1,61 @@
+spec:
+  gcp:
+    sqlInstances:
+      - type: POSTGRES_18
+        diskAutoresize: true
+        tier: db-f1-micro
+        name: sp-forsikring
+        databases:
+          - name: sp-forsikring
+            envVarPrefix: DATABASE
+            users:
+              - name: sp-forsikring-opprydding-dev
+        flags:
+          - name: cloudsql.enable_pgaudit
+            value: "off"
+          - name: pgaudit.log
+            value: "write,ddl,role"
+          - name: pgaudit.log_parameter
+            value: "on"
+          - name: pgaudit.log_relation
+            value: "on"
+  kafka:
+    pool: nav-dev
+  # Secreten avgjøres per miljø. Nøklene i den mappes til REPLIKABASE_*-variablene under,
+  # slik at appen ser samme variabelnavn uansett hvilken base den snakker med.
+  # Her går vi mot vår egen "replikabase" (fra spleis-testdata).
+  # Hvis vi vil gå mot Q1-basen i stedet, er dette riktig:
+  # envFrom:
+  #   - secret: sp-forsikring-oracle
+  # env:
+  #   - name: REPLIKABASE_JDBC_URL
+  #     value: $(ORACLE_URL)
+  #   - name: REPLIKABASE_USERNAME
+  #     value: $(ORACLE_USERNAME)
+  #   - name: REPLIKABASE_PASSWORD
+  #     value: $(ORACLE_PASSWORD)
+  #   - name: REPLIKABASE_SCHEMA
+  #     value: $(ORACLE_DATABASE)
+  envFrom:
+    - secret: google-sql-spleis-testdata-forsikring-replika-testdata-9ed7e1ce
+  env:
+    - name: DB_MAX_POOL_SIZE
+      value: "3"
+    - name: REPLIKABASE_JDBC_URL
+      value: jdbc:postgresql:///$(DATABASE_SP_FORSIKRING_DATABASE)?cloudSqlInstance=$(GCP_TEAM_PROJECT_ID):europe-north1:forsikring-replika-testdata&socketFactory=com.google.cloud.sql.postgres.SocketFactory
+    - name: REPLIKABASE_USERNAME
+      value: $(DATABASE_SP_FORSIKRING_USERNAME)
+    - name: REPLIKABASE_PASSWORD
+      value: $(DATABASE_SP_FORSIKRING_PASSWORD)
+    - name: REPLIKABASE_SCHEMA
+      value: public
+    - name: GOSYS_BASE_URL
+      value: https://oppgave.dev-fss-pub.nais.io
+    - name: GOSYS_SCOPE
+      value: api://dev-fss.oppgavehandtering.oppgave/.default
+    - name: TILGANGSMASKINEN_SCOPE
+      value: api://dev-gcp.tilgangsmaskin.populasjonstilgangskontroll/.default
+  accessPolicy:
+    outbound:
+      external:
+        - host: oppgave.dev-fss-pub.nais.io
