@@ -34,8 +34,8 @@ rapids-and-rivers = "com.github.navikt:rapids-and-rivers:2026091610031789545782"
 ojdbc11 = "com.oracle.database.jdbc:ojdbc11:23.26.3.0.0"
 
 mock-oauth2-server = "no.nav.security:mock-oauth2-server:6.0.2"
-sykepengerLibs-logging = "no.nav.sykepenger.libs:logging:20260829.1737"
-sykepengerLibs-testing = "no.nav.sykepenger.libs:testing:20260829.1737"
+sykepengerLibs-logging = "no.nav.sykepenger.libs:logging:20261001.1823"
+sykepengerLibs-testing = "no.nav.sykepenger.libs:testing:20261001.1823"
 tbd-libs-rapids-and-rivers-test = { module = "com.github.navikt.tbd-libs:rapids-and-rivers-test", version.ref = "tbd-libs" }
 testcontainers-kafka = { module = "org.testcontainers:testcontainers-kafka", version.ref = "testcontainers" }
 testcontainers-postgres = { module = "org.testcontainers:testcontainers-postgresql", version.ref = "testcontainers" }
