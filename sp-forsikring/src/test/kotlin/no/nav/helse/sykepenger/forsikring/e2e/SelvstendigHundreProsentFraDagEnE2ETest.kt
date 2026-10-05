@@ -14,7 +14,7 @@ class SelvstendigHundreProsentFraDagEnE2ETest :
         brukerenHarEnBetaltForsikringIInfotrygd(
             virkningsdato = 1 jul 2026,
             infotrygdType = '3',
-            premiegrunnlag = 11000,
+            premiegrunnlag = 9000,
         )
         utbetalingsstatistikkenForIÅrErTom()
 
@@ -107,8 +107,8 @@ class SelvstendigHundreProsentFraDagEnE2ETest :
             uuid = førsteVedtakFattetMelding["@id"].stringValue(),
             forventetBeskrivelse =
                 "Sykepenger er utbetalt med sykepengegrunnlag 12 345 kr, " +
-                    "med forsikring med premiegrunnlag 11 000 kr. " +
-                    "Avviket er på 1 345 kr, som er høyere enn ønsket (<100 kr). " +
+                    "med forsikring med premiegrunnlag 9 000 kr. " +
+                    "Avviket er på 3 345 kr, som er 25 % eller mer av premiegrunnlaget. " +
                     "Utbetalingen skjedde for sykefravær med skjæringstidspunkt 01.09.2026.",
         )
 

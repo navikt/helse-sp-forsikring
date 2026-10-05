@@ -79,7 +79,7 @@ class VedtakFattetRiverTest {
         assertEquals(
             "Sykepenger er utbetalt med sykepengegrunnlag 400 000 kr, " +
                 "med forsikring med premiegrunnlag 200 000 kr. " +
-                "Avviket er på 200 000 kr, som er høyere enn ønsket (<100 kr). " +
+                "Avviket er på 200 000 kr, som er 25 % eller mer av premiegrunnlaget. " +
                 "Utbetalingen skjedde for sykefravær med skjæringstidspunkt 01.01.2026.",
             oppgave["beskrivelse"].asString(),
         )
@@ -107,16 +107,17 @@ class VedtakFattetRiverTest {
     }
 
     @Test
-    fun `lager ingen oppgave når avviket er mindre enn 100`() {
+    fun `lager ingen oppgave når avviket er rett under 25 prosent`() {
         val forsikringsvurderingId =
             settOppForsikringsvurdering(
                 individuellForsikringType = IndividuellForsikringType.SELVSTENDIG_100_PROSENT_FRA_DAG_1,
-                premiegrunnlag = 7900,
+                premiegrunnlag = 100000,
             )
 
+        // 24 996 / 100 000 = 24,996 %, som ville blitt 25,00 % og gitt oppgave hvis vi rundet til nærmeste med to desimaler
         sendVedtakFattet(
             forsikringsvurderingId = forsikringsvurderingId,
-            sykepengegrunnlag = 7999,
+            sykepengegrunnlag = 124996,
             dekningsgrad = 100,
             utbetalingIVentetid = true,
         )
@@ -125,7 +126,34 @@ class VedtakFattetRiverTest {
     }
 
     @Test
-    fun `lager oppgave når avviket er nøyaktig 100`() {
+    fun `lager oppgave når sykepengegrunnlaget er nøyaktig 25 prosent høyere enn premiegrunnlaget`() {
+        val forsikringsvurderingId =
+            settOppForsikringsvurdering(
+                individuellForsikringType = IndividuellForsikringType.SELVSTENDIG_100_PROSENT_FRA_DAG_1,
+                premiegrunnlag = 8000,
+            )
+
+        // 2 000 er 25 % av premiegrunnlaget, men bare 20 % av sykepengegrunnlaget
+        sendVedtakFattet(
+            forsikringsvurderingId = forsikringsvurderingId,
+            sykepengegrunnlag = 10000,
+            dekningsgrad = 100,
+            utbetalingIVentetid = true,
+        )
+
+        val oppgave = gosysWiremock.sisteOppgave
+        assertNotNull(oppgave)
+        assertEquals(
+            "Sykepenger er utbetalt med sykepengegrunnlag 10 000 kr, " +
+                "med forsikring med premiegrunnlag 8 000 kr. " +
+                "Avviket er på 2 000 kr, som er 25 % eller mer av premiegrunnlaget. " +
+                "Utbetalingen skjedde for sykefravær med skjæringstidspunkt 01.01.2026.",
+            oppgave["beskrivelse"].asString(),
+        )
+    }
+
+    @Test
+    fun `lager oppgave når sykepengegrunnlaget er nøyaktig 25 prosent lavere enn premiegrunnlaget`() {
         val forsikringsvurderingId =
             settOppForsikringsvurdering(
                 individuellForsikringType = IndividuellForsikringType.SELVSTENDIG_100_PROSENT_FRA_DAG_1,
@@ -134,7 +162,7 @@ class VedtakFattetRiverTest {
 
         sendVedtakFattet(
             forsikringsvurderingId = forsikringsvurderingId,
-            sykepengegrunnlag = 8100,
+            sykepengegrunnlag = 6000,
             dekningsgrad = 100,
             utbetalingIVentetid = true,
         )
@@ -142,25 +170,25 @@ class VedtakFattetRiverTest {
         val oppgave = gosysWiremock.sisteOppgave
         assertNotNull(oppgave)
         assertEquals(
-            "Sykepenger er utbetalt med sykepengegrunnlag 8 100 kr, " +
+            "Sykepenger er utbetalt med sykepengegrunnlag 6 000 kr, " +
                 "med forsikring med premiegrunnlag 8 000 kr. " +
-                "Avviket er på 100 kr, som er høyere enn ønsket (<100 kr). " +
+                "Avviket er på 2 000 kr, som er 25 % eller mer av premiegrunnlaget. " +
                 "Utbetalingen skjedde for sykefravær med skjæringstidspunkt 01.01.2026.",
             oppgave["beskrivelse"].asString(),
         )
     }
 
     @Test
-    fun `lager oppgave når premiegrunnlaget er 100 høyere enn sykepengegrunnlaget`() {
+    fun `lager oppgave med samme tekst når premiegrunnlaget er 0`() {
         val forsikringsvurderingId =
             settOppForsikringsvurdering(
                 individuellForsikringType = IndividuellForsikringType.SELVSTENDIG_100_PROSENT_FRA_DAG_1,
-                premiegrunnlag = 8100,
+                premiegrunnlag = 0,
             )
 
         sendVedtakFattet(
             forsikringsvurderingId = forsikringsvurderingId,
-            sykepengegrunnlag = 8000,
+            sykepengegrunnlag = 400000,
             dekningsgrad = 100,
             utbetalingIVentetid = true,
         )
@@ -168,9 +196,9 @@ class VedtakFattetRiverTest {
         val oppgave = gosysWiremock.sisteOppgave
         assertNotNull(oppgave)
         assertEquals(
-            "Sykepenger er utbetalt med sykepengegrunnlag 8 000 kr, " +
-                "med forsikring med premiegrunnlag 8 100 kr. " +
-                "Avviket er på 100 kr, som er høyere enn ønsket (<100 kr). " +
+            "Sykepenger er utbetalt med sykepengegrunnlag 400 000 kr, " +
+                "med forsikring med premiegrunnlag 0 kr. " +
+                "Avviket er på 400 000 kr, som er 25 % eller mer av premiegrunnlaget. " +
                 "Utbetalingen skjedde for sykefravær med skjæringstidspunkt 01.01.2026.",
             oppgave["beskrivelse"].asString(),
         )

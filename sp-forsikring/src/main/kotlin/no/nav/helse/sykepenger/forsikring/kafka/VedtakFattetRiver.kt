@@ -126,12 +126,28 @@ class VedtakFattetRiver(
             }
 
             if ("Førstegangsbehandling" in melding.tags && individuellForsikring != null) {
-                val premiegrunnlag = individuellForsikring.premiegrunnlag
-                val avviksbeløp = melding.sykepengegrunnlag.subtract(BigDecimal(premiegrunnlag)).abs()
-                loggInfo("Beregnet avvik: ${avviksbeløp.iBeløpsFormat()}")
+                val premiegrunnlag = BigDecimal(individuellForsikring.premiegrunnlag)
+                val avviksbeløp = melding.sykepengegrunnlag.subtract(premiegrunnlag).abs()
+                // Avviket er endringen fra premiegrunnlaget (gammel verdi) til sykepengegrunnlaget, i prosent av
+                // premiegrunnlaget, med presisjon PROSENT_DESIMALER. Grensen er inklusiv. Runder ned, slik at
+                // avrundingen aldri løfter et avvik som er under grensen opp til grensen.
+                val avviksprosent =
+                    premiegrunnlag
+                        .takeIf { it.signum() != 0 }
+                        ?.let { avviksbeløp.multiply(HUNDRE).divide(it, PROSENT_DESIMALER, RoundingMode.DOWN) }
+                loggInfo(
+                    "Beregnet avvik mellom sykepengegrunnlag og premiegrunnlag",
+                    "avviksbeløp" to avviksbeløp.toPlainString(),
+                    "avviksprosent" to avviksprosent?.toPlainString(),
+                )
 
-                val avviksgrense = 100
-                if (avviksbeløp >= BigDecimal(avviksgrense)) {
+                val erOverAvviksgrense =
+                    if (avviksprosent == null) {
+                        avviksbeløp.signum() != 0
+                    } else {
+                        avviksprosent >= AVVIKSGRENSE_PROSENT
+                    }
+                if (erOverAvviksgrense) {
                     gosysOppgaveClient.opprettOppgave(
                         personident = melding.fødselsnummer,
                         uuid = melding.id.toString(),
@@ -140,7 +156,7 @@ class VedtakFattetRiver(
                                 " ${melding.sykepengegrunnlag.iBeløpsFormat()}," +
                                 " med forsikring med premiegrunnlag ${premiegrunnlag.iBeløpsFormat()}." +
                                 " Avviket er på ${avviksbeløp.iBeløpsFormat()}," +
-                                " som er høyere enn ønsket (<${avviksgrense.iBeløpsFormat()})." +
+                                " som er ${AVVIKSGRENSE_PROSENT.iProsentFormat()} eller mer av premiegrunnlaget." +
                                 " Utbetalingen skjedde for sykefravær med skjæringstidspunkt " +
                                 "${melding.skjæringstidspunkt.format(DateTimeFormatter.ofPattern("dd.MM.yyyy"))}.",
                     )
@@ -149,7 +165,11 @@ class VedtakFattetRiver(
         }
     }
 
-    private fun Number.iBeløpsFormat(): String =
+    private fun Number.iBeløpsFormat(): String = iTallFormat() + " kr"
+
+    private fun Number.iProsentFormat(): String = iTallFormat() + " %"
+
+    private fun Number.iTallFormat(): String =
         NumberFormat
             .getInstance(Locale.of("no", "NO"))
             .apply {
@@ -160,7 +180,16 @@ class VedtakFattetRiver(
             .replace('\u00A0', ' ')
             .replace('\u2212', '-')
             .replace(",00", "")
-            .plus(" kr")
+
+    private companion object {
+        val HUNDRE = BigDecimal(100)
+
+        // Presisjonen avviket vurderes med. Samme verdi brukes i sammenligningen og i loggen.
+        const val PROSENT_DESIMALER = 10
+
+        // Grensen kan ikke ha flere desimaler enn avviksprosenten, ellers kan den ikke vurderes med denne presisjonen
+        val AVVIKSGRENSE_PROSENT = BigDecimal(25).also { require(it.scale() <= PROSENT_DESIMALER) }
+    }
 
     /**
      * Summerer beløpene med full mellomregningspresisjon. Avrunding til to desimaler skjer først når summen
