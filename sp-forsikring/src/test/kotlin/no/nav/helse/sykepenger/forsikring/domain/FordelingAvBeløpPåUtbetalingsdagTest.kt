@@ -260,6 +260,7 @@ class FordelingAvBeløpPåUtbetalingsdagTest {
     ) = VurdertIndividuellForsikring.fraLagring(
         råkopiIfVedfrivt10Id = RåkopiIfVedfrivt10.Id.ny(),
         type = type,
+        fom = null,
         virkningsdato = LocalDate.parse("2026-01-01"),
         opphører = opphørsdato != null,
         opphørsdato = opphørsdato,

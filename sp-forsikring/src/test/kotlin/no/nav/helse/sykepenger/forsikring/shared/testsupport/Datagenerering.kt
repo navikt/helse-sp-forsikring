@@ -59,6 +59,7 @@ fun lagVurdertIndividuellForsikring(
     virkningsdato: LocalDate,
     råkopiIfVedfrivt10Id: RåkopiIfVedfrivt10.Id = RåkopiIfVedfrivt10.Id.ny(),
     type: IndividuellForsikringType = IndividuellForsikringType.SELVSTENDIG_80_PROSENT_FRA_DAG_1,
+    fom: LocalDate? = null,
     opphører: Boolean = false,
     opphørsdato: LocalDate? = null,
     premiegrunnlag: Int = 0,
@@ -68,6 +69,7 @@ fun lagVurdertIndividuellForsikring(
     VurdertIndividuellForsikring.fraLagring(
         råkopiIfVedfrivt10Id = råkopiIfVedfrivt10Id,
         type = type,
+        fom = fom,
         virkningsdato = virkningsdato,
         opphører = opphører,
         opphørsdato = opphørsdato,

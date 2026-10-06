@@ -56,6 +56,8 @@ class Forsikringsvurdering private constructor(
 
     fun gjeldendeIndividuellForsikring(): VurdertIndividuellForsikring? = individuelleForsikringer.singleOrNull { it.erGyldig() }
 
+    fun harIndividuellForsikringIOpptjeningstid(): Boolean = individuelleForsikringer.any { it.erIOpptjeningstidPå(input.skjæringstidspunkt) }
+
     fun dekning(): Forsikringsdekning? =
         listOfNotNull(
             gjeldendeIndividuellForsikring()?.type?.dekning,
@@ -71,6 +73,7 @@ class Forsikringsvurdering private constructor(
     /**
      * Sammenligner utfallet av to vurderinger av samme person og skjæringstidspunkt, for å avgjøre om en ny
      * vurdering gir et annet resultat enn en tidligere lagret vurdering.
+     * Forsikringens fom-dato inngår fordi den påvirker opprettelse av oppgave om premiefritak.
      *
      * Identifikatorer ([id], [råkopiId], [forrigeForsikringsvurderingId],
      * [VurdertIndividuellForsikring.råkopiIfVedfrivt10Id]) og [vurdertTidspunkt]
@@ -90,6 +93,7 @@ class Forsikringsvurdering private constructor(
                     .map { forsikring ->
                         IndividuellForsikringUtfall(
                             type = forsikring.type,
+                            fom = forsikring.fom,
                             virkningsdato = forsikring.virkningsdato,
                             opphørsdato = forsikring.opphørsdato,
                             konklusjon = forsikring.konklusjon,
@@ -107,6 +111,7 @@ class Forsikringsvurdering private constructor(
 
     private data class IndividuellForsikringUtfall(
         val type: IndividuellForsikringType,
+        val fom: LocalDate?,
         val virkningsdato: LocalDate,
         val opphørsdato: LocalDate?,
         val konklusjon: VurdertIndividuellForsikring.Konklusjon,

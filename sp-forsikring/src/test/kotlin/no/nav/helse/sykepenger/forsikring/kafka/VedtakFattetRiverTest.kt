@@ -6,6 +6,7 @@ import kotliquery.sessionOf
 import no.nav.helse.sykepenger.forsikring.domain.Forsikringsvurdering
 import no.nav.helse.sykepenger.forsikring.domain.IndividuellForsikringType
 import no.nav.helse.sykepenger.forsikring.domain.KollektivForsikring
+import no.nav.helse.sykepenger.forsikring.domain.VurdertIndividuellForsikring
 import no.nav.helse.sykepenger.forsikring.gosys.GosysWiremock
 import no.nav.helse.sykepenger.forsikring.shared.testsupport.TestcontainersSpForsikringDatabase
 import no.nav.helse.sykepenger.forsikring.shared.testsupport.lagForsikringsvurdering
@@ -25,6 +26,7 @@ import java.util.*
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFails
+import kotlin.test.assertNotEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 
@@ -225,6 +227,97 @@ class VedtakFattetRiverTest {
         val forsikringsvurderingId = settOppForsikringsvurdering()
 
         sendVedtakFattet(forsikringsvurderingId = forsikringsvurderingId)
+
+        assertNull(gosysWiremock.sisteOppgave)
+    }
+
+    @Test
+    fun `lager oppgave om premiefritak når skjæringstidspunktet er i opptjeningstiden for forsikringen`() {
+        val forsikringsvurderingId = settOppForsikringsvurderingIOpptjeningstid()
+
+        val meldingId = sendVedtakFattet(forsikringsvurderingId = forsikringsvurderingId)
+
+        val oppgave = gosysWiremock.oppgaver.single()
+        assertEquals(
+            "Bruker har individuell forsikring og ble syk i opptjeningstiden for forsikringen." +
+                " Bruker skal derfor ha premiefritak." +
+                " Gjelder sykefravær med skjæringstidspunkt 01.01.2026.",
+            oppgave["beskrivelse"].asString(),
+        )
+        assertEquals(identitetsnummer.value, oppgave["personident"].asString())
+        // Egen UUID, slik at oppgaven ikke kolliderer med en eventuell avviksoppgave for samme vedtak
+        assertNotEquals(meldingId.toString(), oppgave["uuid"].asString())
+    }
+
+    @Test
+    fun `lager oppgave om premiefritak når skjæringstidspunktet er lik fom-datoen til forsikringen`() {
+        val forsikringsvurderingId =
+            settOppForsikringsvurdering(
+                individuellForsikringType = IndividuellForsikringType.SELVSTENDIG_100_PROSENT_FRA_DAG_1,
+                fom = skjæringstidspunkt,
+                virkningsdato = skjæringstidspunkt.plusDays(28),
+                konklusjon = VurdertIndividuellForsikring.Konklusjon.SKJÆRINGSTIDSPUNKT_INNEN_28_DAGER_FØR_VIRKNINGSDATO,
+            )
+
+        sendVedtakFattet(forsikringsvurderingId = forsikringsvurderingId)
+
+        assertEquals(1, gosysWiremock.oppgaver.size)
+    }
+
+    @Test
+    fun `lager ikke oppgave om premiefritak når skjæringstidspunktet er før fom-datoen til forsikringen`() {
+        val forsikringsvurderingId =
+            settOppForsikringsvurdering(
+                individuellForsikringType = IndividuellForsikringType.SELVSTENDIG_100_PROSENT_FRA_DAG_1,
+                fom = skjæringstidspunkt.plusDays(1),
+                virkningsdato = skjæringstidspunkt.plusDays(29),
+                konklusjon = VurdertIndividuellForsikring.Konklusjon.SKJÆRINGSTIDSPUNKT_MER_ENN_28_DAGER_FØR_VIRKNINGSDATO,
+            )
+
+        sendVedtakFattet(forsikringsvurderingId = forsikringsvurderingId)
+
+        assertNull(gosysWiremock.sisteOppgave)
+    }
+
+    @Test
+    fun `lager ikke oppgave om premiefritak når skjæringstidspunktet er lik virkningsdatoen til forsikringen`() {
+        val forsikringsvurderingId =
+            settOppForsikringsvurdering(
+                individuellForsikringType = IndividuellForsikringType.SELVSTENDIG_100_PROSENT_FRA_DAG_1,
+                fom = skjæringstidspunkt.minusDays(28),
+                virkningsdato = skjæringstidspunkt,
+            )
+
+        sendVedtakFattet(
+            forsikringsvurderingId = forsikringsvurderingId,
+            dekningsgrad = 100,
+            utbetalingIVentetid = true,
+        )
+
+        assertNull(gosysWiremock.sisteOppgave)
+    }
+
+    @Test
+    fun `lager ikke oppgave om premiefritak når forsikringen i opptjeningstiden er opphørt`() {
+        val forsikringsvurderingId =
+            settOppForsikringsvurdering(
+                individuellForsikringType = IndividuellForsikringType.SELVSTENDIG_100_PROSENT_FRA_DAG_1,
+                fom = LocalDate.parse("2025-12-22"),
+                virkningsdato = 19 jan 2026,
+                opphørsdato = LocalDate.parse("2025-12-31"),
+                konklusjon = VurdertIndividuellForsikring.Konklusjon.SKJÆRINGSTIDSPUNKT_INNEN_28_DAGER_FØR_VIRKNINGSDATO,
+            )
+
+        sendVedtakFattet(forsikringsvurderingId = forsikringsvurderingId)
+
+        assertNull(gosysWiremock.sisteOppgave)
+    }
+
+    @Test
+    fun `lager ikke oppgave om premiefritak når det ikke er førstegangsbehandling`() {
+        val forsikringsvurderingId = settOppForsikringsvurderingIOpptjeningstid()
+
+        sendVedtakFattet(forsikringsvurderingId = forsikringsvurderingId, førstegangsbehandling = false)
 
         assertNull(gosysWiremock.sisteOppgave)
     }
@@ -610,11 +703,22 @@ class VedtakFattetRiverTest {
                 utbetalingsdagerBeløpTilBruker = dagsbeløp,
             ).let { it["@id"].stringValue().let(UUID::fromString) to it.toPrettyString() }
 
+    private fun settOppForsikringsvurderingIOpptjeningstid(): Forsikringsvurdering.Id =
+        settOppForsikringsvurdering(
+            individuellForsikringType = IndividuellForsikringType.SELVSTENDIG_100_PROSENT_FRA_DAG_1,
+            fom = LocalDate.parse("2025-12-22"),
+            virkningsdato = 19 jan 2026,
+            konklusjon = VurdertIndividuellForsikring.Konklusjon.SKJÆRINGSTIDSPUNKT_INNEN_28_DAGER_FØR_VIRKNINGSDATO,
+        )
+
     private fun settOppForsikringsvurdering(
         individuellForsikringType: IndividuellForsikringType? = null,
         premiegrunnlag: Int = 400000,
         opphørsdato: LocalDate? = null,
         kollektivForsikring: KollektivForsikring? = null,
+        fom: LocalDate? = null,
+        virkningsdato: LocalDate = skjæringstidspunkt,
+        konklusjon: VurdertIndividuellForsikring.Konklusjon = VurdertIndividuellForsikring.Konklusjon.GYLDIG,
     ): Forsikringsvurdering.Id =
         lagForsikringsvurdering(
             skjæringstidspunkt = skjæringstidspunkt,
@@ -625,10 +729,12 @@ class VedtakFattetRiverTest {
                     individuellForsikringType?.let { type ->
                         lagVurdertIndividuellForsikring(
                             type = type,
-                            virkningsdato = skjæringstidspunkt,
+                            fom = fom,
+                            virkningsdato = virkningsdato,
                             premiegrunnlag = premiegrunnlag,
                             opphører = opphørsdato != null,
                             opphørsdato = opphørsdato,
+                            konklusjon = konklusjon,
                         )
                     },
                 ),

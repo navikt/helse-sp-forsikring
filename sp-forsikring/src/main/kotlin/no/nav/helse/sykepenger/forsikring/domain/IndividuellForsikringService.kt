@@ -23,6 +23,7 @@ class IndividuellForsikringService {
                             '5' -> IndividuellForsikringType.FRILANSER_100_PROSENT_FRA_DAG_1
                             else -> error("Ukjent forsikringstype: ${ifVedfrivt10.IF10_TYPE}")
                         },
+                    fom = ifVedfrivt10.IF10_FORSFOM.infotrygdIntDatoTilLocalDate(),
                     virkningsdato = ifVedfrivt10.IF10_VIRKDATO.infotrygdIntDatoTilLocalDate()!!,
                     opphører = opphørsdato != null || ifVedfrivt10.IF10_OPPHGR.isNotBlank(),
                     opphørsdato = opphørsdato,
@@ -40,6 +41,7 @@ class IndividuellForsikringService {
                             .map {
                                 mapOf(
                                     "type" to it.type,
+                                    "fom" to it.fom,
                                     "virkningsdato" to it.virkningsdato,
                                     "opphører" to it.opphører,
                                     "opphørsdato" to it.opphørsdato,

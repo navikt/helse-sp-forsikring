@@ -6,6 +6,7 @@ import java.time.LocalDate
 class IndividuellForsikring(
     val råkopiIfVedfrivt10Id: RåkopiIfVedfrivt10.Id,
     val type: IndividuellForsikringType,
+    val fom: LocalDate?,
     val virkningsdato: LocalDate,
     val opphører: Boolean,
     val opphørsdato: LocalDate?,
@@ -55,6 +56,7 @@ class IndividuellForsikring(
         fun ny(
             råkopiIfVedfrivt10Id: RåkopiIfVedfrivt10.Id,
             type: IndividuellForsikringType,
+            fom: LocalDate?,
             virkningsdato: LocalDate,
             opphører: Boolean,
             opphørsdato: LocalDate?,
@@ -64,6 +66,7 @@ class IndividuellForsikring(
             IndividuellForsikring(
                 råkopiIfVedfrivt10Id = råkopiIfVedfrivt10Id,
                 type = type,
+                fom = fom,
                 virkningsdato = virkningsdato,
                 opphører = opphører,
                 opphørsdato = opphørsdato,

@@ -22,6 +22,7 @@ import java.math.BigDecimal
 import java.math.RoundingMode
 import java.text.NumberFormat
 import java.time.Instant
+import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -158,12 +159,27 @@ class VedtakFattetRiver(
                                 " Avviket er på ${avviksbeløp.iBeløpsFormat()}," +
                                 " som er ${AVVIKSGRENSE_PROSENT.iProsentFormat()} eller mer av premiegrunnlaget." +
                                 " Utbetalingen skjedde for sykefravær med skjæringstidspunkt " +
-                                "${melding.skjæringstidspunkt.format(DateTimeFormatter.ofPattern("dd.MM.yyyy"))}.",
+                                "${melding.skjæringstidspunkt.iDatoFormat()}.",
                     )
                 }
             }
+
+            if ("Førstegangsbehandling" in melding.tags && forsikringsvurdering.harIndividuellForsikringIOpptjeningstid()) {
+                gosysOppgaveClient.opprettOppgave(
+                    personident = melding.fødselsnummer,
+                    // Egen deterministisk UUID, slik at den ikke kolliderer med eventuell avviksoppgave for samme vedtak
+                    uuid = UUID.nameUUIDFromBytes("${melding.id}-premiefritak-opptjeningstid".toByteArray()).toString(),
+                    beskrivelse =
+                        "Bruker har individuell forsikring og ble syk i opptjeningstiden for forsikringen." +
+                            " Bruker skal derfor ha premiefritak." +
+                            " Gjelder sykefravær med skjæringstidspunkt " +
+                            "${melding.skjæringstidspunkt.iDatoFormat()}.",
+                )
+            }
         }
     }
+
+    private fun LocalDate.iDatoFormat(): String = format(DateTimeFormatter.ofPattern("dd.MM.yyyy"))
 
     private fun Number.iBeløpsFormat(): String = iTallFormat() + " kr"
 

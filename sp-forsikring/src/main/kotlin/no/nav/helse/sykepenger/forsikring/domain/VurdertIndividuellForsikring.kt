@@ -6,6 +6,7 @@ import java.time.LocalDate
 class VurdertIndividuellForsikring private constructor(
     val råkopiIfVedfrivt10Id: RåkopiIfVedfrivt10.Id,
     val type: IndividuellForsikringType,
+    val fom: LocalDate?,
     val virkningsdato: LocalDate,
     val opphører: Boolean,
     val opphørsdato: LocalDate?,
@@ -18,6 +19,16 @@ class VurdertIndividuellForsikring private constructor(
     fun passerIkkeMedSøknadstype() = konklusjon == Konklusjon.PASSER_IKKE_MED_SØKNADSTYPE
 
     fun erOpphørtPå(dato: LocalDate) = opphørsdato != null && dato > opphørsdato
+
+    /**
+     * Opptjeningstiden er fra og med forsikringens fom-dato, til (men ikke med) virkningsdatoen.
+     * En forsikring som er opphørt på datoen (f.eks. trukket før virkningsdato) er ikke i opptjeningstid.
+     */
+    fun erIOpptjeningstidPå(dato: LocalDate) =
+        fom != null &&
+            dato >= fom &&
+            dato < virkningsdato &&
+            !(opphører && (opphørsdato == null || dato > opphørsdato))
 
     enum class Konklusjon(
         val folketrygdlovenReferanse: Folketrygdlovenreferanse?,
@@ -48,6 +59,7 @@ class VurdertIndividuellForsikring private constructor(
             VurdertIndividuellForsikring(
                 råkopiIfVedfrivt10Id = individuellForsikring.råkopiIfVedfrivt10Id,
                 type = individuellForsikring.type,
+                fom = individuellForsikring.fom,
                 virkningsdato = individuellForsikring.virkningsdato,
                 opphører = individuellForsikring.opphører,
                 opphørsdato = individuellForsikring.opphørsdato,
@@ -59,6 +71,7 @@ class VurdertIndividuellForsikring private constructor(
         fun fraLagring(
             råkopiIfVedfrivt10Id: RåkopiIfVedfrivt10.Id,
             type: IndividuellForsikringType,
+            fom: LocalDate?,
             virkningsdato: LocalDate,
             opphører: Boolean,
             opphørsdato: LocalDate?,
@@ -69,6 +82,7 @@ class VurdertIndividuellForsikring private constructor(
             VurdertIndividuellForsikring(
                 råkopiIfVedfrivt10Id = råkopiIfVedfrivt10Id,
                 type = type,
+                fom = fom,
                 virkningsdato = virkningsdato,
                 opphører = opphører,
                 opphørsdato = opphørsdato,

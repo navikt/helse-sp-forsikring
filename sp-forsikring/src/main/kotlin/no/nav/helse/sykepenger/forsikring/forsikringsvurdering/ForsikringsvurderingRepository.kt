@@ -159,6 +159,7 @@ class ForsikringsvurderingRepository(
         val statement = """
             SELECT råkopi_IF_VEDFRIVT_10_id,
                    type,
+                   fom,
                    virkningsdato,
                    opphører,
                    opphørsdato,
@@ -174,6 +175,7 @@ class ForsikringsvurderingRepository(
                     VurdertIndividuellForsikring.fraLagring(
                         råkopiIfVedfrivt10Id = RåkopiIfVedfrivt10.Id(row.uuid("råkopi_IF_VEDFRIVT_10_id")),
                         type = enumValueOf(row.string("type")),
+                        fom = row.localDateOrNull("fom"),
                         virkningsdato = row.localDate("virkningsdato"),
                         opphører = row.boolean("opphører"),
                         opphørsdato = row.localDateOrNull("opphørsdato"),
@@ -275,10 +277,10 @@ class ForsikringsvurderingRepository(
         @Language("PostgreSQL")
         val statement = """
             INSERT INTO forsikringsvurdering_individuell_forsikring
-                (forsikringsvurdering_id, råkopi_IF_VEDFRIVT_10_id, type, virkningsdato, opphører,
+                (forsikringsvurdering_id, råkopi_IF_VEDFRIVT_10_id, type, fom, virkningsdato, opphører,
                  opphørsdato, premiegrunnlag, er_betalt_noen_gang, konklusjon)
             VALUES
-                (:forsikringsvurdering_id, :rakopi_IF_VEDFRIVT_10_id, :type, :virkningsdato, :opphorer,
+                (:forsikringsvurdering_id, :rakopi_IF_VEDFRIVT_10_id, :type, :fom, :virkningsdato, :opphorer,
                  :opphorsdato, :premiegrunnlag, :er_betalt_noen_gang, :konklusjon)
         """
         spForsikringTransactionalSession.run(
@@ -288,6 +290,7 @@ class ForsikringsvurderingRepository(
                     "forsikringsvurdering_id" to forsikringsvurderingId.value,
                     "rakopi_IF_VEDFRIVT_10_id" to individuellForsikring.råkopiIfVedfrivt10Id.value,
                     "type" to individuellForsikring.type.name,
+                    "fom" to individuellForsikring.fom,
                     "virkningsdato" to individuellForsikring.virkningsdato,
                     "opphorer" to individuellForsikring.opphører,
                     "opphorsdato" to individuellForsikring.opphørsdato,

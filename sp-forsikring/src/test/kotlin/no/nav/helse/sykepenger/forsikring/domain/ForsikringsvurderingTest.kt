@@ -239,6 +239,105 @@ internal class ForsikringsvurderingTest {
     }
 
     @Test
+    fun `skjæringstidspunkt lik fom-dato er i opptjeningstiden`() {
+        val vurdering =
+            vurdering(
+                individuelleForsikringer =
+                    listOf(individuellForsikring(fom = SKJÆRINGSTIDSPUNKT, virkningsdato = SKJÆRINGSTIDSPUNKT.plusDays(28))),
+            )
+
+        assertTrue(vurdering.harIndividuellForsikringIOpptjeningstid())
+    }
+
+    @Test
+    fun `skjæringstidspunkt dagen før virkningsdato er i opptjeningstiden`() {
+        val vurdering =
+            vurdering(
+                individuelleForsikringer =
+                    listOf(
+                        individuellForsikring(
+                            fom = SKJÆRINGSTIDSPUNKT.minusDays(27),
+                            virkningsdato = SKJÆRINGSTIDSPUNKT.plusDays(1),
+                        ),
+                    ),
+            )
+
+        assertTrue(vurdering.harIndividuellForsikringIOpptjeningstid())
+    }
+
+    @Test
+    fun `skjæringstidspunkt før fom-dato er ikke i opptjeningstiden`() {
+        val vurdering =
+            vurdering(
+                individuelleForsikringer =
+                    listOf(
+                        individuellForsikring(
+                            fom = SKJÆRINGSTIDSPUNKT.plusDays(1),
+                            virkningsdato = SKJÆRINGSTIDSPUNKT.plusDays(29),
+                        ),
+                    ),
+            )
+
+        assertFalse(vurdering.harIndividuellForsikringIOpptjeningstid())
+    }
+
+    @Test
+    fun `skjæringstidspunkt lik virkningsdato er ikke i opptjeningstiden`() {
+        val vurdering =
+            vurdering(
+                individuelleForsikringer =
+                    listOf(individuellForsikring(fom = SKJÆRINGSTIDSPUNKT.minusDays(28), virkningsdato = SKJÆRINGSTIDSPUNKT)),
+            )
+
+        assertTrue(vurdering.harForsikring())
+        assertFalse(vurdering.harIndividuellForsikringIOpptjeningstid())
+    }
+
+    @Test
+    fun `forsikring som er opphørt før skjæringstidspunktet er ikke i opptjeningstiden`() {
+        val vurdering =
+            vurdering(
+                individuelleForsikringer =
+                    listOf(
+                        individuellForsikring(
+                            fom = SKJÆRINGSTIDSPUNKT.minusDays(10),
+                            virkningsdato = SKJÆRINGSTIDSPUNKT.plusDays(18),
+                            opphørsdato = SKJÆRINGSTIDSPUNKT.minusDays(1),
+                        ),
+                    ),
+            )
+
+        assertFalse(vurdering.harIndividuellForsikringIOpptjeningstid())
+    }
+
+    @Test
+    fun `forsikring som opphører etter skjæringstidspunktet er i opptjeningstiden`() {
+        val vurdering =
+            vurdering(
+                individuelleForsikringer =
+                    listOf(
+                        individuellForsikring(
+                            fom = SKJÆRINGSTIDSPUNKT.minusDays(10),
+                            virkningsdato = SKJÆRINGSTIDSPUNKT.plusDays(18),
+                            opphørsdato = SKJÆRINGSTIDSPUNKT,
+                        ),
+                    ),
+            )
+
+        assertTrue(vurdering.harIndividuellForsikringIOpptjeningstid())
+    }
+
+    @Test
+    fun `forsikring uten fom-dato regnes ikke som i opptjeningstiden`() {
+        val vurdering =
+            vurdering(
+                individuelleForsikringer = listOf(individuellForsikring(fom = null, virkningsdato = SKJÆRINGSTIDSPUNKT.plusDays(1))),
+            )
+
+        assertFalse(vurdering.harIndividuellForsikringIOpptjeningstid())
+    }
+
+    @Test
     fun `forsikring som opphørte før skjæringstidspunktet gir ikke forsikring`() {
         val vurdering =
             vurdering(
@@ -305,6 +404,30 @@ internal class ForsikringsvurderingTest {
         val to = vurdering(individuelleForsikringer = listOf(individuellForsikring()))
 
         assertTrue(en.harSammeUtfallSom(to))
+    }
+
+    @ParameterizedTest
+    @CsvSource(
+        "2025-12-31, 2026-01-02",
+        "2026-01-02, 2026-01-01",
+        ", 2026-01-01",
+        "2026-01-01,",
+    )
+    fun `endret fom endrer utfallet selv om konklusjon og dekning er uendret`(
+        forrigeFom: LocalDate?,
+        nyFom: LocalDate?,
+    ) {
+        val virkningsdato = SKJÆRINGSTIDSPUNKT.plusDays(28)
+        val forrige =
+            vurdering(individuelleForsikringer = listOf(individuellForsikring(fom = forrigeFom, virkningsdato = virkningsdato)))
+        val ny =
+            vurdering(individuelleForsikringer = listOf(individuellForsikring(fom = nyFom, virkningsdato = virkningsdato)))
+
+        assertEquals(forrige.individuelleForsikringer.single().konklusjon, ny.individuelleForsikringer.single().konklusjon)
+        assertEquals(forrige.dekning(), ny.dekning())
+        assertEquals(!forrige.harIndividuellForsikringIOpptjeningstid(), ny.harIndividuellForsikringIOpptjeningstid())
+        assertFalse(forrige.harSammeUtfallSom(ny))
+        assertFalse(ny.harSammeUtfallSom(forrige))
     }
 
     @Test
@@ -397,6 +520,7 @@ internal class ForsikringsvurderingTest {
 
     private fun individuellForsikring(
         type: IndividuellForsikringType = IndividuellForsikringType.SELVSTENDIG_80_PROSENT_FRA_DAG_1,
+        fom: LocalDate? = null,
         virkningsdato: LocalDate = SKJÆRINGSTIDSPUNKT,
         opphørsdato: LocalDate? = null,
         premiegrunnlag: Int = 200000,
@@ -405,6 +529,7 @@ internal class ForsikringsvurderingTest {
         IndividuellForsikring.ny(
             råkopiIfVedfrivt10Id = RåkopiIfVedfrivt10.Id.ny(),
             type = type,
+            fom = fom,
             virkningsdato = virkningsdato,
             opphører = opphørsdato != null,
             opphørsdato = opphørsdato,
