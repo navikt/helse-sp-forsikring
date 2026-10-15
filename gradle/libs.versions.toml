@@ -1,5 +1,5 @@
 [versions]
-flyway = "13.9.0"
+flyway = "13.10.0"
 coroutines = "1.11.0"
 ktor = "3.6.0"
 tbd-libs = "20261013.1613"
@@ -29,7 +29,7 @@ tbd-libs-access-token-provider-texas = {module = "com.github.navikt.tbd-libs:acc
 tbd-libs-populasjonstilgangskontroll-provider-api = { module = "com.github.navikt.tbd-libs:populasjonstilgangskontroll-provider-api", version.ref = "tbd-libs" }
 tbd-libs-populasjonstilgangskontroll-provider-tilgangsmaskinen = { module = "com.github.navikt.tbd-libs:populasjonstilgangskontroll-provider-tilgangsmaskinen", version.ref = "tbd-libs" }
 tbd-libs-retry = {module = "com.github.navikt.tbd-libs:retry", version.ref = "tbd-libs"}
-postgresql = "org.postgresql:postgresql:42.7.13"
+postgresql = "org.postgresql:postgresql:42.7.14"
 rapids-and-rivers = "com.github.navikt:rapids-and-rivers:2026091610031789545782"
 ojdbc11 = "com.oracle.database.jdbc:ojdbc11:23.26.3.0.0"
 
