@@ -61,6 +61,7 @@ internal class OutboxPubliseringsjobb(
                     PgOutboxRepository(transaction)
                         .popFirst()
                         ?.also {
+                            loggInfo("Sender melding fra outbox", "melding" to it.melding)
                             val (_, feiledeMeldinger) =
                                 rapidsConnection.publish(
                                     listOf(OutgoingMessage(body = it.melding, key = it.key)),

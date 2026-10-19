@@ -58,8 +58,10 @@ object E2ETestApplication {
             .also(WireMockServer::start)
             .also {
                 it.stubFor(
-                    get(urlPathEqualTo("/")).willReturn(
-                        okJson("""{ "name": "$HOSTNAME", "last_update": "2026-01-01T00:00:00Z" }"""),
+                    get(urlPathEqualTo("/sse")).willReturn(
+                        aResponse()
+                            .withHeader("Content-Type", "text/event-stream")
+                            .withBody("""data: { "name": "$HOSTNAME", "last_update": "2026-01-01T00:00:00Z" }""" + "\n\n"),
                     ),
                 )
             }
@@ -144,7 +146,7 @@ object E2ETestApplication {
                             "KAFKA_CONSUMER_GROUP_ID" to KAFKA_CONSUMER_GROUP_ID,
                             "KAFKA_RAPID_TOPIC" to "tbd.rapid.v1",
                             "KAFKA_RESET_POLICY" to "earliest",
-                            "ELECTOR_GET_URL" to "${electorWiremock.baseUrl()}/",
+                            "ELECTOR_SSE_URL" to "${electorWiremock.baseUrl()}/sse",
                             "HOSTNAME" to HOSTNAME,
                         ),
                     kafkaConfig = TestcontainersRapid.kafkaConfig,

@@ -29,6 +29,7 @@ import no.nav.sykepenger.libs.logging.loggInfo
 import org.flywaydb.core.Flyway
 import java.net.URI
 import java.time.Duration
+import kotlin.time.Duration.Companion.seconds
 
 fun main() {
     launchApplication(
@@ -170,15 +171,18 @@ fun launchApplication(
                 gosysOppgaveClient = gosysOppgaveClient,
                 spForsikringDataSource = spForsikringDataSource,
             )
+            val leaderElection =
+                NaisLeaderElection(
+                    electorSseUrl = env.getValue("ELECTOR_SSE_URL"),
+                    hostname = env.getValue("HOSTNAME"),
+                    ventetidFørNyTilkobling = 5.seconds,
+                )
+            register(leaderElection)
             register(
                 OutboxPubliseringsjobb(
                     rapidsConnection = this,
                     dataSource = spForsikringDataSource,
-                    leaderElection =
-                        NaisLeaderElection(
-                            electorGetUrl = env.getValue("ELECTOR_GET_URL"),
-                            hostname = env.getValue("HOSTNAME"),
-                        ),
+                    leaderElection = leaderElection,
                 ),
             )
         }.start()
