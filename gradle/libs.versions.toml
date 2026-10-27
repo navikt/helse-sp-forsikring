@@ -3,7 +3,7 @@ flyway = "13.10.3"
 coroutines = "1.11.0"
 ktor = "3.6.0"
 tbd-libs = "20261013.1613"
-sykepengerGradlePlugins = "20261013.1718"
+sykepengerGradlePlugins = "20261026.1611"
 testcontainers = "2.0.5"
 
 [libraries]
