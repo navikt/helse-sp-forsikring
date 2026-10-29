@@ -2,8 +2,8 @@
 flyway = "13.11.1"
 coroutines = "1.11.0"
 ktor = "3.6.0"
-tbd-libs = "20261013.1613"
-sykepengerGradlePlugins = "20261028.1441"
+tbd-libs = "20261029.1843"
+sykepengerGradlePlugins = "20261029.1945"
 testcontainers = "2.0.5"
 
 [libraries]
@@ -34,8 +34,8 @@ rapids-and-rivers = "com.github.navikt:rapids-and-rivers:2026091610031789545782"
 ojdbc11 = "com.oracle.database.jdbc:ojdbc11:23.26.3.0.0"
 
 mock-oauth2-server = "no.nav.security:mock-oauth2-server:6.1.2"
-sykepengerLibs-logging = "no.nav.sykepenger.libs:logging:20261013.1719"
-sykepengerLibs-testing = "no.nav.sykepenger.libs:testing:20261013.1719"
+sykepengerLibs-logging = "no.nav.sykepenger.libs:logging:20261029.1851"
+sykepengerLibs-testing = "no.nav.sykepenger.libs:testing:20261029.1851"
 tbd-libs-rapids-and-rivers-test = { module = "com.github.navikt.tbd-libs:rapids-and-rivers-test", version.ref = "tbd-libs" }
 testcontainers-kafka = { module = "org.testcontainers:testcontainers-kafka", version.ref = "testcontainers" }
 testcontainers-postgres = { module = "org.testcontainers:testcontainers-postgresql", version.ref = "testcontainers" }
