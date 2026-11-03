@@ -1,4 +1,7 @@
 spec:
+  resources:
+    limits:
+      memory: 1Gi
   gcp:
     sqlInstances:
       - type: POSTGRES_18
