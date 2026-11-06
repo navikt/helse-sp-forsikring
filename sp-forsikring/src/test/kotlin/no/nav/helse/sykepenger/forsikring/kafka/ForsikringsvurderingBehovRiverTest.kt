@@ -2,22 +2,31 @@ package no.nav.helse.sykepenger.forsikring.kafka
 
 import com.github.navikt.tbd_libs.rapids_and_rivers.test_support.TestRapid
 import no.nav.helse.sykepenger.forsikring.domain.Forsikringsvurdering
+import no.nav.helse.sykepenger.forsikring.domain.Identitetsnummer
 import no.nav.helse.sykepenger.forsikring.domain.SpesiellYrkesgruppe
 import no.nav.helse.sykepenger.forsikring.domain.Yrkesaktivitetstype
+import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.EndringssjekkService
+import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.Endringssjekkresultat
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.ForsikringsvurderingRepository
+import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.ForsikringsvurderingService
 import no.nav.helse.sykepenger.forsikring.rettighetskategori.RettighetskategoriWiremock
 import no.nav.helse.sykepenger.forsikring.shared.testsupport.TestcontainersReplikadatabase
 import no.nav.helse.sykepenger.forsikring.shared.testsupport.TestcontainersSpForsikringDatabase
 import no.nav.helse.sykepenger.forsikring.shared.util.inTransaction
 import no.nav.sykepenger.libs.testing.assertions.assertJsonEquals
+import no.nav.sykepenger.libs.testing.assertions.assertMindreEnnNSekunderSiden
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertDoesNotThrow
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.ValueSource
+import java.time.LocalDate
 import java.util.*
 import kotlin.test.assertEquals
+import kotlin.test.assertIs
+import kotlin.test.assertNotEquals
 import kotlin.test.assertNotNull
+import kotlin.test.assertNull
 
 internal class ForsikringsvurderingBehovRiverTest {
     private val outbox = InMemoryOutboxRepository()
@@ -268,6 +277,140 @@ internal class ForsikringsvurderingBehovRiverTest {
         assertEquals(emptyList(), rettighetskategoriWiremock.loggedRequests())
     }
 
+    @Test
+    fun `gjenbruker forsikringsvurderingen for samme rettighetskategori og skjæringstidspunkt`() {
+        insertBetaltVedfrivt(IF01_AGNR_FNR = 3020112345L, IF10_TYPE = '2')
+        val rettighetskategoriId = stubRettighetskategoriSN()
+        rapid.sendTestMessage(behov(fødselsnummer = "01020312345", rettighetskategoriId = rettighetskategoriId))
+        val førsteForsikringsvurderingId = løsninger().single()
+        val antallSubsumsjonerFør = subsumsjoner().size
+        assertEquals(1, rettighetskategoriWiremock.loggedRequests().size)
+
+        val andreBehov =
+            behov(
+                fødselsnummer = "01020312345",
+                rettighetskategoriId = rettighetskategoriId,
+                vedtaksperiodeId = UUID.randomUUID(),
+                behandlingId = UUID.randomUUID(),
+            )
+        rapid.sendTestMessage(andreBehov)
+
+        assertEquals(listOf(førsteForsikringsvurderingId, førsteForsikringsvurderingId), løsninger())
+        assertEquals(antallSubsumsjonerFør, subsumsjoner().size)
+        assertEquals(1, rettighetskategoriWiremock.loggedRequests().size)
+        assertEquals(1, TestcontainersSpForsikringDatabase.countAlleForsikringsvurderinger())
+        assertEquals(1, TestcontainersSpForsikringDatabase.countAlleRåkopier())
+
+        val gjenbruk = TestcontainersSpForsikringDatabase.hentGjenbruk().single()
+        assertEquals(UUID.fromString(førsteForsikringsvurderingId), gjenbruk.forsikringsvurderingId)
+        assertJsonEquals(
+            expectedJson = andreBehov,
+            actualJson = gjenbruk.behov,
+            bortsettFraStier = TestRapid.GENERERTE_JSONSTIER + setOf("@id", "@forårsaket_av"),
+        )
+        assertMindreEnnNSekunderSiden(sekunder = 30, actual = gjenbruk.opprettet)
+    }
+
+    @Test
+    fun `gjenbruker vurderingen fra endringssjekken`() {
+        val rettighetskategoriId = stubRettighetskategoriSN()
+        rapid.sendTestMessage(behov(fødselsnummer = "01020312345", rettighetskategoriId = rettighetskategoriId))
+        val førsteForsikringsvurderingId = løsninger().single()
+
+        insertBetaltVedfrivt(IF01_AGNR_FNR = 3020112345L, IF10_TYPE = '2')
+        val endringssjekkresultat =
+            EndringssjekkService(
+                spForsikringDataSource = TestcontainersSpForsikringDatabase.dataSource,
+                forsikringsvurderingService = ForsikringsvurderingService(TestcontainersReplikadatabase.dataSource),
+                subsumsjonspubliserer = RapidSubsumsjonspubliserer(versjonAvKode = ""),
+                endretForsikringsvurderingPubliserer = RapidEndretForsikringsvurderingPubliserer,
+                outboxRepositoryFactory = { InMemoryOutboxRepository() },
+            ).endringssjekk(
+                identitetsnummer = Identitetsnummer.fraString("01020312345"),
+                skjæringstidspunkt = LocalDate.of(2026, 1, 1),
+                saksbehandlerIdent = "Z999999",
+                requestBody = "{}",
+            )
+        val endringssjekkForsikringsvurderingId =
+            assertIs<Endringssjekkresultat.EndretVurdering>(endringssjekkresultat)
+                .forsikringsvurdering.id.value
+                .toString()
+        assertNotEquals(førsteForsikringsvurderingId, endringssjekkForsikringsvurderingId)
+
+        rapid.sendTestMessage(behov(fødselsnummer = "01020312345", rettighetskategoriId = rettighetskategoriId))
+
+        assertEquals(listOf(førsteForsikringsvurderingId, endringssjekkForsikringsvurderingId), løsninger())
+        assertEquals(1, rettighetskategoriWiremock.loggedRequests().size)
+        assertEquals(2, TestcontainersSpForsikringDatabase.countAlleForsikringsvurderinger())
+        assertEquals(
+            UUID.fromString(endringssjekkForsikringsvurderingId),
+            TestcontainersSpForsikringDatabase.hentGjenbruk().single().forsikringsvurderingId,
+        )
+    }
+
+    @Test
+    fun `ny rettighetskategori for skjæringstidspunktet gir ny vurdering uten forrige forsikringsvurdering`() {
+        rapid.sendTestMessage(behov(fødselsnummer = "01020312345", rettighetskategoriId = stubRettighetskategoriSN()))
+        val nyRettighetskategoriId = stubRettighetskategoriSN(tilleggskategorier = listOf("JORDBRUKER"))
+
+        rapid.sendTestMessage(behov(fødselsnummer = "01020312345", rettighetskategoriId = nyRettighetskategoriId))
+
+        val (førsteId, andreId) = løsninger()
+        assertNotEquals(førsteId, andreId)
+        assertEquals(2, TestcontainersSpForsikringDatabase.countAlleForsikringsvurderinger())
+        assertEquals(emptyList(), TestcontainersSpForsikringDatabase.hentGjenbruk())
+        val andreForsikringsvurdering = hentForsikringsvurdering(andreId)
+        assertEquals(nyRettighetskategoriId, andreForsikringsvurdering.input.rettighetskategoriId)
+        assertNull(andreForsikringsvurdering.forrigeForsikringsvurderingId)
+    }
+
+    @Test
+    fun `samme rettighetskategori med nytt skjæringstidspunkt gir ny vurdering`() {
+        val rettighetskategoriId = stubRettighetskategoriSN()
+        rapid.sendTestMessage(behov(fødselsnummer = "01020312345", rettighetskategoriId = rettighetskategoriId))
+
+        rapid.sendTestMessage(
+            behov(fødselsnummer = "01020312345", rettighetskategoriId = rettighetskategoriId, skjæringstidspunkt = "2026-02-01"),
+        )
+
+        val (førsteId, andreId) = løsninger()
+        assertNotEquals(førsteId, andreId)
+        assertEquals(emptyList(), TestcontainersSpForsikringDatabase.hentGjenbruk())
+    }
+
+    @Test
+    fun `gjenbruker ikke en annen persons forsikringsvurdering`() {
+        val rettighetskategoriId = stubRettighetskategoriSN()
+        rettighetskategoriWiremock.stubRettighetskategori(
+            rettighetskategoriId = rettighetskategoriId,
+            fødselsnummer = "02020312345",
+            hovedkategori = "SELVSTENDIG_NAERINGSDRIVENDE",
+            tilleggskategorier = emptyList(),
+        )
+        rapid.sendTestMessage(behov(fødselsnummer = "01020312345", rettighetskategoriId = rettighetskategoriId))
+
+        rapid.sendTestMessage(behov(fødselsnummer = "02020312345", rettighetskategoriId = rettighetskategoriId))
+
+        val (førsteId, andreId) = løsninger()
+        assertNotEquals(førsteId, andreId)
+        assertEquals(emptyList(), TestcontainersSpForsikringDatabase.hentGjenbruk())
+    }
+
+    private fun løsninger(): List<String> =
+        outbox
+            .meldinger()
+            .filter { it.has("@løsning") }
+            .map { it["@løsning"]["Forsikringsvurdering"]["forsikringsvurderingId"].asString() }
+
+    private fun subsumsjoner() = outbox.meldinger().filter { it.path("@event_name").asString() == "subsumsjon" }
+
+    private fun hentForsikringsvurdering(id: String): Forsikringsvurdering =
+        assertNotNull(
+            TestcontainersSpForsikringDatabase.dataSource.inTransaction { transaction ->
+                ForsikringsvurderingRepository(transaction).hent(Forsikringsvurdering.Id.fromString(id))
+            },
+        )
+
     private fun stubRettighetskategoriSN(tilleggskategorier: List<String> = emptyList()): UUID {
         val rettighetskategoriId = UUID.randomUUID()
         rettighetskategoriWiremock.stubRettighetskategori(
@@ -284,6 +427,9 @@ internal class ForsikringsvurderingBehovRiverTest {
         rettighetskategoriId: UUID?,
         yrkesaktivitetstype: String = "SELVSTENDIG",
         spesielleYrkesgrupper: List<String> = emptyList(),
+        skjæringstidspunkt: String = "2026-01-01",
+        vedtaksperiodeId: UUID = UUID.randomUUID(),
+        behandlingId: UUID = UUID.randomUUID(),
     ): String =
         // language=json
         """
@@ -291,12 +437,12 @@ internal class ForsikringsvurderingBehovRiverTest {
             "@behov": [ "Forsikringsvurdering" ],
             "fødselsnummer": "$fødselsnummer",
             "yrkesaktivitetstype": "$yrkesaktivitetstype",
-            "vedtaksperiodeId": "${UUID.randomUUID()}",
-            "behandlingId": "${UUID.randomUUID()}",
+            "vedtaksperiodeId": "$vedtaksperiodeId",
+            "behandlingId": "$behandlingId",
             "Forsikringsvurdering" : {
                 ${rettighetskategoriId?.let { "\"rettighetskategoriId\": \"$it\"," }.orEmpty()}
                 "spesielleYrkesgrupper": [ ${spesielleYrkesgrupper.joinToString { "\"$it\"" }} ],
-                "skjæringstidspunkt": "2026-01-01"
+                "skjæringstidspunkt": "$skjæringstidspunkt"
             }
         }
         """.trimIndent()

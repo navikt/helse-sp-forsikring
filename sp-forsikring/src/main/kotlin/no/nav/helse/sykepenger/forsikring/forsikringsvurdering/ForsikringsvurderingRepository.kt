@@ -13,6 +13,7 @@ import no.nav.helse.sykepenger.forsikring.råkopi.Råkopi.Id
 import no.nav.helse.sykepenger.forsikring.råkopi.RåkopiIfVedfrivt10
 import org.intellij.lang.annotations.Language
 import java.time.LocalDate
+import java.util.*
 
 class ForsikringsvurderingRepository(
     private val spForsikringTransactionalSession: TransactionalSession,
@@ -140,6 +141,38 @@ class ForsikringsvurderingRepository(
                             ?.let { Forsikringsvurdering.Id(it) },
                 )
             }.asSingle,
+        )
+    }
+
+    /**
+     * Finner den siste forsikringsvurderingen for rettighetskategorien og skjæringstidspunktet, også vurderinger
+     * fra endringssjekk, som arver rettighetskategori-ID-en fra vurderingen de bygger på.
+     */
+    fun finnSisteId(
+        identitetsnummer: Identitetsnummer,
+        rettighetskategoriId: UUID,
+        skjæringstidspunkt: LocalDate,
+    ): Forsikringsvurdering.Id? {
+        @Language("PostgreSQL")
+        val statement =
+            """
+            SELECT id
+            FROM forsikringsvurdering
+            WHERE rettighetskategori_id = :rettighetskategori_id
+                AND skjæringstidspunkt = :skjaringstidspunkt
+                AND identitetsnummer = :identitetsnummer
+            ORDER BY vurdert_tidspunkt DESC, id DESC
+            LIMIT 1
+            """.trimIndent()
+        return spForsikringTransactionalSession.run(
+            queryOf(
+                statement,
+                mapOf(
+                    "rettighetskategori_id" to rettighetskategoriId,
+                    "skjaringstidspunkt" to skjæringstidspunkt,
+                    "identitetsnummer" to identitetsnummer.value,
+                ),
+            ).map { row -> Forsikringsvurdering.Id(row.uuid("id")) }.asSingle,
         )
     }
 

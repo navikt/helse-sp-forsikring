@@ -11,15 +11,16 @@ import no.nav.helse.sykepenger.forsikring.domain.ForsikringsvurderingInput
 import no.nav.helse.sykepenger.forsikring.domain.Identitetsnummer
 import no.nav.helse.sykepenger.forsikring.domain.SpesiellYrkesgruppe
 import no.nav.helse.sykepenger.forsikring.domain.Yrkesaktivitetstype
+import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.ForsikringsvurderingGjenbrukDao
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.ForsikringsvurderingRepository
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.ForsikringsvurderingService
-import no.nav.helse.sykepenger.forsikring.kafka.lib.medParsetMelding
+import no.nav.helse.sykepenger.forsikring.kafka.lib.medParsetMeldingOgTransaction
 import no.nav.helse.sykepenger.forsikring.rettighetskategori.Rettighetskategori
 import no.nav.helse.sykepenger.forsikring.rettighetskategori.RettighetskategoriClient
 import no.nav.helse.sykepenger.forsikring.råkopi.RåkopiRepository
-import no.nav.helse.sykepenger.forsikring.shared.util.inTransaction
 import no.nav.sykepenger.libs.logging.loggError
 import no.nav.sykepenger.libs.logging.loggInfo
+import java.time.Instant
 import javax.sql.DataSource
 
 class ForsikringsvurderingBehovRiver(
@@ -60,70 +61,95 @@ class ForsikringsvurderingBehovRiver(
         meterRegistry: MeterRegistry,
     ) {
         try {
-            packet.medParsetMelding<ForsikringsvurderingBehovMelding> { melding ->
+            packet.medParsetMeldingOgTransaction<ForsikringsvurderingBehovMelding>(
+                dataSource = spForsikringDataSource,
+            ) { melding, transaction ->
                 val identitetsnummer = Identitetsnummer.fraString(melding.fødselsnummer)
                 val rettighetskategoriId = melding.forsikringsvurdering.rettighetskategoriId
-                // Henter rettighetskategorien før transaksjonen, så vi ikke holder en databaseforbindelse under HTTP-kallet.
-                val rettighetskategori = rettighetskategoriClient.hent(rettighetskategoriId, identitetsnummer)
+                val forsikringsvurderingRepository = ForsikringsvurderingRepository(transaction)
+                val outboxRepository = outboxRepositoryFactory.lag(transaction)
 
-                if (rettighetskategori.hovedkategori != Rettighetskategori.Hovedkategori.SELVSTENDIG_NAERINGSDRIVENDE) {
-                    loggError(
-                        "Kan bare vurdere forsikring for selvstendig næringsdrivende. Svarer ikke på behovet.",
-                        "hovedkategori" to rettighetskategori.hovedkategori.name,
-                        "rettighetskategoriId" to rettighetskategoriId.toString(),
-                    )
-                    return@medParsetMelding
-                }
-
-                val (råkopi, forsikringsvurdering) =
-                    forsikringsvurderingService.gjørForsikringsvurdering(
-                        input =
-                            ForsikringsvurderingInput(
-                                identitetsnummer = identitetsnummer,
-                                yrkesaktivitetstype = Yrkesaktivitetstype.SELVSTENDIG,
-                                spesielleYrkesgrupper =
-                                    rettighetskategori.tilleggskategorier
-                                        .map { it.tilSpesiellYrkesgruppe() }
-                                        .toSet(),
-                                skjæringstidspunkt = melding.forsikringsvurdering.skjæringstidspunkt,
-                                rettighetskategoriId = rettighetskategoriId,
-                            ),
-                        vedtaksperiodeId = melding.vedtaksperiodeId,
-                        behandlingId = melding.behandlingId,
-                        forrigeForsikringsvurderingId = null,
+                val tidligereForsikringsvurderingId =
+                    forsikringsvurderingRepository.finnSisteId(
+                        identitetsnummer = identitetsnummer,
+                        rettighetskategoriId = rettighetskategoriId,
+                        skjæringstidspunkt = melding.forsikringsvurdering.skjæringstidspunkt,
                     )
 
-                spForsikringDataSource.inTransaction { transaction ->
-                    RåkopiRepository(transaction).lagre(råkopi)
-                    ForsikringsvurderingRepository(transaction).lagre(
-                        forsikringsvurdering = forsikringsvurdering,
-                        behovEllerRequestBody = packet.toJson(),
-                    )
+                val forsikringsvurderingId =
+                    if (tidligereForsikringsvurderingId != null) {
+                        // Endringer i Infotrygd siden forrige vurdering fanges opp av endringssjekk
+                        ForsikringsvurderingGjenbrukDao(transaction).insert(
+                            forsikringsvurderingId = tidligereForsikringsvurderingId,
+                            behov = packet.toJson(),
+                            opprettet = Instant.now(),
+                        )
+                        loggInfo(
+                            "Gjenbruker forsikringsvurdering for samme rettighetskategori og skjæringstidspunkt",
+                            "forsikringsvurderingId" to tidligereForsikringsvurderingId.value.toString(),
+                            "rettighetskategoriId" to rettighetskategoriId.toString(),
+                        )
+                        tidligereForsikringsvurderingId
+                    } else {
+                        val rettighetskategori = rettighetskategoriClient.hent(rettighetskategoriId, identitetsnummer)
 
-                    packet["@løsning"] =
-                        mapOf(
-                            "Forsikringsvurdering" to
-                                mapOf(
-                                    "forsikringsvurderingId" to forsikringsvurdering.id.value.toString(),
-                                ),
+                        if (rettighetskategori.hovedkategori != Rettighetskategori.Hovedkategori.SELVSTENDIG_NAERINGSDRIVENDE) {
+                            loggError(
+                                "Kan bare vurdere forsikring for selvstendig næringsdrivende. Svarer ikke på behovet.",
+                                "hovedkategori" to rettighetskategori.hovedkategori.name,
+                                "rettighetskategoriId" to rettighetskategoriId.toString(),
+                            )
+                            return@medParsetMeldingOgTransaction
+                        }
+
+                        val (råkopi, forsikringsvurdering) =
+                            forsikringsvurderingService.gjørForsikringsvurdering(
+                                input =
+                                    ForsikringsvurderingInput(
+                                        identitetsnummer = identitetsnummer,
+                                        yrkesaktivitetstype = Yrkesaktivitetstype.SELVSTENDIG,
+                                        spesielleYrkesgrupper =
+                                            rettighetskategori.tilleggskategorier
+                                                .map { it.tilSpesiellYrkesgruppe() }
+                                                .toSet(),
+                                        skjæringstidspunkt = melding.forsikringsvurdering.skjæringstidspunkt,
+                                        rettighetskategoriId = rettighetskategoriId,
+                                    ),
+                                vedtaksperiodeId = melding.vedtaksperiodeId,
+                                behandlingId = melding.behandlingId,
+                                forrigeForsikringsvurderingId = null,
+                            )
+
+                        RåkopiRepository(transaction).lagre(råkopi)
+                        forsikringsvurderingRepository.lagre(
+                            forsikringsvurdering = forsikringsvurdering,
+                            behovEllerRequestBody = packet.toJson(),
                         )
 
-                    val løsningJson = packet.toJson()
+                        RapidSubsumsjonspubliserer(
+                            versjonAvKode = versjonAvKode,
+                        ).publiser(
+                            outboxRepository = outboxRepository,
+                            forsikringsvurdering = forsikringsvurdering,
+                            vedtaksperiodeId = melding.vedtaksperiodeId,
+                            behandlingId = melding.behandlingId,
+                        )
 
-                    val outboxRepository = outboxRepositoryFactory.lag(transaction)
+                        forsikringsvurdering.id
+                    }
 
-                    RapidSubsumsjonspubliserer(
-                        versjonAvKode = versjonAvKode,
-                    ).publiser(
-                        outboxRepository = outboxRepository,
-                        forsikringsvurdering = forsikringsvurdering,
-                        vedtaksperiodeId = melding.vedtaksperiodeId,
-                        behandlingId = melding.behandlingId,
+                packet["@løsning"] =
+                    mapOf(
+                        "Forsikringsvurdering" to
+                            mapOf(
+                                "forsikringsvurderingId" to forsikringsvurderingId.value.toString(),
+                            ),
                     )
 
-                    loggInfo("Legger løsning på Forsikringsvurdering-behov i outbox", "løsning" to løsningJson)
-                    outboxRepository.push(identitetsnummer.value, løsningJson)
-                }
+                val løsningJson = packet.toJson()
+
+                loggInfo("Legger løsning på Forsikringsvurdering-behov i outbox", "løsning" to løsningJson)
+                outboxRepository.push(identitetsnummer.value, løsningJson)
             }
         } catch (err: Exception) {
             // Logg feilen og gå videre. Meldingen hoppes over siden vi ikke kaster exception ut av onPacket().

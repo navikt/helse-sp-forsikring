@@ -7,6 +7,7 @@ import kotliquery.sessionOf
 import org.flywaydb.core.Flyway
 import org.intellij.lang.annotations.Language
 import org.testcontainers.postgresql.PostgreSQLContainer
+import java.time.Instant
 import java.util.*
 
 object TestcontainersSpForsikringDatabase {
@@ -155,6 +156,34 @@ object TestcontainersSpForsikringDatabase {
                     mapOf("forsikringsvurderingId" to forsikringsvurderingId),
                 ).map { it.string("behov_eller_request_body") }.asSingle,
             )!!
+        }
+    }
+
+    data class Gjenbruk(
+        val forsikringsvurderingId: UUID,
+        val behov: String,
+        val opprettet: Instant,
+    )
+
+    fun hentGjenbruk(): List<Gjenbruk> {
+        @Language("PostgreSQL")
+        val statement =
+            """
+            SELECT forsikringsvurdering_id, behov, opprettet
+            FROM forsikringsvurdering_gjenbruk
+            ORDER BY opprettet
+            """.trimIndent()
+        return sessionOf(dataSource).use { session ->
+            session.run(
+                queryOf(statement)
+                    .map {
+                        Gjenbruk(
+                            forsikringsvurderingId = it.uuid("forsikringsvurdering_id"),
+                            behov = it.string("behov"),
+                            opprettet = it.instant("opprettet"),
+                        )
+                    }.asList,
+            )
         }
     }
 
