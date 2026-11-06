@@ -40,6 +40,7 @@ fun Route.flexApi(forsikringsvurderingService: ForsikringsvurderingService) {
                                     }
                                 }.toSet(),
                         skjæringstidspunkt = request.skjæringstidspunkt,
+                        rettighetskategoriId = null,
                     ),
                 vedtaksperiodeId = null,
                 behandlingId = null,

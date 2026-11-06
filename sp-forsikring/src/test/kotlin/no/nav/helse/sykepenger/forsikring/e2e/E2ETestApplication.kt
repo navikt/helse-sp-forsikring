@@ -9,6 +9,7 @@ import com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig
 import no.nav.helse.sykepenger.forsikring.gosys.GosysWiremock
 import no.nav.helse.sykepenger.forsikring.launchApplication
+import no.nav.helse.sykepenger.forsikring.rettighetskategori.RettighetskategoriWiremock
 import no.nav.helse.sykepenger.forsikring.shared.testsupport.TestcontainersRapid
 import no.nav.helse.sykepenger.forsikring.shared.testsupport.TestcontainersReplikadatabase
 import no.nav.helse.sykepenger.forsikring.shared.testsupport.TestcontainersSpForsikringDatabase
@@ -25,6 +26,8 @@ object E2ETestApplication {
     val mockOAuth2Server = MockOAuth2Server().also(MockOAuth2Server::start)
 
     val gosysWiremock = GosysWiremock()
+
+    val rettighetskategoriWiremock = RettighetskategoriWiremock()
 
     private val texasWiremock =
         WireMockServer(wireMockConfig().dynamicPort())
@@ -114,6 +117,7 @@ object E2ETestApplication {
         TestcontainersReplikadatabase.reset()
         TestcontainersSpForsikringDatabase.reset()
         gosysWiremock.reset()
+        rettighetskategoriWiremock.reset()
     }
 
     private val applikasjonstråd by lazy {
@@ -132,6 +136,8 @@ object E2ETestApplication {
                             "REPLIKABASE_SCHEMA" to TestcontainersReplikadatabase.oracleContainer.username,
                             "GOSYS_BASE_URL" to gosysWiremock.baseUrl(),
                             "GOSYS_SCOPE" to "api://dev-fss.oppgavehandtering.oppgave/.default",
+                            "SP_RETTIGHETSKATEGORI_BASE_URL" to rettighetskategoriWiremock.baseUrl(),
+                            "SP_RETTIGHETSKATEGORI_SCOPE" to "api://dev-gcp.tbd.sp-rettighetskategori/.default",
                             "TILGANGSMASKINEN_BASE_URL" to tilgangsmaskinenWiremock.baseUrl(),
                             "TILGANGSMASKINEN_SCOPE" to "api://dev-gcp.tilgangsmaskin.populasjonstilgangskontroll/.default",
                             "NAIS_TOKEN_ENDPOINT" to "${texasWiremock.baseUrl()}/token",

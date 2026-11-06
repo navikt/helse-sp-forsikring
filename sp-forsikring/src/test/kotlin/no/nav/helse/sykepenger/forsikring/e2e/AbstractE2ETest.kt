@@ -70,12 +70,19 @@ abstract class AbstractE2ETest(
         )
     protected val førsteVedtaksperiode = sykefraværstilfelle.vedtaksperioder.first()
     protected val andreVedtaksperiode = sykefraværstilfelle.vedtaksperioder[1]
+    private val rettighetskategoriId = UUID.randomUUID()
     protected val rapid =
         TestcontainersRapid.Klient(sjekkAtApplikasjonenLever = E2ETestApplication::sjekkAtApplikasjonenLever)
 
     @BeforeEach
     fun setUp() {
         E2ETestApplication.reset()
+        E2ETestApplication.rettighetskategoriWiremock.stubRettighetskategori(
+            rettighetskategoriId = rettighetskategoriId,
+            fødselsnummer = testPerson.identitetsnummer,
+            hovedkategori = "SELVSTENDIG_NAERINGSDRIVENDE",
+            tilleggskategorier = listOfNotNull(spesiellYrkesgruppe),
+        )
     }
 
     @AfterEach
@@ -137,7 +144,7 @@ abstract class AbstractE2ETest(
               "yrkesaktivitetstype": "$yrkesaktivitetstype",
               "Forsikringsvurdering": {
                 "skjæringstidspunkt": "${sykefraværstilfelle.skjæringstidspunkt}",
-                "spesielleYrkesgrupper": [ ${spesiellYrkesgruppe?.let { "\"$it\"" }.orEmpty()} ]
+                "rettighetskategoriId": "$rettighetskategoriId"
               },
               "system_participating_services": [
                 {

@@ -155,6 +155,42 @@ internal class EndringssjekkServiceTest {
         )
     }
 
+    @Test
+    fun `ny vurdering arver rettighetskategori-ID-en fra den forrige`() {
+        val identitetsnummer = lagIdentitetsnummer()
+        val skjæringstidspunkt = LocalDate.parse("2026-01-01")
+        val rettighetskategoriId = UUID.randomUUID()
+        val forrigeVurdering =
+            lagForsikringsvurdering(
+                skjæringstidspunkt = skjæringstidspunkt,
+                identitetsnummer = identitetsnummer,
+                individuelleForsikringer =
+                    listOf(
+                        lagVurdertIndividuellForsikring(
+                            type = IndividuellForsikringType.SELVSTENDIG_80_PROSENT_FRA_DAG_1,
+                            virkningsdato = LocalDate.parse("2025-06-01"),
+                        ),
+                    ),
+                rettighetskategoriId = rettighetskategoriId,
+            )
+        lagreRåkopiOgForsikringsvurdering(forrigeVurdering)
+
+        val resultat =
+            endringssjekkService.endringssjekk(
+                identitetsnummer = identitetsnummer,
+                skjæringstidspunkt = skjæringstidspunkt,
+                saksbehandlerIdent = "Z123456",
+                requestBody = """{"identitetsnummer": "${identitetsnummer.value}"}""",
+            )
+
+        val endretVurdering = assertIs<Endringssjekkresultat.EndretVurdering>(resultat)
+        val lagretVurdering =
+            TestcontainersSpForsikringDatabase.dataSource.inTransaction { transaction ->
+                ForsikringsvurderingRepository(transaction).hent(endretVurdering.forsikringsvurdering.id)
+            }
+        assertEquals(rettighetskategoriId, assertNotNull(lagretVurdering).input.rettighetskategoriId)
+    }
+
     @ParameterizedTest
     @CsvSource(
         "2025-12-31, 2026-01-02, false",

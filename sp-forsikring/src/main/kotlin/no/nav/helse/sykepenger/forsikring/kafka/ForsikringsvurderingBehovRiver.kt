@@ -13,8 +13,11 @@ import no.nav.helse.sykepenger.forsikring.domain.SpesiellYrkesgruppe
 import no.nav.helse.sykepenger.forsikring.domain.Yrkesaktivitetstype
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.ForsikringsvurderingRepository
 import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.ForsikringsvurderingService
-import no.nav.helse.sykepenger.forsikring.kafka.lib.medParsetMeldingOgTransaction
+import no.nav.helse.sykepenger.forsikring.kafka.lib.medParsetMelding
+import no.nav.helse.sykepenger.forsikring.rettighetskategori.Rettighetskategori
+import no.nav.helse.sykepenger.forsikring.rettighetskategori.RettighetskategoriClient
 import no.nav.helse.sykepenger.forsikring.råkopi.RåkopiRepository
+import no.nav.helse.sykepenger.forsikring.shared.util.inTransaction
 import no.nav.sykepenger.libs.logging.loggError
 import no.nav.sykepenger.libs.logging.loggInfo
 import javax.sql.DataSource
@@ -25,6 +28,7 @@ class ForsikringsvurderingBehovRiver(
     private val spForsikringDataSource: DataSource,
     private val versjonAvKode: String,
     private val outboxRepositoryFactory: OutboxRepositoryFactory,
+    private val rettighetskategoriClient: RettighetskategoriClient,
 ) : River.PacketListener {
     init {
         River(rapidsConnection)
@@ -39,11 +43,9 @@ class ForsikringsvurderingBehovRiver(
                         "fødselsnummer",
                         "vedtaksperiodeId",
                         "behandlingId",
-                        "yrkesaktivitetstype",
-                        "Forsikringsvurdering.spesielleYrkesgrupper",
+                        "Forsikringsvurdering.rettighetskategoriId",
                         "Forsikringsvurdering.skjæringstidspunkt",
                     )
-                    it.requireArray("Forsikringsvurdering.spesielleYrkesgrupper")
                 }
             }.register(this)
     }
@@ -58,56 +60,70 @@ class ForsikringsvurderingBehovRiver(
         meterRegistry: MeterRegistry,
     ) {
         try {
-            packet.medParsetMeldingOgTransaction<ForsikringsvurderingBehovMelding>(
-                dataSource = spForsikringDataSource,
-            ) { melding, transaction ->
+            packet.medParsetMelding<ForsikringsvurderingBehovMelding> { melding ->
                 val identitetsnummer = Identitetsnummer.fraString(melding.fødselsnummer)
+                val rettighetskategoriId = melding.forsikringsvurdering.rettighetskategoriId
+                // Henter rettighetskategorien før transaksjonen, så vi ikke holder en databaseforbindelse under HTTP-kallet.
+                val rettighetskategori = rettighetskategoriClient.hent(rettighetskategoriId, identitetsnummer)
+
+                if (rettighetskategori.hovedkategori != Rettighetskategori.Hovedkategori.SELVSTENDIG_NAERINGSDRIVENDE) {
+                    loggError(
+                        "Kan bare vurdere forsikring for selvstendig næringsdrivende. Svarer ikke på behovet.",
+                        "hovedkategori" to rettighetskategori.hovedkategori.name,
+                        "rettighetskategoriId" to rettighetskategoriId.toString(),
+                    )
+                    return@medParsetMelding
+                }
+
                 val (råkopi, forsikringsvurdering) =
                     forsikringsvurderingService.gjørForsikringsvurdering(
                         input =
                             ForsikringsvurderingInput(
                                 identitetsnummer = identitetsnummer,
-                                yrkesaktivitetstype = melding.yrkesaktivitetstype.tilDomene(),
+                                yrkesaktivitetstype = Yrkesaktivitetstype.SELVSTENDIG,
                                 spesielleYrkesgrupper =
-                                    melding.forsikringsvurdering.spesielleYrkesgrupper
-                                        .map { it.tilDomene() }
+                                    rettighetskategori.tilleggskategorier
+                                        .map { it.tilSpesiellYrkesgruppe() }
                                         .toSet(),
                                 skjæringstidspunkt = melding.forsikringsvurdering.skjæringstidspunkt,
+                                rettighetskategoriId = rettighetskategoriId,
                             ),
                         vedtaksperiodeId = melding.vedtaksperiodeId,
                         behandlingId = melding.behandlingId,
                         forrigeForsikringsvurderingId = null,
                     )
 
-                RåkopiRepository(transaction).lagre(råkopi)
-                ForsikringsvurderingRepository(transaction).lagre(
-                    forsikringsvurdering = forsikringsvurdering,
-                    behovEllerRequestBody = packet.toJson(),
-                )
-
-                packet["@løsning"] =
-                    mapOf(
-                        "Forsikringsvurdering" to
-                            mapOf(
-                                "forsikringsvurderingId" to forsikringsvurdering.id.value.toString(),
-                            ),
+                spForsikringDataSource.inTransaction { transaction ->
+                    RåkopiRepository(transaction).lagre(råkopi)
+                    ForsikringsvurderingRepository(transaction).lagre(
+                        forsikringsvurdering = forsikringsvurdering,
+                        behovEllerRequestBody = packet.toJson(),
                     )
 
-                val løsningJson = packet.toJson()
+                    packet["@løsning"] =
+                        mapOf(
+                            "Forsikringsvurdering" to
+                                mapOf(
+                                    "forsikringsvurderingId" to forsikringsvurdering.id.value.toString(),
+                                ),
+                        )
 
-                val outboxRepository = outboxRepositoryFactory.lag(transaction)
+                    val løsningJson = packet.toJson()
 
-                RapidSubsumsjonspubliserer(
-                    versjonAvKode = versjonAvKode,
-                ).publiser(
-                    outboxRepository = outboxRepository,
-                    forsikringsvurdering = forsikringsvurdering,
-                    vedtaksperiodeId = melding.vedtaksperiodeId,
-                    behandlingId = melding.behandlingId,
-                )
+                    val outboxRepository = outboxRepositoryFactory.lag(transaction)
 
-                loggInfo("Legger løsning på Forsikringsvurdering-behov i outbox", "løsning" to løsningJson)
-                outboxRepository.push(identitetsnummer.value, løsningJson)
+                    RapidSubsumsjonspubliserer(
+                        versjonAvKode = versjonAvKode,
+                    ).publiser(
+                        outboxRepository = outboxRepository,
+                        forsikringsvurdering = forsikringsvurdering,
+                        vedtaksperiodeId = melding.vedtaksperiodeId,
+                        behandlingId = melding.behandlingId,
+                    )
+
+                    loggInfo("Legger løsning på Forsikringsvurdering-behov i outbox", "løsning" to løsningJson)
+                    outboxRepository.push(identitetsnummer.value, løsningJson)
+                }
             }
         } catch (err: Exception) {
             // Logg feilen og gå videre. Meldingen hoppes over siden vi ikke kaster exception ut av onPacket().
@@ -115,19 +131,9 @@ class ForsikringsvurderingBehovRiver(
         }
     }
 
-    private fun ForsikringsvurderingBehovMelding.Yrkesaktivitetstype.tilDomene(): Yrkesaktivitetstype =
+    private fun Rettighetskategori.Tilleggskategori.tilSpesiellYrkesgruppe(): SpesiellYrkesgruppe =
         when (this) {
-            ForsikringsvurderingBehovMelding.Yrkesaktivitetstype.ARBEIDSTAKER -> Yrkesaktivitetstype.ARBEIDSTAKER
-            ForsikringsvurderingBehovMelding.Yrkesaktivitetstype.FRILANS -> Yrkesaktivitetstype.FRILANS
-            ForsikringsvurderingBehovMelding.Yrkesaktivitetstype.ARBEIDSLEDIG -> Yrkesaktivitetstype.ARBEIDSLEDIG
-            ForsikringsvurderingBehovMelding.Yrkesaktivitetstype.SELVSTENDIG -> Yrkesaktivitetstype.SELVSTENDIG
-        }
-
-    private fun ForsikringsvurderingBehovMelding.SpesiellYrkesgruppe.tilDomene(): SpesiellYrkesgruppe =
-        when (this) {
-            ForsikringsvurderingBehovMelding.SpesiellYrkesgruppe.FISKER_BLAD_B -> SpesiellYrkesgruppe.FISKER_BLAD_B
-            ForsikringsvurderingBehovMelding.SpesiellYrkesgruppe.JORDBRUKER -> SpesiellYrkesgruppe.JORDBRUKER
-            ForsikringsvurderingBehovMelding.SpesiellYrkesgruppe.REINDRIFTER -> SpesiellYrkesgruppe.REINDRIFTER
+            Rettighetskategori.Tilleggskategori.JORDBRUKER -> SpesiellYrkesgruppe.JORDBRUKER
         }
 
     override fun onError(

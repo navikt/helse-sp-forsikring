@@ -1,20 +1,27 @@
 package no.nav.helse.sykepenger.forsikring.kafka
 
 import com.github.navikt.tbd_libs.rapids_and_rivers.test_support.TestRapid
+import no.nav.helse.sykepenger.forsikring.domain.Forsikringsvurdering
+import no.nav.helse.sykepenger.forsikring.domain.SpesiellYrkesgruppe
+import no.nav.helse.sykepenger.forsikring.domain.Yrkesaktivitetstype
+import no.nav.helse.sykepenger.forsikring.forsikringsvurdering.ForsikringsvurderingRepository
+import no.nav.helse.sykepenger.forsikring.rettighetskategori.RettighetskategoriWiremock
 import no.nav.helse.sykepenger.forsikring.shared.testsupport.TestcontainersReplikadatabase
 import no.nav.helse.sykepenger.forsikring.shared.testsupport.TestcontainersSpForsikringDatabase
+import no.nav.helse.sykepenger.forsikring.shared.util.inTransaction
 import no.nav.sykepenger.libs.testing.assertions.assertJsonEquals
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertDoesNotThrow
 import org.junit.jupiter.params.ParameterizedTest
-import org.junit.jupiter.params.provider.CsvSource
+import org.junit.jupiter.params.provider.ValueSource
 import java.util.*
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 
 internal class ForsikringsvurderingBehovRiverTest {
     private val outbox = InMemoryOutboxRepository()
+    private val rettighetskategoriWiremock = RettighetskategoriWiremock()
     private val rapid =
         TestRapid().apply {
             ForsikringsvurderingBehovRiver(
@@ -23,6 +30,7 @@ internal class ForsikringsvurderingBehovRiverTest {
                 spForsikringDataSource = TestcontainersSpForsikringDatabase.dataSource,
                 versjonAvKode = "",
                 outboxRepositoryFactory = { outbox },
+                rettighetskategoriClient = rettighetskategoriWiremock.client,
             )
         }
 
@@ -31,24 +39,12 @@ internal class ForsikringsvurderingBehovRiverTest {
         TestcontainersReplikadatabase.reset()
         TestcontainersSpForsikringDatabase.reset()
         outbox.tøm()
+        rettighetskategoriWiremock.reset()
     }
 
     @Test
     fun `løsningmelding er lik behovsmeldingen, sett bort fra løsning-feltet og rapids and rivers-genererte felter`() {
-        val testmelding =
-            """
-            {
-                "@behov": [ "Forsikringsvurdering" ],
-                "fødselsnummer": "01020312345",
-                "yrkesaktivitetstype": "SELVSTENDIG",
-                "vedtaksperiodeId": "${UUID.randomUUID()}",
-                "behandlingId": "${UUID.randomUUID()}",
-                "Forsikringsvurdering" : {
-                    "spesielleYrkesgrupper": [],
-                    "skjæringstidspunkt": "2026-01-01"
-                }
-            }
-            """.trimIndent()
+        val testmelding = behov(fødselsnummer = "01020312345", rettighetskategoriId = stubRettighetskategoriSN())
 
         rapid.sendTestMessage(testmelding)
 
@@ -68,21 +64,7 @@ internal class ForsikringsvurderingBehovRiverTest {
 
     @Test
     fun `løsning har en forsikringsvurderingId som er en UUID`() {
-        rapid.sendTestMessage(
-            """
-            {
-                "@behov": [ "Forsikringsvurdering" ],
-                "fødselsnummer": "01020312345",
-                "yrkesaktivitetstype": "SELVSTENDIG",
-                "vedtaksperiodeId": "${UUID.randomUUID()}",
-                "behandlingId": "${UUID.randomUUID()}",
-                "Forsikringsvurdering" : {
-                    "spesielleYrkesgrupper": [],
-                    "skjæringstidspunkt": "2026-01-01"
-                }
-            }
-            """.trimIndent(),
-        )
+        rapid.sendTestMessage(behov(fødselsnummer = "01020312345", rettighetskategoriId = stubRettighetskategoriSN()))
 
         assertEquals(1, outbox.alle().size)
         val løsningMelding = outbox.meldinger()[0]
@@ -93,43 +75,13 @@ internal class ForsikringsvurderingBehovRiverTest {
         }
     }
 
-    @ParameterizedTest(name = "{0} særskilt {1} infotrygd-type {2}", quoteTextArguments = false)
-    @CsvSource(
-        "ARBEIDSTAKER, , 1",
-        "ARBEIDSTAKER, , 2",
-        "ARBEIDSTAKER, , 3",
-        "ARBEIDSTAKER, , 4",
-        "ARBEIDSTAKER, , 5",
-        "SELVSTENDIG, , 4",
-        "FRILANS, , 1",
-        "FRILANS, , 2",
-        "FRILANS, , 3",
-        "FRILANS, , 4",
-    )
-    fun `individuell forsikring som ikke passer med søknadstypen ekskluderes i stedet for å feile`(
-        yrkesaktivitetstype: String,
-        særskiltGruppe: String?,
-        IF10_TYPE: Char?,
-    ) {
-        IF10_TYPE?.let { insertBetaltVedfrivt(IF01_AGNR_FNR = 3020112345L, IF10_TYPE = it) }
+    @Test
+    fun `individuell forsikring som ikke passer med søknadstypen ekskluderes i stedet for å feile`() {
+        insertBetaltVedfrivt(IF01_AGNR_FNR = 3020112345L, IF10_TYPE = '4')
         val antallRåkopierFør = TestcontainersSpForsikringDatabase.countAlleRåkopier()
         val antallForsikringsvurderingerFør = TestcontainersSpForsikringDatabase.countAlleForsikringsvurderinger()
 
-        rapid.sendTestMessage(
-            """
-            {
-                "@behov": [ "Forsikringsvurdering" ],
-                "fødselsnummer": "01020312345",
-                "yrkesaktivitetstype": "$yrkesaktivitetstype",
-                "vedtaksperiodeId": "${UUID.randomUUID()}",
-                "behandlingId": "${UUID.randomUUID()}",
-                "Forsikringsvurdering" : {
-                    "spesielleYrkesgrupper": [ ${særskiltGruppe?.let { "\"$it\"" }.orEmpty()} ],
-                    "skjæringstidspunkt": "2026-01-01"
-                }
-            }
-            """.trimIndent(),
-        )
+        rapid.sendTestMessage(behov(fødselsnummer = "01020312345", rettighetskategoriId = stubRettighetskategoriSN()))
 
         assertEquals(1, outbox.alle().size)
         val forsikringsvurderingId = outbox.meldinger()[0]["@løsning"]["Forsikringsvurdering"]["forsikringsvurderingId"]?.asString()
@@ -151,26 +103,23 @@ internal class ForsikringsvurderingBehovRiverTest {
         val antallForsikringsvurderingerFør = TestcontainersSpForsikringDatabase.countAlleForsikringsvurderinger()
 
         assertDoesNotThrow {
-            rapid.sendTestMessage(
-                """
-                {
-                    "@behov": [ "Forsikringsvurdering" ],
-                    "fødselsnummer": "01020312345",
-                    "yrkesaktivitetstype": "SELVSTENDIG",
-                    "vedtaksperiodeId": "${UUID.randomUUID()}",
-                    "behandlingId": "${UUID.randomUUID()}",
-                    "Forsikringsvurdering" : {
-                        "spesielleYrkesgrupper": [],
-                        "skjæringstidspunkt": "2026-01-01"
-                    }
-                }
-                """.trimIndent(),
-            )
+            rapid.sendTestMessage(behov(fødselsnummer = "01020312345", rettighetskategoriId = stubRettighetskategoriSN()))
         }
 
         assertEquals(0, outbox.alle().size)
         assertEquals(antallRåkopierFør, TestcontainersSpForsikringDatabase.countAlleRåkopier())
         assertEquals(antallForsikringsvurderingerFør, TestcontainersSpForsikringDatabase.countAlleForsikringsvurderinger())
+    }
+
+    @Test
+    fun `svarer ikke på behov når bruker har flere gyldige individuelle forsikringer`() {
+        insertBetaltVedfrivt(IF01_AGNR_FNR = 3020112345L, IF10_FORSFOM_SEQ = 1, IF10_TYPE = '2') // grad=100, fraDag=17
+        insertBetaltVedfrivt(IF01_AGNR_FNR = 3020112345L, IF10_FORSFOM_SEQ = 2, IF10_TYPE = '3') // grad=100, fraDag=1
+
+        rapid.sendTestMessage(behov(fødselsnummer = "01020312345", rettighetskategoriId = stubRettighetskategoriSN()))
+
+        // Vurderingen er ugyldig, og riveren hopper over meldingen i stedet for å svare med en løsning
+        assertEquals(0, outbox.alle().size)
     }
 
     @Test
@@ -206,21 +155,7 @@ internal class ForsikringsvurderingBehovRiverTest {
             IF12_BETDATO_SEQ = 444,
         )
 
-        rapid.sendTestMessage(
-            """
-            {
-                "@behov": [ "Forsikringsvurdering" ],
-                "fødselsnummer": "01020312345",
-                "yrkesaktivitetstype": "SELVSTENDIG",
-                "vedtaksperiodeId": "${UUID.randomUUID()}",
-                "behandlingId": "${UUID.randomUUID()}",
-                "Forsikringsvurdering" : {
-                    "spesielleYrkesgrupper": [],
-                    "skjæringstidspunkt": "2026-01-01"
-                }
-            }
-            """.trimIndent(),
-        )
+        rapid.sendTestMessage(behov(fødselsnummer = "01020312345", rettighetskategoriId = stubRettighetskategoriSN()))
 
         assertEquals(1, outbox.alle().size)
         val løsningMelding = outbox.meldinger()[0]
@@ -245,21 +180,7 @@ internal class ForsikringsvurderingBehovRiverTest {
         TestcontainersReplikadatabase.insertVedfrivt(IF01_AGNR_FNR = 3020112345L, IF10_FORSFOM_SEQ = 4, IF10_TYPE = '2', IF10_VIRKDATO = 20260601)
         TestcontainersReplikadatabase.insertFkonto12(IF01_AGNR_FNR = 3020112345L, IF10_FORSFOM_SEQ = 4, IF12_BETDATO_SEQ = 1, IF12_BETDATO = 20260101)
 
-        rapid.sendTestMessage(
-            """
-            {
-                "@behov": [ "Forsikringsvurdering" ],
-                "fødselsnummer": "01020312345",
-                "yrkesaktivitetstype": "SELVSTENDIG",
-                "vedtaksperiodeId": "${UUID.randomUUID()}",
-                "behandlingId": "${UUID.randomUUID()}",
-                "Forsikringsvurdering" : {
-                    "spesielleYrkesgrupper": [],
-                    "skjæringstidspunkt": "2026-01-01"
-                }
-            }
-            """.trimIndent(),
-        )
+        rapid.sendTestMessage(behov(fødselsnummer = "01020312345", rettighetskategoriId = stubRettighetskategoriSN()))
 
         assertEquals(1, outbox.alle().size)
         val forsikringsvurderingId = outbox.meldinger()[0]["@løsning"]["Forsikringsvurdering"]["forsikringsvurderingId"].asString()
@@ -269,6 +190,131 @@ internal class ForsikringsvurderingBehovRiverTest {
         assertEquals("OPPHØRT_PÅ_SKJÆRINGSTIDSPUNKT", ekskluderinger[2])
         assertEquals("ALDRI_BETALT", ekskluderinger[3])
         assertEquals("SKJÆRINGSTIDSPUNKT_MER_ENN_28_DAGER_FØR_VIRKNINGSDATO", ekskluderinger[4])
+    }
+
+    @Test
+    fun `vurderer som selvstendig uten spesielle yrkesgrupper og lagrer rettighetskategori-ID-en`() {
+        val rettighetskategoriId = stubRettighetskategoriSN()
+
+        rapid.sendTestMessage(behov(fødselsnummer = "01020312345", rettighetskategoriId = rettighetskategoriId))
+
+        val forsikringsvurdering = hentLagretForsikringsvurdering()
+        assertEquals(Yrkesaktivitetstype.SELVSTENDIG, forsikringsvurdering.input.yrkesaktivitetstype)
+        assertEquals(emptySet(), forsikringsvurdering.input.spesielleYrkesgrupper)
+        assertEquals(rettighetskategoriId, forsikringsvurdering.input.rettighetskategoriId)
+    }
+
+    @Test
+    fun `tilleggskategorien jordbruker gir spesiell yrkesgruppe jordbruker`() {
+        val rettighetskategoriId = stubRettighetskategoriSN(tilleggskategorier = listOf("JORDBRUKER"))
+
+        rapid.sendTestMessage(behov(fødselsnummer = "01020312345", rettighetskategoriId = rettighetskategoriId))
+
+        val forsikringsvurdering = hentLagretForsikringsvurdering()
+        assertEquals(Yrkesaktivitetstype.SELVSTENDIG, forsikringsvurdering.input.yrkesaktivitetstype)
+        assertEquals(setOf(SpesiellYrkesgruppe.JORDBRUKER), forsikringsvurdering.input.spesielleYrkesgrupper)
+    }
+
+    @Test
+    fun `ser bort fra yrkesaktivitetstype og spesielleYrkesgrupper i behovet`() {
+        val rettighetskategoriId = stubRettighetskategoriSN()
+
+        rapid.sendTestMessage(
+            behov(
+                fødselsnummer = "01020312345",
+                rettighetskategoriId = rettighetskategoriId,
+                yrkesaktivitetstype = "ARBEIDSTAKER",
+                spesielleYrkesgrupper = listOf("JORDBRUKER"),
+            ),
+        )
+
+        val forsikringsvurdering = hentLagretForsikringsvurdering()
+        assertEquals(Yrkesaktivitetstype.SELVSTENDIG, forsikringsvurdering.input.yrkesaktivitetstype)
+        assertEquals(emptySet(), forsikringsvurdering.input.spesielleYrkesgrupper)
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = ["ARBEIDSTAKER", "ARBEIDSTAKER_OG_SELVSTENDIG_NAERINGSDRIVENDE"])
+    fun `gir ingen løsning når hovedkategorien ikke er selvstendig næringsdrivende`(hovedkategori: String) {
+        val rettighetskategoriId = UUID.randomUUID()
+        rettighetskategoriWiremock.stubRettighetskategori(
+            rettighetskategoriId = rettighetskategoriId,
+            fødselsnummer = "01020312345",
+            hovedkategori = hovedkategori,
+            tilleggskategorier = emptyList(),
+        )
+
+        rapid.sendTestMessage(behov(fødselsnummer = "01020312345", rettighetskategoriId = rettighetskategoriId))
+
+        assertIngenLøsningOgIngenForsikringsvurdering()
+    }
+
+    @ParameterizedTest
+    @ValueSource(ints = [404, 500])
+    fun `gir ingen løsning når sp-rettighetskategori svarer med feil`(status: Int) {
+        val rettighetskategoriId = UUID.randomUUID()
+        rettighetskategoriWiremock.stubFeil(rettighetskategoriId, status)
+
+        rapid.sendTestMessage(behov(fødselsnummer = "01020312345", rettighetskategoriId = rettighetskategoriId))
+
+        assertIngenLøsningOgIngenForsikringsvurdering()
+    }
+
+    @Test
+    fun `gir ingen løsning når rettighetskategoriId mangler i behovet`() {
+        rapid.sendTestMessage(behov(fødselsnummer = "01020312345", rettighetskategoriId = null))
+
+        assertIngenLøsningOgIngenForsikringsvurdering()
+        assertEquals(emptyList(), rettighetskategoriWiremock.loggedRequests())
+    }
+
+    private fun stubRettighetskategoriSN(tilleggskategorier: List<String> = emptyList()): UUID {
+        val rettighetskategoriId = UUID.randomUUID()
+        rettighetskategoriWiremock.stubRettighetskategori(
+            rettighetskategoriId = rettighetskategoriId,
+            fødselsnummer = "01020312345",
+            hovedkategori = "SELVSTENDIG_NAERINGSDRIVENDE",
+            tilleggskategorier = tilleggskategorier,
+        )
+        return rettighetskategoriId
+    }
+
+    private fun behov(
+        fødselsnummer: String,
+        rettighetskategoriId: UUID?,
+        yrkesaktivitetstype: String = "SELVSTENDIG",
+        spesielleYrkesgrupper: List<String> = emptyList(),
+    ): String =
+        // language=json
+        """
+        {
+            "@behov": [ "Forsikringsvurdering" ],
+            "fødselsnummer": "$fødselsnummer",
+            "yrkesaktivitetstype": "$yrkesaktivitetstype",
+            "vedtaksperiodeId": "${UUID.randomUUID()}",
+            "behandlingId": "${UUID.randomUUID()}",
+            "Forsikringsvurdering" : {
+                ${rettighetskategoriId?.let { "\"rettighetskategoriId\": \"$it\"," }.orEmpty()}
+                "spesielleYrkesgrupper": [ ${spesielleYrkesgrupper.joinToString { "\"$it\"" }} ],
+                "skjæringstidspunkt": "2026-01-01"
+            }
+        }
+        """.trimIndent()
+
+    private fun hentLagretForsikringsvurdering(): Forsikringsvurdering {
+        val løsninger = outbox.meldinger().filter { it.has("@løsning") }
+        assertEquals(1, løsninger.size)
+        val forsikringsvurderingId = løsninger.single()["@løsning"]["Forsikringsvurdering"]["forsikringsvurderingId"].asString()
+        val forsikringsvurdering =
+            TestcontainersSpForsikringDatabase.dataSource.inTransaction { transaction ->
+                ForsikringsvurderingRepository(transaction).hent(Forsikringsvurdering.Id.fromString(forsikringsvurderingId))
+            }
+        return assertNotNull(forsikringsvurdering)
+    }
+
+    private fun assertIngenLøsningOgIngenForsikringsvurdering() {
+        assertEquals(0, outbox.alle().size)
+        assertEquals(0, TestcontainersSpForsikringDatabase.countAlleForsikringsvurderinger())
     }
 
     private fun insertBetaltVedfrivt(

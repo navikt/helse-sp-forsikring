@@ -509,6 +509,7 @@ internal class ForsikringsvurderingTest {
                     yrkesaktivitetstype = yrkesaktivitetstype,
                     spesielleYrkesgrupper = spesielleYrkesgrupper,
                     skjæringstidspunkt = skjæringstidspunkt,
+                    rettighetskategoriId = null,
                 ),
             råkopiId = Råkopi.Id.ny(),
             kollektiveForsikringer = kollektiveForsikringer,

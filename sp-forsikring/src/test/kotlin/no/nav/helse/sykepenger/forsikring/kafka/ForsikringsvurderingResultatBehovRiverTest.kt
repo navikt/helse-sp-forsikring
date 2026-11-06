@@ -1,6 +1,7 @@
 package no.nav.helse.sykepenger.forsikring.kafka
 
 import com.github.navikt.tbd_libs.rapids_and_rivers.test_support.TestRapid
+import no.nav.helse.sykepenger.forsikring.rettighetskategori.RettighetskategoriWiremock
 import no.nav.helse.sykepenger.forsikring.shared.testsupport.TestcontainersReplikadatabase
 import no.nav.helse.sykepenger.forsikring.shared.testsupport.TestcontainersReplikadatabase.insertFkonto12
 import no.nav.helse.sykepenger.forsikring.shared.testsupport.TestcontainersReplikadatabase.insertVedfrivt
@@ -18,6 +19,7 @@ import kotlin.test.assertNotNull
 
 internal class ForsikringsvurderingResultatBehovRiverTest {
     private val outbox = InMemoryOutboxRepository()
+    private val rettighetskategoriWiremock = RettighetskategoriWiremock()
     private val rapid =
         TestRapid().apply {
             ForsikringsvurderingBehovRiver(
@@ -26,6 +28,7 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
                 spForsikringDataSource = TestcontainersSpForsikringDatabase.dataSource,
                 versjonAvKode = "",
                 outboxRepositoryFactory = { outbox },
+                rettighetskategoriClient = rettighetskategoriWiremock.client,
             )
             ForsikringsvurderingResultatBehovRiver(
                 rapidsConnection = this,
@@ -39,11 +42,12 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
         TestcontainersReplikadatabase.reset()
         TestcontainersSpForsikringDatabase.reset()
         outbox.tøm()
+        rettighetskategoriWiremock.reset()
     }
 
     @Test
     fun `løsningmelding er lik behovsmeldingen, sett bort fra løsning-feltet og rapids and rivers-genererte felter`() {
-        val forsikringsvurderingId = opprettVurdering(yrkesaktivitetstype = "SELVSTENDIG")
+        val forsikringsvurderingId = opprettVurdering(fødselsnummer = "01020312345")
 
         val testmelding = forsikringsvurderingResultatBehovMelding(forsikringsvurderingId)
         rapid.sendTestMessage(testmelding)
@@ -77,7 +81,7 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
             IF12_BETDATO = 20260101,
         )
 
-        val forsikringsvurderingId = opprettVurdering(yrkesaktivitetstype = "SELVSTENDIG")
+        val forsikringsvurderingId = opprettVurdering(fødselsnummer = "01020312345")
 
         sendForsikringsvurderingResultatBehov(forsikringsvurderingId)
 
@@ -115,7 +119,7 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
             IF12_BETDATO = 20260101,
         )
 
-        val forsikringsvurderingId = opprettVurdering(yrkesaktivitetstype = "SELVSTENDIG")
+        val forsikringsvurderingId = opprettVurdering(fødselsnummer = "01020312345")
 
         sendForsikringsvurderingResultatBehov(forsikringsvurderingId)
 
@@ -139,7 +143,7 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
 
     @Test
     fun `returnerer løsning uten forsikring basert på forsikringsvurderingId`() {
-        val forsikringsvurderingId = opprettVurdering(yrkesaktivitetstype = "SELVSTENDIG")
+        val forsikringsvurderingId = opprettVurdering(fødselsnummer = "01020312345")
 
         sendForsikringsvurderingResultatBehov(forsikringsvurderingId)
 
@@ -160,7 +164,7 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
 
     @Test
     fun `løsning inneholder forsikringsvurderingId`() {
-        val forsikringsvurderingId = opprettVurdering(yrkesaktivitetstype = "SELVSTENDIG")
+        val forsikringsvurderingId = opprettVurdering(fødselsnummer = "01020312345")
 
         sendForsikringsvurderingResultatBehov(forsikringsvurderingId)
 
@@ -174,7 +178,7 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
     fun `villeHattForsikringOmDenVarBetalt er true når eneste forsikring aldri er betalt`() {
         insertVedfrivt(IF01_AGNR_FNR = 3020112345L, IF10_TYPE = '2')
 
-        val forsikringsvurderingId = opprettVurdering(yrkesaktivitetstype = "SELVSTENDIG")
+        val forsikringsvurderingId = opprettVurdering(fødselsnummer = "01020312345")
 
         sendForsikringsvurderingResultatBehov(forsikringsvurderingId)
 
@@ -186,7 +190,7 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
         insertBetaltVedfrivt(IF01_AGNR_FNR = 3020112345L, IF10_FORSFOM_SEQ = 1, IF10_TYPE = '2')
         insertVedfrivt(IF01_AGNR_FNR = 3020112345L, IF10_FORSFOM_SEQ = 2, IF10_TYPE = '2')
 
-        val forsikringsvurderingId = opprettVurdering(yrkesaktivitetstype = "SELVSTENDIG")
+        val forsikringsvurderingId = opprettVurdering(fødselsnummer = "01020312345")
 
         sendForsikringsvurderingResultatBehov(forsikringsvurderingId)
 
@@ -197,7 +201,7 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
     fun `villeHattForsikringOmDenVarBetalt er false når forsikringen er betalt`() {
         insertBetaltVedfrivt(IF01_AGNR_FNR = 3020112345L, IF10_TYPE = '2')
 
-        val forsikringsvurderingId = opprettVurdering(yrkesaktivitetstype = "SELVSTENDIG")
+        val forsikringsvurderingId = opprettVurdering(fødselsnummer = "01020312345")
 
         sendForsikringsvurderingResultatBehov(forsikringsvurderingId)
 
@@ -208,7 +212,7 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
     fun `villeHattForsikringOmDenVarBetalt er false når forsikringen ble ekskludert av en annen årsak og fortsatt ikke betalt`() {
         insertVedfrivt(IF01_AGNR_FNR = 3020112345L, IF10_TYPE = '2', IF10_FORSTOM = 20251231)
 
-        val forsikringsvurderingId = opprettVurdering(yrkesaktivitetstype = "SELVSTENDIG")
+        val forsikringsvurderingId = opprettVurdering(fødselsnummer = "01020312345")
 
         sendForsikringsvurderingResultatBehov(forsikringsvurderingId)
 
@@ -217,7 +221,7 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
 
     @Test
     fun `villeHattForsikringOmDenVarBetalt er false når bruker ikke har noen forsikringer`() {
-        val forsikringsvurderingId = opprettVurdering(yrkesaktivitetstype = "SELVSTENDIG")
+        val forsikringsvurderingId = opprettVurdering(fødselsnummer = "01020312345")
 
         sendForsikringsvurderingResultatBehov(forsikringsvurderingId)
 
@@ -226,9 +230,9 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
 
     @Test
     fun `harForsikringSomIkkePasserMedSøknadstype er true når forsikringen ikke passer med yrkesaktivitetstypen`() {
-        insertBetaltVedfrivt(IF01_AGNR_FNR = 3020112345L, IF10_TYPE = '2')
+        insertBetaltVedfrivt(IF01_AGNR_FNR = 3020112345L, IF10_TYPE = '5')
 
-        val forsikringsvurderingId = opprettVurdering(yrkesaktivitetstype = "FRILANS")
+        val forsikringsvurderingId = opprettVurdering(fødselsnummer = "01020312345")
 
         sendForsikringsvurderingResultatBehov(forsikringsvurderingId)
 
@@ -240,7 +244,7 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
     fun `harForsikringSomIkkePasserMedSøknadstype er true når jordbrukerforsikring mangler spesiell yrkesgruppe`() {
         insertBetaltVedfrivt(IF01_AGNR_FNR = 3020112345L, IF10_TYPE = '4')
 
-        val forsikringsvurderingId = opprettVurdering(yrkesaktivitetstype = "SELVSTENDIG")
+        val forsikringsvurderingId = opprettVurdering(fødselsnummer = "01020312345")
 
         sendForsikringsvurderingResultatBehov(forsikringsvurderingId)
 
@@ -251,7 +255,7 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
     fun `harForsikringSomIkkePasserMedSøknadstype er false når forsikringen passer med søknadstypen`() {
         insertBetaltVedfrivt(IF01_AGNR_FNR = 3020112345L, IF10_TYPE = '2')
 
-        val forsikringsvurderingId = opprettVurdering(yrkesaktivitetstype = "SELVSTENDIG")
+        val forsikringsvurderingId = opprettVurdering(fødselsnummer = "01020312345")
 
         sendForsikringsvurderingResultatBehov(forsikringsvurderingId)
 
@@ -260,9 +264,9 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
 
     @Test
     fun `harForsikringSomIkkePasserMedSøknadstype er false når forsikringen ble ekskludert av en annen årsak`() {
-        insertBetaltVedfrivt(IF01_AGNR_FNR = 3020112345L, IF10_TYPE = '2', IF10_FORSTOM = 20251231)
+        insertBetaltVedfrivt(IF01_AGNR_FNR = 3020112345L, IF10_TYPE = '5', IF10_FORSTOM = 20251231)
 
-        val forsikringsvurderingId = opprettVurdering(yrkesaktivitetstype = "FRILANS")
+        val forsikringsvurderingId = opprettVurdering(fødselsnummer = "01020312345")
 
         sendForsikringsvurderingResultatBehov(forsikringsvurderingId)
 
@@ -271,7 +275,7 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
 
     @Test
     fun `harForsikringSomIkkePasserMedSøknadstype er false når bruker ikke har noen forsikringer`() {
-        val forsikringsvurderingId = opprettVurdering(yrkesaktivitetstype = "SELVSTENDIG")
+        val forsikringsvurderingId = opprettVurdering(fødselsnummer = "01020312345")
 
         sendForsikringsvurderingResultatBehov(forsikringsvurderingId)
 
@@ -280,11 +284,7 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
 
     @Test
     fun `returnerer løsning med harIndividuellForsikring false for JORDBRUKER`() {
-        val forsikringsvurderingId =
-            opprettVurdering(
-                yrkesaktivitetstype = "SELVSTENDIG",
-                spesielleYrkesgrupper = listOf("JORDBRUKER"),
-            )
+        val forsikringsvurderingId = opprettVurdering(fødselsnummer = "01020312345", tilleggskategorier = listOf("JORDBRUKER"))
 
         sendForsikringsvurderingResultatBehov(forsikringsvurderingId)
 
@@ -319,7 +319,7 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
 
     @Test
     fun `ignorerer melding som allerede har løsning`() {
-        val forsikringsvurderingId = opprettVurdering(yrkesaktivitetstype = "SELVSTENDIG")
+        val forsikringsvurderingId = opprettVurdering(fødselsnummer = "01020312345")
 
         rapid.sendTestMessage(
             """
@@ -352,40 +352,40 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
         assertEquals(0, outbox.alle().size)
     }
 
-    @ParameterizedTest(name = "{0} særskilt {1} infotrygd-type {2} -> {3} fra dag {4} kategori {5}", quoteTextArguments = false)
+    @ParameterizedTest(name = "tilleggskategori {0} infotrygd-type {1} -> {2} fra dag {3} kategori {4}", quoteTextArguments = false)
     @CsvSource(
-        "SELVSTENDIG, , 1, 80, true, true",
-        "SELVSTENDIG, , 2, 100, false, true",
-        "SELVSTENDIG, , 3, 100, true, true",
-        "SELVSTENDIG, JORDBRUKER, 4, 100, true, true",
-        "SELVSTENDIG, REINDRIFTER, 4, 100, true, true",
-        "FRILANS, , 5, 100, true, true",
-        // Kollektive forsikringer
-        "SELVSTENDIG, JORDBRUKER, , 100, false, false",
-        "SELVSTENDIG, REINDRIFTER, , 100, false, false",
-        "ARBEIDSTAKER, FISKER_BLAD_B, , 100, true, false",
-        "SELVSTENDIG, FISKER_BLAD_B, , 100, true, false",
+        ", 1, 80, true, true",
+        ", 2, 100, false, true",
+        ", 3, 100, true, true",
+        "JORDBRUKER, 4, 100, true, true",
+        // Kollektiv forsikring
+        "JORDBRUKER, , 100, false, false",
     )
     fun `gir løsning med forsikring`(
-        yrkesaktivitetstype: String,
-        særskiltGruppe: String?,
+        tilleggskategori: String?,
         IF10_TYPE: Char?,
         grad: Int,
         iVentetid: Boolean,
         harIndividuellForsikring: Boolean,
     ) {
         IF10_TYPE?.let { insertBetaltVedfrivt(IF01_AGNR_FNR = 3020112345L, IF10_TYPE = it) }
+        val rettighetskategoriId = UUID.randomUUID()
+        stubRettighetskategoriSN(
+            rettighetskategoriId = rettighetskategoriId,
+            fødselsnummer = "01020312345",
+            tilleggskategorier = listOfNotNull(tilleggskategori),
+        )
 
         testForsikringsvurderingOgForventResultat(
             """
             {
                 "@behov": [ "Forsikringsvurdering" ],
                 "fødselsnummer": "01020312345",
-                "yrkesaktivitetstype": "$yrkesaktivitetstype",
+                "yrkesaktivitetstype": "SELVSTENDIG",
                 "vedtaksperiodeId": "${UUID.randomUUID()}",
                 "behandlingId": "${UUID.randomUUID()}",
                 "Forsikringsvurdering" : {
-                    "spesielleYrkesgrupper": [ ${særskiltGruppe?.let { "\"$it\"" }.orEmpty()} ],
+                    "rettighetskategoriId": "$rettighetskategoriId",
                     "skjæringstidspunkt": "2026-01-01"
                 }
             }
@@ -406,29 +406,25 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
         }
     }
 
-    @ParameterizedTest(name = "{0} særskilt {1} infotrygd-type {2}", quoteTextArguments = false)
-    @CsvSource(
-        "ARBEIDSTAKER, , ",
-        "SELVSTENDIG, , ",
-        "FRILANS, , ",
-    )
-    fun `gir løsning uten forsikring`(
-        yrkesaktivitetstype: String,
-        særskiltGruppe: String?,
-        IF10_TYPE: Char?,
-    ) {
-        IF10_TYPE?.let { insertBetaltVedfrivt(IF01_AGNR_FNR = 3020112345L, IF10_TYPE = it) }
+    @Test
+    fun `gir løsning uten forsikring`() {
+        val rettighetskategoriId = UUID.randomUUID()
+        stubRettighetskategoriSN(
+            rettighetskategoriId = rettighetskategoriId,
+            fødselsnummer = "01020312345",
+            tilleggskategorier = emptyList(),
+        )
 
         testForsikringsvurderingOgForventResultat(
             """
             {
                 "@behov": [ "Forsikringsvurdering" ],
                 "fødselsnummer": "01020312345",
-                "yrkesaktivitetstype": "$yrkesaktivitetstype",
+                "yrkesaktivitetstype": "SELVSTENDIG",
                 "vedtaksperiodeId": "${UUID.randomUUID()}",
                 "behandlingId": "${UUID.randomUUID()}",
                 "Forsikringsvurdering" : {
-                    "spesielleYrkesgrupper": [ ${særskiltGruppe?.let { "\"$it\"" }.orEmpty()} ],
+                    "rettighetskategoriId": "$rettighetskategoriId",
                     "skjæringstidspunkt": "2026-01-01"
                 }
             }
@@ -453,6 +449,13 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
     fun `gir løsning uten forsikring dersom bruker kun har en ikke-godkjent forsikring`() {
         insertBetaltVedfrivt(IF01_AGNR_FNR = 3020112345L, IF10_TYPE = '1', IF10_GODKJ = 'N')
 
+        val rettighetskategoriId = UUID.randomUUID()
+        stubRettighetskategoriSN(
+            rettighetskategoriId = rettighetskategoriId,
+            fødselsnummer = "01020312345",
+            tilleggskategorier = emptyList(),
+        )
+
         testForsikringsvurderingOgForventResultat(
             """
             {
@@ -462,7 +465,7 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
                 "vedtaksperiodeId": "${UUID.randomUUID()}",
                 "behandlingId": "${UUID.randomUUID()}",
                 "Forsikringsvurdering" : {
-                    "spesielleYrkesgrupper": [],
+                    "rettighetskategoriId": "$rettighetskategoriId",
                     "skjæringstidspunkt": "2026-01-01"
                 }
             }
@@ -484,36 +487,18 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
     }
 
     @Test
-    fun `svarer ikke på behov når bruker har flere gyldige individuelle forsikringer`() {
-        insertBetaltVedfrivt(IF01_AGNR_FNR = 3020112345L, IF10_FORSFOM_SEQ = 1, IF10_TYPE = '2') // grad=100, fraDag=17
-        insertBetaltVedfrivt(IF01_AGNR_FNR = 3020112345L, IF10_FORSFOM_SEQ = 2, IF10_TYPE = '3') // grad=100, fraDag=1
-
-        rapid.sendTestMessage(
-            """
-            {
-                "@behov": [ "Forsikringsvurdering" ],
-                "fødselsnummer": "01020312345",
-                "yrkesaktivitetstype": "SELVSTENDIG",
-                "vedtaksperiodeId": "${UUID.randomUUID()}",
-                "behandlingId": "${UUID.randomUUID()}",
-                "Forsikringsvurdering" : {
-                    "spesielleYrkesgrupper": [],
-                    "skjæringstidspunkt": "2026-01-01"
-                }
-            }
-            """.trimIndent(),
-        )
-
-        // Vurderingen er ugyldig, og riveren hopper over meldingen i stedet for å svare med en løsning
-        assertEquals(0, outbox.alle().size)
-    }
-
-    @Test
     fun `eliminerer forsikring hvor skjæringstidspunkt er etter tom`() {
         insertBetaltVedfrivt(
             IF01_AGNR_FNR = 3020112345L,
             IF10_TYPE = '2',
             IF10_FORSTOM = 20251231,
+        )
+
+        val rettighetskategoriId = UUID.randomUUID()
+        stubRettighetskategoriSN(
+            rettighetskategoriId = rettighetskategoriId,
+            fødselsnummer = "01020312345",
+            tilleggskategorier = emptyList(),
         )
 
         testForsikringsvurderingOgForventResultat(
@@ -525,7 +510,7 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
                 "vedtaksperiodeId": "${UUID.randomUUID()}",
                 "behandlingId": "${UUID.randomUUID()}",
                 "Forsikringsvurdering" : {
-                    "spesielleYrkesgrupper": [],
+                    "rettighetskategoriId": "$rettighetskategoriId",
                     "skjæringstidspunkt": "2026-01-01"
                 }
             }
@@ -554,6 +539,13 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
             IF10_FORSTOM = 20260101,
         )
 
+        val rettighetskategoriId = UUID.randomUUID()
+        stubRettighetskategoriSN(
+            rettighetskategoriId = rettighetskategoriId,
+            fødselsnummer = "01020312345",
+            tilleggskategorier = emptyList(),
+        )
+
         testForsikringsvurderingOgForventResultat(
             """
             {
@@ -563,7 +555,7 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
                 "vedtaksperiodeId": "${UUID.randomUUID()}",
                 "behandlingId": "${UUID.randomUUID()}",
                 "Forsikringsvurdering" : {
-                    "spesielleYrkesgrupper": [],
+                    "rettighetskategoriId": "$rettighetskategoriId",
                     "skjæringstidspunkt": "2026-01-01"
                 }
             }
@@ -592,6 +584,13 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
             IF10_FORSTOM = 20260102,
         )
 
+        val rettighetskategoriId = UUID.randomUUID()
+        stubRettighetskategoriSN(
+            rettighetskategoriId = rettighetskategoriId,
+            fødselsnummer = "01020312345",
+            tilleggskategorier = emptyList(),
+        )
+
         testForsikringsvurderingOgForventResultat(
             """
             {
@@ -601,7 +600,7 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
                 "vedtaksperiodeId": "${UUID.randomUUID()}",
                 "behandlingId": "${UUID.randomUUID()}",
                 "Forsikringsvurdering" : {
-                    "spesielleYrkesgrupper": [],
+                    "rettighetskategoriId": "$rettighetskategoriId",
                     "skjæringstidspunkt": "2026-01-01"
                 }
             }
@@ -630,6 +629,13 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
             IF10_FORSTOM = 0,
         )
 
+        val rettighetskategoriId = UUID.randomUUID()
+        stubRettighetskategoriSN(
+            rettighetskategoriId = rettighetskategoriId,
+            fødselsnummer = "01020312345",
+            tilleggskategorier = emptyList(),
+        )
+
         testForsikringsvurderingOgForventResultat(
             """
             {
@@ -639,7 +645,7 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
                 "vedtaksperiodeId": "${UUID.randomUUID()}",
                 "behandlingId": "${UUID.randomUUID()}",
                 "Forsikringsvurdering" : {
-                    "spesielleYrkesgrupper": [],
+                    "rettighetskategoriId": "$rettighetskategoriId",
                     "skjæringstidspunkt": "2026-01-01"
                 }
             }
@@ -668,6 +674,13 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
             IF10_VIRKDATO = 20260102,
         )
 
+        val rettighetskategoriId = UUID.randomUUID()
+        stubRettighetskategoriSN(
+            rettighetskategoriId = rettighetskategoriId,
+            fødselsnummer = "01020312345",
+            tilleggskategorier = emptyList(),
+        )
+
         testForsikringsvurderingOgForventResultat(
             """
             {
@@ -677,7 +690,7 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
                 "vedtaksperiodeId": "${UUID.randomUUID()}",
                 "behandlingId": "${UUID.randomUUID()}",
                 "Forsikringsvurdering" : {
-                    "spesielleYrkesgrupper": [],
+                    "rettighetskategoriId": "$rettighetskategoriId",
                     "skjæringstidspunkt": "2026-01-01"
                 }
             }
@@ -706,6 +719,13 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
             IF10_VIRKDATO = 20260101,
         )
 
+        val rettighetskategoriId = UUID.randomUUID()
+        stubRettighetskategoriSN(
+            rettighetskategoriId = rettighetskategoriId,
+            fødselsnummer = "01020312345",
+            tilleggskategorier = emptyList(),
+        )
+
         testForsikringsvurderingOgForventResultat(
             """
             {
@@ -715,7 +735,7 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
                 "vedtaksperiodeId": "${UUID.randomUUID()}",
                 "behandlingId": "${UUID.randomUUID()}",
                 "Forsikringsvurdering" : {
-                    "spesielleYrkesgrupper": [],
+                    "rettighetskategoriId": "$rettighetskategoriId",
                     "skjæringstidspunkt": "2026-01-01"
                 }
             }
@@ -744,6 +764,13 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
             IF10_VIRKDATO = 20251231,
         )
 
+        val rettighetskategoriId = UUID.randomUUID()
+        stubRettighetskategoriSN(
+            rettighetskategoriId = rettighetskategoriId,
+            fødselsnummer = "01020312345",
+            tilleggskategorier = emptyList(),
+        )
+
         testForsikringsvurderingOgForventResultat(
             """
             {
@@ -753,7 +780,7 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
                 "vedtaksperiodeId": "${UUID.randomUUID()}",
                 "behandlingId": "${UUID.randomUUID()}",
                 "Forsikringsvurdering" : {
-                    "spesielleYrkesgrupper": [],
+                    "rettighetskategoriId": "$rettighetskategoriId",
                     "skjæringstidspunkt": "2026-01-01"
                 }
             }
@@ -778,6 +805,13 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
     fun `eliminerer forsikring som aldri er betalt`() {
         insertVedfrivt(IF01_AGNR_FNR = 3020112345L, IF10_TYPE = '2')
 
+        val rettighetskategoriId = UUID.randomUUID()
+        stubRettighetskategoriSN(
+            rettighetskategoriId = rettighetskategoriId,
+            fødselsnummer = "01020312345",
+            tilleggskategorier = emptyList(),
+        )
+
         testForsikringsvurderingOgForventResultat(
             """
             {
@@ -787,7 +821,7 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
                 "vedtaksperiodeId": "${UUID.randomUUID()}",
                 "behandlingId": "${UUID.randomUUID()}",
                 "Forsikringsvurdering" : {
-                    "spesielleYrkesgrupper": [],
+                    "rettighetskategoriId": "$rettighetskategoriId",
                     "skjæringstidspunkt": "2026-01-01"
                 }
             }
@@ -813,6 +847,13 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
         insertVedfrivt(IF01_AGNR_FNR = 3020112345L, IF10_FORSFOM_SEQ = 0, IF10_TYPE = '2')
         insertFkonto12(IF01_AGNR_FNR = 3020112345L, IF10_FORSFOM_SEQ = 0, IF12_BETDATO_SEQ = 1, IF12_BETDATO = null)
 
+        val rettighetskategoriId = UUID.randomUUID()
+        stubRettighetskategoriSN(
+            rettighetskategoriId = rettighetskategoriId,
+            fødselsnummer = "01020312345",
+            tilleggskategorier = emptyList(),
+        )
+
         testForsikringsvurderingOgForventResultat(
             """
             {
@@ -822,7 +863,7 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
                 "vedtaksperiodeId": "${UUID.randomUUID()}",
                 "behandlingId": "${UUID.randomUUID()}",
                 "Forsikringsvurdering" : {
-                    "spesielleYrkesgrupper": [],
+                    "rettighetskategoriId": "$rettighetskategoriId",
                     "skjæringstidspunkt": "2026-01-01"
                 }
             }
@@ -848,6 +889,13 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
         insertVedfrivt(IF01_AGNR_FNR = 3020112345L, IF10_FORSFOM_SEQ = 0, IF10_TYPE = '2')
         insertFkonto12(IF01_AGNR_FNR = 3020112345L, IF10_FORSFOM_SEQ = 0, IF12_BETDATO_SEQ = 1, IF12_BETDATO = 0)
 
+        val rettighetskategoriId = UUID.randomUUID()
+        stubRettighetskategoriSN(
+            rettighetskategoriId = rettighetskategoriId,
+            fødselsnummer = "01020312345",
+            tilleggskategorier = emptyList(),
+        )
+
         testForsikringsvurderingOgForventResultat(
             """
             {
@@ -857,7 +905,7 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
                 "vedtaksperiodeId": "${UUID.randomUUID()}",
                 "behandlingId": "${UUID.randomUUID()}",
                 "Forsikringsvurdering" : {
-                    "spesielleYrkesgrupper": [],
+                    "rettighetskategoriId": "$rettighetskategoriId",
                     "skjæringstidspunkt": "2026-01-01"
                 }
             }
@@ -887,6 +935,13 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
             IF10_VIRKDATO = 20260201,
         )
 
+        val rettighetskategoriId = UUID.randomUUID()
+        stubRettighetskategoriSN(
+            rettighetskategoriId = rettighetskategoriId,
+            fødselsnummer = "01020312345",
+            tilleggskategorier = emptyList(),
+        )
+
         testForsikringsvurderingOgForventResultat(
             """
             {
@@ -896,7 +951,7 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
                 "vedtaksperiodeId": "${UUID.randomUUID()}",
                 "behandlingId": "${UUID.randomUUID()}",
                 "Forsikringsvurdering" : {
-                    "spesielleYrkesgrupper": [],
+                    "rettighetskategoriId": "$rettighetskategoriId",
                     "skjæringstidspunkt": "2026-01-01"
                 }
             }
@@ -926,6 +981,13 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
             IF10_VIRKDATO = 20260201,
         )
 
+        val rettighetskategoriId = UUID.randomUUID()
+        stubRettighetskategoriSN(
+            rettighetskategoriId = rettighetskategoriId,
+            fødselsnummer = "01020312345",
+            tilleggskategorier = emptyList(),
+        )
+
         testForsikringsvurderingOgForventResultat(
             """
             {
@@ -935,7 +997,7 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
                 "vedtaksperiodeId": "${UUID.randomUUID()}",
                 "behandlingId": "${UUID.randomUUID()}",
                 "Forsikringsvurdering" : {
-                    "spesielleYrkesgrupper": [],
+                    "rettighetskategoriId": "$rettighetskategoriId",
                     "skjæringstidspunkt": "2026-01-01"
                 }
             }
@@ -965,6 +1027,13 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
             IF10_VIRKDATO = 20260101,
         )
 
+        val rettighetskategoriId = UUID.randomUUID()
+        stubRettighetskategoriSN(
+            rettighetskategoriId = rettighetskategoriId,
+            fødselsnummer = "01020312345",
+            tilleggskategorier = emptyList(),
+        )
+
         testForsikringsvurderingOgForventResultat(
             """
             {
@@ -974,7 +1043,7 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
                 "vedtaksperiodeId": "${UUID.randomUUID()}",
                 "behandlingId": "${UUID.randomUUID()}",
                 "Forsikringsvurdering" : {
-                    "spesielleYrkesgrupper": [],
+                    "rettighetskategoriId": "$rettighetskategoriId",
                     "skjæringstidspunkt": "2026-01-01"
                 }
             }
@@ -1004,6 +1073,13 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
             IF10_VIRKDATO = 20260101,
         )
 
+        val rettighetskategoriId = UUID.randomUUID()
+        stubRettighetskategoriSN(
+            rettighetskategoriId = rettighetskategoriId,
+            fødselsnummer = "01020312345",
+            tilleggskategorier = emptyList(),
+        )
+
         testForsikringsvurderingOgForventResultat(
             """
             {
@@ -1013,7 +1089,7 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
                 "vedtaksperiodeId": "${UUID.randomUUID()}",
                 "behandlingId": "${UUID.randomUUID()}",
                 "Forsikringsvurdering" : {
-                    "spesielleYrkesgrupper": [],
+                    "rettighetskategoriId": "$rettighetskategoriId",
                     "skjæringstidspunkt": "2026-01-01"
                 }
             }
@@ -1034,20 +1110,39 @@ internal class ForsikringsvurderingResultatBehovRiverTest {
         }
     }
 
+    private fun stubRettighetskategoriSN(
+        rettighetskategoriId: UUID,
+        fødselsnummer: String,
+        tilleggskategorier: List<String>,
+    ) {
+        rettighetskategoriWiremock.stubRettighetskategori(
+            rettighetskategoriId = rettighetskategoriId,
+            fødselsnummer = fødselsnummer,
+            hovedkategori = "SELVSTENDIG_NAERINGSDRIVENDE",
+            tilleggskategorier = tilleggskategorier,
+        )
+    }
+
     private fun opprettVurdering(
-        yrkesaktivitetstype: String,
-        spesielleYrkesgrupper: List<String> = emptyList(),
+        fødselsnummer: String,
+        tilleggskategorier: List<String> = emptyList(),
     ): String {
+        val rettighetskategoriId = UUID.randomUUID()
+        stubRettighetskategoriSN(
+            rettighetskategoriId = rettighetskategoriId,
+            fødselsnummer = fødselsnummer,
+            tilleggskategorier = tilleggskategorier,
+        )
         rapid.sendTestMessage(
             """
             {
                 "@behov": [ "Forsikringsvurdering" ],
-                "fødselsnummer": "01020312345",
-                "yrkesaktivitetstype": "$yrkesaktivitetstype",
+                "fødselsnummer": "$fødselsnummer",
+                "yrkesaktivitetstype": "SELVSTENDIG",
                 "vedtaksperiodeId": "${UUID.randomUUID()}",
                 "behandlingId": "${UUID.randomUUID()}",
                 "Forsikringsvurdering": {
-                    "spesielleYrkesgrupper": [ ${spesielleYrkesgrupper.joinToString(",") { "\"$it\"" }} ],
+                    "rettighetskategoriId": "$rettighetskategoriId",
                     "skjæringstidspunkt": "2026-01-01"
                 }
             }

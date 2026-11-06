@@ -8,25 +8,11 @@ data class ForsikringsvurderingBehovMelding(
     val fødselsnummer: String,
     val vedtaksperiodeId: UUID,
     val behandlingId: UUID,
-    val yrkesaktivitetstype: Yrkesaktivitetstype,
     @JsonProperty("Forsikringsvurdering")
     val forsikringsvurdering: Forsikringsvurdering,
 ) {
     data class Forsikringsvurdering(
-        val spesielleYrkesgrupper: Set<SpesiellYrkesgruppe>,
+        val rettighetskategoriId: UUID,
         val skjæringstidspunkt: LocalDate,
     )
-
-    enum class Yrkesaktivitetstype {
-        ARBEIDSTAKER,
-        FRILANS,
-        ARBEIDSLEDIG,
-        SELVSTENDIG,
-    }
-
-    enum class SpesiellYrkesgruppe {
-        FISKER_BLAD_B,
-        JORDBRUKER,
-        REINDRIFTER,
-    }
 }

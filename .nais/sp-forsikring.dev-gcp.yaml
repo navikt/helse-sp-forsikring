@@ -55,6 +55,8 @@ spec:
       value: api://dev-fss.oppgavehandtering.oppgave/.default
     - name: TILGANGSMASKINEN_SCOPE
       value: api://dev-gcp.tilgangsmaskin.populasjonstilgangskontroll/.default
+    - name: SP_RETTIGHETSKATEGORI_SCOPE
+      value: api://dev-gcp.tbd.sp-rettighetskategori/.default
   accessPolicy:
     outbound:
       external:

@@ -36,6 +36,7 @@ fun lagForsikringsvurdering(
     vedtaksperiodeId: UUID = UUID.randomUUID(),
     behandlingId: UUID = UUID.randomUUID(),
     forrigeForsikringsvurderingId: Forsikringsvurdering.Id? = null,
+    rettighetskategoriId: UUID? = null,
 ): Forsikringsvurdering =
     Forsikringsvurdering.fraLagring(
         id = id,
@@ -45,6 +46,7 @@ fun lagForsikringsvurdering(
                 yrkesaktivitetstype = yrkesaktivitetstype,
                 spesielleYrkesgrupper = spesielleYrkesgrupper,
                 skjæringstidspunkt = skjæringstidspunkt,
+                rettighetskategoriId = rettighetskategoriId,
             ),
         råkopiId = råkopiId,
         individuelleForsikringer = individuelleForsikringer,

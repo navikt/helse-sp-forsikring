@@ -28,7 +28,7 @@ inline fun <reified M> JsonMessage.medParsetMeldingOgTransaction(
 }
 
 inline fun <reified M> JsonMessage.medParsetMelding(
-    mdcMapping: Map<MdcKey, M.() -> Any?>,
+    mdcMapping: Map<MdcKey, M.() -> Any?> = emptyMap(),
     crossinline block: (M) -> Unit,
 ) {
     val meldingJson = toJson()

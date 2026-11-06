@@ -25,6 +25,7 @@ import no.nav.helse.sykepenger.forsikring.kafka.SelvstendigIngenDagerIgjenRiver
 import no.nav.helse.sykepenger.forsikring.kafka.SelvstendigUtbetaltEtterVentetidRiver
 import no.nav.helse.sykepenger.forsikring.kafka.VedtakFattetRiver
 import no.nav.helse.sykepenger.forsikring.leaderelection.NaisLeaderElection
+import no.nav.helse.sykepenger.forsikring.rettighetskategori.RettighetskategoriClient
 import no.nav.sykepenger.libs.logging.loggInfo
 import org.flywaydb.core.Flyway
 import java.net.URI
@@ -83,6 +84,13 @@ fun launchApplication(
             baseUrl = env.getValue("GOSYS_BASE_URL"),
             tokenClient = accessTokenProvider,
             gosysScope = env.getValue("GOSYS_SCOPE"),
+        )
+
+    val rettighetskategoriClient =
+        RettighetskategoriClient(
+            baseUrl = env.getValue("SP_RETTIGHETSKATEGORI_BASE_URL"),
+            tokenClient = accessTokenProvider,
+            scope = env.getValue("SP_RETTIGHETSKATEGORI_SCOPE"),
         )
 
     val versjonAvKode = env.getValue("NAIS_APP_IMAGE")
@@ -150,6 +158,7 @@ fun launchApplication(
                 spForsikringDataSource = spForsikringDataSource,
                 versjonAvKode = versjonAvKode,
                 outboxRepositoryFactory = outboxRepositoryFactory,
+                rettighetskategoriClient = rettighetskategoriClient,
             )
             ForsikringsvurderingResultatBehovRiver(
                 rapidsConnection = this,
