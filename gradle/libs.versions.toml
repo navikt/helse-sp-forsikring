@@ -30,7 +30,7 @@ tbd-libs-populasjonstilgangskontroll-provider-api = { module = "com.github.navik
 tbd-libs-populasjonstilgangskontroll-provider-tilgangsmaskinen = { module = "com.github.navikt.tbd-libs:populasjonstilgangskontroll-provider-tilgangsmaskinen", version.ref = "tbd-libs" }
 tbd-libs-retry = {module = "com.github.navikt.tbd-libs:retry", version.ref = "tbd-libs"}
 postgresql = "org.postgresql:postgresql:42.7.14"
-rapids-and-rivers = "com.github.navikt:rapids-and-rivers:2026091610031789545782"
+rapids-and-rivers = "com.github.navikt:rapids-and-rivers:2026110308421793691732"
 ojdbc11 = "com.oracle.database.jdbc:ojdbc11:23.26.4.0.0"
 
 mock-oauth2-server = "no.nav.security:mock-oauth2-server:6.1.4"
