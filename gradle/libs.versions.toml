@@ -34,14 +34,14 @@ rapids-and-rivers = "com.github.navikt:rapids-and-rivers:2026110308421793691732"
 ojdbc11 = "com.oracle.database.jdbc:ojdbc11:23.26.4.0.0"
 
 mock-oauth2-server = "no.nav.security:mock-oauth2-server:6.1.4"
-sykepengerLibs-logging = "no.nav.sykepenger.libs:logging:20261106.1049"
-sykepengerLibs-testing = "no.nav.sykepenger.libs:testing:20261106.1106"
+sykepengerLibs-logging = "no.nav.sykepenger.libs:logging:20261116.0849"
+sykepengerLibs-testing = "no.nav.sykepenger.libs:testing:20261116.0849"
 tbd-libs-rapids-and-rivers-test = { module = "com.github.navikt.tbd-libs:rapids-and-rivers-test", version.ref = "tbd-libs" }
 testcontainers-kafka = { module = "org.testcontainers:testcontainers-kafka", version.ref = "testcontainers" }
 testcontainers-postgres = { module = "org.testcontainers:testcontainers-postgresql", version.ref = "testcontainers" }
 testcontainers-oracle-free = { module = "org.testcontainers:testcontainers-oracle-free", version.ref = "testcontainers" }
 wiremock = "org.wiremock:wiremock-jetty12:3.13.2"
-mockk = "io.mockk:mockk:1.14.11"
+mockk = "io.mockk:mockk:1.14.12"
 
 [bundles]
 ktor-server = [
